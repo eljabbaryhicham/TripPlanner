@@ -67,7 +67,7 @@ const ServiceDetailModal = ({
   }, [date, service]);
   
   React.useEffect(() => {
-    if (isOpen) {
+    if (!isOpen) {
       setDate(undefined);
     }
   }, [isOpen]);
@@ -76,7 +76,7 @@ const ServiceDetailModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <div className="relative w-full aspect-[16/9] rounded-t-lg overflow-hidden -mt-6">
             <Image
@@ -172,7 +172,11 @@ const ServiceDetailModal = ({
                  )}
                </Button>
              </PopoverTrigger>
-             <PopoverContent className="w-auto p-0" align="start">
+             <PopoverContent 
+              className="w-auto p-0" 
+              align="start"
+              onPointerDownOutside={(e) => e.preventDefault()}
+             >
                <Calendar
                  initialFocus
                  mode="range"
