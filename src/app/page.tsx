@@ -15,11 +15,11 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="h-screen snap-y snap-mandatory overflow-y-scroll">
       <Header />
-      <main className="flex-1">
+      <main>
         <section
-          className="relative flex min-h-screen items-center justify-center text-white"
+          className="relative flex min-h-screen snap-start items-center justify-center text-white"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
@@ -44,90 +44,92 @@ export default function Home() {
 
         <section
           id="services"
-          className="flex min-h-screen items-center py-16 md:py-24"
+          className="flex min-h-screen snap-start flex-col"
         >
-          <div className="container mx-auto px-4">
-            <h2 className="mb-12 text-center font-headline text-3xl font-bold md:text-4xl">
-              Best Service Offers
-            </h2>
-            <Tabs defaultValue="all" className="w-full">
-              <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 mb-8">
-                <TabsTrigger value="all">All</TabsTrigger>
-                <TabsTrigger value="cars">
-                  <Car className="w-4 h-4 mr-2" />
-                  Cars
-                </TabsTrigger>
-                <TabsTrigger value="hotels">
-                  <BedDouble className="w-4 h-4 mr-2" />
-                  Hotels
-                </TabsTrigger>
-                <TabsTrigger value="transport">
-                  <Briefcase className="w-4 h-4 mr-2" />
-                  Pickup
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="all">
-                <ServiceList services={bestOffers} showBestOfferBadge={true} />
-              </TabsContent>
-              <TabsContent value="cars">
-                <div className="space-y-8">
-                  <ServiceList
-                    services={bestOffers.filter(
-                      (service) => service.category === 'cars'
-                    )}
-                    showBestOfferBadge={true}
-                  />
-                  <div className="text-center">
-                    <Button asChild variant="outline">
-                      <Link href="/services/cars">
-                        Show More Cars
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
+          <div className="flex flex-1 items-center">
+            <div className="container mx-auto px-4">
+              <h2 className="mb-12 text-center font-headline text-3xl font-bold md:text-4xl">
+                Best Service Offers
+              </h2>
+              <Tabs defaultValue="all" className="w-full">
+                <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 mb-8">
+                  <TabsTrigger value="all">All</TabsTrigger>
+                  <TabsTrigger value="cars">
+                    <Car className="w-4 h-4 mr-2" />
+                    Cars
+                  </TabsTrigger>
+                  <TabsTrigger value="hotels">
+                    <BedDouble className="w-4 h-4 mr-2" />
+                    Hotels
+                  </TabsTrigger>
+                  <TabsTrigger value="transport">
+                    <Briefcase className="w-4 h-4 mr-2" />
+                    Pickup
+                  </TabsTrigger>
+                </TabsList>
+                <TabsContent value="all">
+                  <ServiceList services={bestOffers} showBestOfferBadge={true} />
+                </TabsContent>
+                <TabsContent value="cars">
+                  <div className="space-y-8">
+                    <ServiceList
+                      services={bestOffers.filter(
+                        (service) => service.category === 'cars'
+                      )}
+                      showBestOfferBadge={true}
+                    />
+                    <div className="text-center">
+                      <Button asChild variant="outline">
+                        <Link href="/services/cars">
+                          Show More Cars
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="hotels">
-                <div className="space-y-8">
-                  <ServiceList
-                    services={bestOffers.filter(
-                      (service) => service.category === 'hotels'
-                    )}
-                    showBestOfferBadge={true}
-                  />
-                  <div className="text-center">
-                    <Button asChild variant="outline">
-                      <Link href="/services/hotels">
-                        Show More Hotels
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
+                </TabsContent>
+                <TabsContent value="hotels">
+                  <div className="space-y-8">
+                    <ServiceList
+                      services={bestOffers.filter(
+                        (service) => service.category === 'hotels'
+                      )}
+                      showBestOfferBadge={true}
+                    />
+                    <div className="text-center">
+                      <Button asChild variant="outline">
+                        <Link href="/services/hotels">
+                          Show More Hotels
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
-              <TabsContent value="transport">
-                <div className="space-y-8">
-                  <ServiceList
-                    services={bestOffers.filter(
-                      (service) => service.category === 'transport'
-                    )}
-                    showBestOfferBadge={true}
-                  />
-                  <div className="text-center">
-                    <Button asChild variant="outline">
-                      <Link href="/services/transport">
-                        View Details & Book
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
+                </TabsContent>
+                <TabsContent value="transport">
+                  <div className="space-y-8">
+                    <ServiceList
+                      services={bestOffers.filter(
+                        (service) => service.category === 'transport'
+                      )}
+                      showBestOfferBadge={true}
+                    />
+                    <div className="text-center">
+                      <Button asChild variant="outline">
+                        <Link href="/services/transport">
+                          View Details & Book
+                          <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
+          <Footer />
         </section>
       </main>
-      <Footer />
     </div>
   );
 }

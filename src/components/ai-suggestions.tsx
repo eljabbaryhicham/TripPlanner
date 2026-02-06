@@ -6,7 +6,7 @@ import { Compass } from 'lucide-react';
 const AiSuggestions = () => {
   return (
     <section
-      className="relative flex min-h-screen items-center justify-center text-white"
+      className="relative flex min-h-screen snap-start items-center justify-center text-white"
       style={{
         backgroundImage:
           "url('https://images.unsplash.com/photo-1527613426441-4da17471b66d?q=80&w=2052&auto=format&fit=crop')",
