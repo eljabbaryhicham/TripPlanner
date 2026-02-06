@@ -14,7 +14,6 @@ import { Badge } from '@/components/ui/badge';
 import type { Service } from '@/lib/types';
 import ReservationFlow from './reservation-flow';
 import {
-  differenceInCalendarDays,
   getLocalTimeZone,
   parseDate,
   today,
@@ -46,11 +45,17 @@ const ServiceDetailModal = ({
 
         if (to.compare(from) <= 0) return { days: null, totalPrice: null };
 
+        const timeZone = getLocalTimeZone();
+        const fromDate = from.toDate(timeZone);
+        const toDate = to.toDate(timeZone);
+
+        const dayDifference = Math.round((toDate.getTime() - fromDate.getTime()) / (1000 * 3600 * 24));
+
         let dayCount;
         if (service.priceUnit === 'night') {
-          dayCount = differenceInCalendarDays(to, from);
+          dayCount = dayDifference;
         } else {
-          dayCount = differenceInCalendarDays(to, from) + 1;
+          dayCount = dayDifference + 1;
         }
 
         if (dayCount > 0) {
