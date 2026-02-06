@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useFormState } from 'react-dom';
+import { useActionState } from 'react';
 import { services } from '@/lib/data';
 import { logout, updateWhatsappNumber, toggleBestOffer } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -16,7 +15,7 @@ import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 
 function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
-    const [state, formAction] = useFormState(updateWhatsappNumber, { error: null, success: false });
+    const [state, formAction] = useActionState(updateWhatsappNumber, { error: null, success: false });
     const { toast } = useToast();
 
     React.useEffect(() => {
