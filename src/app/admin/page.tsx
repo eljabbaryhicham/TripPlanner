@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useEffect, useState, useRef } from 'react';
+import { useActionState, useEffect, useState, useRef, use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { services } from '@/lib/data';
 import {
@@ -24,6 +24,7 @@ import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
+import { useFormStatus } from 'react-dom';
 
 function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
     const [state, formAction] = useActionState(updateWhatsappNumber, { error: null, success: false });
@@ -70,12 +71,10 @@ function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
 }
 
 function BestOfferToggle({ serviceId, isBestOffer }: { serviceId: string; isBestOffer: boolean }) {
-    // Correctly use useActionState to manage form state and actions.
     const [state, formAction] = useActionState(toggleBestOffer, { error: null, success: false });
     const formRef = React.useRef<HTMLFormElement>(null);
     const { toast } = useToast();
 
-    // Effect to show toast notifications based on the result of the server action.
     React.useEffect(() => {
         if (state.success) {
             toast({
@@ -92,14 +91,11 @@ function BestOfferToggle({ serviceId, isBestOffer }: { serviceId: string; isBest
     }, [state, toast]);
 
     return (
-        // The form's action is now correctly bound to the `formAction` from `useActionState`.
         <form action={formAction} ref={formRef}>
             <input type="hidden" name="serviceId" value={serviceId} />
             <Checkbox
                 name="isBestOffer"
                 defaultChecked={isBestOffer}
-                // When the checkbox state changes, programmatically submit the form.
-                // This will trigger the server action.
                 onCheckedChange={() => {
                     setTimeout(() => formRef.current?.requestSubmit(), 50);
                 }}
@@ -144,10 +140,16 @@ function AddAdminForm({ onAdminAdded }: { onAdminAdded: () => void }) {
 }
 
 
+function RemoveAdminButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" variant="destructive" size="sm" disabled={pending}><UserX /></Button>
+    )
+}
+
 function RemoveAdminForm({ adminId, onActionComplete }: { adminId: string, onActionComplete: () => void }) {
     const [state, formAction] = useActionState(removeAdmin, { error: null, success: false });
     const { toast } = useToast();
-    const { pending } = useFormStatus();
 
     useEffect(() => {
         if (state.success) {
@@ -162,15 +164,21 @@ function RemoveAdminForm({ adminId, onActionComplete }: { adminId: string, onAct
     return (
         <form action={formAction}>
             <input type="hidden" name="id" value={adminId} />
-            <Button type="submit" variant="destructive" size="sm" disabled={pending}><UserX /></Button>
+            <RemoveAdminButton />
         </form>
     );
+}
+
+function SetSuperAdminButton() {
+    const { pending } = useFormStatus();
+    return (
+        <Button type="submit" variant="outline" size="sm" disabled={pending}><UserCheck /></Button>
+    )
 }
 
 function SetSuperAdminForm({ adminId, onActionComplete }: { adminId: string, onActionComplete: () => void }) {
     const [state, formAction] = useActionState(setSuperAdmin, { error: null, success: false });
     const { toast } = useToast();
-    const { pending } = useFormStatus();
 
     useEffect(() => {
         if (state.success) {
@@ -185,7 +193,7 @@ function SetSuperAdminForm({ adminId, onActionComplete }: { adminId: string, onA
     return (
         <form action={formAction}>
             <input type="hidden" name="id" value={adminId} />
-            <Button type="submit" variant="outline" size="sm" disabled={pending}><UserCheck /></Button>
+            <SetSuperAdminButton />
         </form>
     );
 }
