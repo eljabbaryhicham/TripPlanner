@@ -2,37 +2,65 @@
 
 import Link from 'next/link';
 import { BedDouble, Car, Plane, Mountain } from 'lucide-react';
+import * as React from 'react';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
+const NavLink = ({
+  href,
+  children,
+  label,
+}: {
+  href: string;
+  children: React.ReactNode;
+  label: string;
+}) => {
+  const pathname = usePathname();
+  const isActive = pathname === href;
+
+  return (
+    <div className="group relative flex flex-col items-center">
+      <Link href={href}>
+        <div
+          className={cn(
+            'flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-200 ease-in-out group-hover:-translate-y-2 group-hover:scale-110',
+            isActive
+              ? 'bg-primary/20'
+              : 'bg-background/80 group-hover:bg-secondary/50'
+          )}
+        >
+          {children}
+        </div>
+      </Link>
+      <span className="absolute -bottom-6 text-xs text-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+        {label}
+      </span>
+      {isActive && (
+        <div className="absolute -bottom-2 h-1 w-1 rounded-full bg-foreground"></div>
+      )}
+    </div>
+  );
+};
 
 const Header = () => {
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container mx-auto flex h-14 max-w-screen-2xl items-center px-4">
-        <Link href="/" className="mr-6 flex items-center space-x-2">
-          <Mountain className="h-6 w-6" />
-          <span className="font-bold font-headline">TriPlanner</span>
-        </Link>
-        <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-          <Link
-            href="/services/cars"
-            className="transition-colors hover:text-foreground/80 text-foreground/60"
-          >
-            Cars
-          </Link>
-          <Link
-            href="/services/hotels"
-            className="transition-colors hover:text-foreground/80 text-foreground/60"
-          >
-            Hotels
-          </Link>
-          <Link
-            href="/services/transport"
-            className="transition-colors hover:text-foreground/80 text-foreground/60"
-          >
-            Transport
-          </Link>
-        </nav>
-      </div>
-    </header>
+    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
+      <nav className="flex h-20 items-start justify-center gap-4 rounded-3xl border bg-background/50 p-3 shadow-lg backdrop-blur-md">
+        <NavLink href="/" label="Home">
+          <Mountain className="h-7 w-7 text-foreground" />
+        </NavLink>
+        <div className="mx-1 h-10 self-center w-px bg-border" />
+        <NavLink href="/services/cars" label="Cars">
+          <Car className="h-7 w-7 text-foreground" />
+        </NavLink>
+        <NavLink href="/services/hotels" label="Hotels">
+          <BedDouble className="h-7 w-7 text-foreground" />
+        </NavLink>
+        <NavLink href="/services/transport" label="Transport">
+          <Plane className="h-7 w-7 text-foreground" />
+        </NavLink>
+      </nav>
+    </div>
   );
 };
 
