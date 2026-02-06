@@ -46,11 +46,11 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
-export async function login(prevState: { error: string | null }, formData: FormData) {
+export async function login(prevState: { error: string | null, success: boolean }, formData: FormData) {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return { error: 'Invalid login or password format.' };
+    return { error: 'Invalid login or password format.', success: false };
   }
 
   const { login, password } = parsed.data;
@@ -59,7 +59,7 @@ export async function login(prevState: { error: string | null }, formData: FormD
   const foundAdmin = admins.find((admin: any) => admin.login === login && admin.password === password);
 
   if (!foundAdmin) {
-    return { error: 'Invalid login or password.' };
+    return { error: 'Invalid login or password.', success: false };
   }
 
   const userPayload = { id: foundAdmin.id, login: foundAdmin.login, role: foundAdmin.role };
@@ -71,7 +71,7 @@ export async function login(prevState: { error: string | null }, formData: FormD
     path: '/',
   });
 
-  redirect('/admin');
+  return { error: null, success: true };
 }
 
 export async function logout() {

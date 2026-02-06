@@ -1,7 +1,8 @@
 'use client';
 
 import { useFormStatus } from 'react-dom';
-import { useActionState } from 'react';
+import { useActionState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { login } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -24,7 +25,14 @@ function LoginButton() {
 }
 
 export default function LoginPage() {
-  const [state, formAction] = useActionState(login, { error: null });
+  const router = useRouter();
+  const [state, formAction] = useActionState(login, { error: null, success: false });
+
+  useEffect(() => {
+    if (state.success) {
+      router.push('/admin');
+    }
+  }, [state.success, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
