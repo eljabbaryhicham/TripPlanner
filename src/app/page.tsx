@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Car, BedDouble, Plane, ArrowRight } from 'lucide-react';
+import { Car, BedDouble, Briefcase, ArrowRight } from 'lucide-react';
 
 import { bestOffers } from '@/lib/data';
 
@@ -49,7 +49,7 @@ export default function Home() {
                   Hotels
                 </TabsTrigger>
                 <TabsTrigger value="transport">
-                  <Plane className="w-4 h-4 mr-2" />
+                  <Briefcase className="w-4 h-4 mr-2" />
                   Pickup
                 </TabsTrigger>
               </TabsList>
