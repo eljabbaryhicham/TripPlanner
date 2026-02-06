@@ -15,7 +15,7 @@ import { Button } from '@/components/ui/button';
 
 export default function Home() {
   return (
-    <div className="h-screen snap-y snap-proximity overflow-y-scroll scroll-smooth">
+    <div className="h-screen snap-y snap-mandatory overflow-y-scroll scroll-smooth">
       <Header />
       <main>
         <section
