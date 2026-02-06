@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useActionState } from 'react';
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,7 +15,7 @@ import { ServiceEditor } from './service-editor';
 
 function DeleteServiceForm({ serviceId }: { serviceId: string }) {
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(deleteService, { error: null, success: false });
+    const [state, formAction] = useActionState(deleteService, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {

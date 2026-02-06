@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { saveService } from '@/lib/actions';
 import type { Service } from '@/lib/types';
@@ -34,7 +35,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
     const { toast } = useToast();
     const isEditing = !!service;
-    const [state, formAction] = React.useActionState(saveService, { error: null, success: false });
+    const [state, formAction] = useActionState(saveService, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {
