@@ -69,7 +69,7 @@ const ServiceDetailModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl">
+      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <div className="relative w-full aspect-[16/9] rounded-t-lg overflow-hidden -mt-6">
             <Image
