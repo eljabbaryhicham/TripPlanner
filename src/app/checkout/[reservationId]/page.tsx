@@ -1,9 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
-import Link from 'next/link';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -26,6 +25,7 @@ type Reservation = {
 
 const CheckoutPage = () => {
     const { reservationId } = useParams();
+    const router = useRouter();
     const firestore = useFirestore();
 
     const reservationRef = useMemoFirebase(() => {
@@ -103,11 +103,9 @@ const CheckoutPage = () => {
                             )}
 
                             <div className="mt-4 text-center">
-                                <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
-                                    <Link href="/">
-                                        <XCircle className="mr-2 h-4 w-4" />
-                                        Cancel Checkout
-                                    </Link>
+                                <Button variant="ghost" className="text-muted-foreground hover:text-foreground" onClick={() => router.back()}>
+                                    <XCircle className="mr-2 h-4 w-4" />
+                                    Cancel Checkout
                                 </Button>
                             </div>
                         </CardContent>
