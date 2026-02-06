@@ -8,6 +8,7 @@ import type { Service } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { slugify } from '@/lib/utils';
 
 interface ServiceCardProps {
   service: Service;
@@ -60,7 +61,7 @@ const ServiceCard = ({
             </span>
           </div>
           <Button asChild variant="outline">
-            <Link href={`${pathname}?service=${service.id}`} scroll={false}>
+            <Link href={`${pathname}?service=${slugify(service.name)}`} scroll={false}>
               Book
             </Link>
           </Button>

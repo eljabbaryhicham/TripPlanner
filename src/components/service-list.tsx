@@ -5,6 +5,7 @@ import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { Service } from '@/lib/types';
 import ServiceCard from './service-card';
 import ServiceDetailModal from './service-detail-modal';
+import { slugify } from '@/lib/utils';
 
 interface ServiceListProps {
   services: Service[];
@@ -19,12 +20,12 @@ const ServiceList = ({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const serviceId = searchParams.get('service');
+  const serviceSlug = searchParams.get('service');
 
   const selectedService = React.useMemo(() => {
-    if (!serviceId) return null;
-    return services.find((s) => s.id === serviceId) ?? null;
-  }, [serviceId, services]);
+    if (!serviceSlug) return null;
+    return services.find((s) => slugify(s.name) === serviceSlug) ?? null;
+  }, [serviceSlug, services]);
 
   const handleClose = () => {
     router.replace(pathname, { scroll: false });
