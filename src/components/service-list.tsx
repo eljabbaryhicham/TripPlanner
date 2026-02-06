@@ -26,12 +26,6 @@ const ServiceList = ({
     return services.find((s) => s.id === serviceId) ?? null;
   }, [serviceId, services]);
 
-  const handleSelectService = (service: Service) => {
-    // Using `replace` is better for modals to not pollute browser history.
-    // The user can still use the back button to go to the previous page.
-    router.replace(`${pathname}?service=${service.id}`, { scroll: false });
-  };
-
   const handleClose = () => {
     router.replace(pathname, { scroll: false });
   };
@@ -43,7 +37,6 @@ const ServiceList = ({
           <ServiceCard
             key={service.id}
             service={service}
-            onSelect={handleSelectService}
             isBestOffer={showBestOfferBadge}
           />
         ))}

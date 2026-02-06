@@ -1,4 +1,8 @@
+'use client';
+
 import Image from 'next/image';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { MapPin, DollarSign, Star } from 'lucide-react';
 import type { Service } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,15 +11,14 @@ import { Badge } from '@/components/ui/badge';
 
 interface ServiceCardProps {
   service: Service;
-  onSelect: (service: Service) => void;
   isBestOffer?: boolean;
 }
 
 const ServiceCard = ({
   service,
-  onSelect,
   isBestOffer = false,
 }: ServiceCardProps) => {
+  const pathname = usePathname();
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 flex flex-col">
       <CardHeader className="p-0">
@@ -56,8 +59,10 @@ const ServiceCard = ({
               /{service.priceUnit}
             </span>
           </div>
-          <Button variant="outline" onClick={() => onSelect(service)}>
-            Book
+          <Button asChild variant="outline">
+            <Link href={`${pathname}?service=${service.id}`} scroll={false}>
+              Book
+            </Link>
           </Button>
         </div>
       </CardContent>
