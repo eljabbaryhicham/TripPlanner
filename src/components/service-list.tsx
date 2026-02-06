@@ -7,9 +7,13 @@ import ServiceDetailModal from './service-detail-modal';
 
 interface ServiceListProps {
   services: Service[];
+  showBestOfferBadge?: boolean;
 }
 
-const ServiceList = ({ services }: ServiceListProps) => {
+const ServiceList = ({
+  services,
+  showBestOfferBadge = false,
+}: ServiceListProps) => {
   const [selectedService, setSelectedService] = React.useState<Service | null>(
     null
   );
@@ -22,6 +26,7 @@ const ServiceList = ({ services }: ServiceListProps) => {
             key={service.id}
             service={service}
             onSelect={setSelectedService}
+            isBestOffer={showBestOfferBadge}
           />
         ))}
       </div>
