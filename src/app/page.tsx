@@ -49,7 +49,7 @@ export default function Home() {
               variant="outline"
               className="mt-8 border-white/50 bg-transparent text-white hover:bg-white/10 hover:text-white backdrop-blur-sm"
             >
-              <Link href="#services">
+              <Link href="#best-services">
                 Explore Services
                 <ArrowDown className="ml-2 h-5 w-5" />
               </Link>
@@ -60,7 +60,7 @@ export default function Home() {
         <AiSuggestions />
 
         <section
-          id="services"
+          id="best-services"
           className="flex min-h-screen snap-start flex-col"
         >
           <div className="flex flex-1 items-center">
