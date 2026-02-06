@@ -9,22 +9,13 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
-import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Service } from '@/lib/types';
 import ReservationFlow from './reservation-flow';
-import { differenceInDays, format } from 'date-fns';
-import type { DateRange } from 'react-day-picker';
-import { cn } from '@/lib/utils';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { Calendar } from '@/components/ui/calendar';
+import { differenceInDays } from 'date-fns';
 import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface ServiceDetailModalProps {
   service: Service | null;
@@ -37,38 +28,50 @@ const ServiceDetailModal = ({
   isOpen,
   onClose,
 }: ServiceDetailModalProps) => {
-  const [date, setDate] = React.useState<DateRange | undefined>();
+  const [startDate, setStartDate] = React.useState('');
+  const [endDate, setEndDate] = React.useState('');
 
-  // Memoize today's date to prevent creating it on every render, ensuring stability.
   const today = React.useMemo(() => {
     const d = new Date();
-    d.setHours(0, 0, 0, 0);
-    return d;
+    // Adjust for timezone to get today's date in local time
+    const offset = d.getTimezoneOffset();
+    const localDate = new Date(d.getTime() - offset * 60 * 1000);
+    return localDate.toISOString().split('T')[0];
   }, []);
 
   const { days, totalPrice } = React.useMemo(() => {
-    if (service && date?.from && date?.to) {
+    if (service && startDate && endDate) {
+      const from = new Date(startDate);
+      const to = new Date(endDate);
+      if (to <= from) return { days: null, totalPrice: null };
+
       let dayCount;
-      // For hotels, we count nights (exclusive end date).
       if (service.priceUnit === 'night') {
-        dayCount = differenceInDays(date.to, date.from);
+        dayCount = differenceInDays(to, from);
       } else {
-        // For cars, we count days (inclusive).
-        dayCount = differenceInDays(date.to, date.from) + 1;
+        dayCount = differenceInDays(to, from) + 1;
       }
 
-      // Ensure the duration is valid before calculating a price.
       if (dayCount > 0) {
         return { days: dayCount, totalPrice: dayCount * service.price };
       }
     }
-    // If no valid date range is selected, return null for days and totalPrice.
     return { days: null, totalPrice: null };
-  }, [date, service]);
-  
+  }, [startDate, endDate, service]);
+
+  const dateForFlow = React.useMemo(() => {
+    if (!startDate || !endDate) return undefined;
+    const from = new Date(`${startDate}T00:00:00`);
+    const to = new Date(`${endDate}T00:00:00`);
+    if (to <= from) return undefined;
+    return { from, to };
+  }, [startDate, endDate]);
+
+
   React.useEffect(() => {
     if (!isOpen) {
-      setDate(undefined);
+      setStartDate('');
+      setEndDate('');
     }
   }, [isOpen]);
 
@@ -145,56 +148,37 @@ const ServiceDetailModal = ({
         </div>
 
         {(service.category === 'cars' || service.category === 'hotels') && (
-           <div className="grid gap-2">
-           <Label htmlFor="dates">Reservation Dates</Label>
-           <Popover>
-             <PopoverTrigger asChild>
-               <Button
-                 id="dates"
-                 variant={'outline'}
-                 className={cn(
-                   'w-full justify-start text-left font-normal',
-                   !date && 'text-muted-foreground'
-                 )}
-               >
-                 <CalendarIcon className="mr-2 h-4 w-4" />
-                 {date?.from ? (
-                   date.to ? (
-                     <>
-                       {format(date.from, 'LLL dd, y')} -{' '}
-                       {format(date.to, 'LLL dd, y')}
-                     </>
-                   ) : (
-                     format(date.from, 'LLL dd, y')
-                   )
-                 ) : (
-                   <span>Pick a date range</span>
-                 )}
-               </Button>
-             </PopoverTrigger>
-             <PopoverContent 
-              className="w-auto p-0" 
-              align="start"
-              onPointerDownOutside={(e) => e.preventDefault()}
-             >
-               <Calendar
-                 initialFocus
-                 mode="range"
-                 defaultMonth={date?.from}
-                 selected={date}
-                 onSelect={setDate}
-                 numberOfMonths={2}
-                 disabled={(day) => day < today}
-               />
-             </PopoverContent>
-           </Popover>
-         </div>
+          <div className="space-y-4">
+             <Label>Reservation Dates</Label>
+             <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-1.5">
+                    <Label htmlFor="start-date" className="text-xs text-muted-foreground">From</Label>
+                    <Input 
+                        id="start-date" 
+                        type="date" 
+                        value={startDate} 
+                        onChange={(e) => setStartDate(e.target.value)}
+                        min={today}
+                    />
+                </div>
+                <div className="grid gap-1.5">
+                    <Label htmlFor="end-date" className="text-xs text-muted-foreground">To</Label>
+                    <Input 
+                        id="end-date" 
+                        type="date" 
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        min={startDate || today}
+                    />
+                </div>
+            </div>
+          </div>
         )}
 
         <Separator className="my-4" />
         <ReservationFlow
           service={service}
-          dates={date}
+          dates={dateForFlow}
           totalPrice={totalPrice}
         />
       </DialogContent>

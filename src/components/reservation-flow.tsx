@@ -9,7 +9,6 @@ import { CreditCard, Send, Loader2 } from 'lucide-react';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
-import type { DateRange } from 'react-day-picker';
 
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -36,6 +35,12 @@ const reservationSchema = z.object({
 });
 
 type ReservationFormValues = z.infer<typeof reservationSchema>;
+
+// Define DateRange locally to avoid dependency on react-day-picker
+type DateRange = {
+    from: Date | undefined;
+    to?: Date | undefined;
+};
 
 interface ReservationFlowProps {
   service: Service;
