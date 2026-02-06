@@ -1,78 +1,125 @@
 'use client';
 
-import { useTransition, useOptimistic } from 'react';
-import { toggleBestOffer } from '@/lib/actions';
-import { Switch } from '@/components/ui/switch';
+import * as React from 'react';
+import type { Service } from '@/lib/types';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useFormState } from 'react-dom';
+import { deleteService } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
-import type { ImagePlaceholder } from '@/lib/placeholder-images';
+import { ServiceEditor } from './service-editor';
 
-function BestOfferToggle({ service }: { service: ImagePlaceholder }) {
+function DeleteServiceForm({ serviceId }: { serviceId: string }) {
     const { toast } = useToast();
-    const [isPending, startTransition] = useTransition();
+    const [state, formAction] = useFormState(deleteService, { error: null, success: false });
 
-    // The current server state
-    const isBestOffer = service.isBestOffer ?? false;
-    
-    // The optimistic state
-    const [optimisticBestOffer, setOptimisticBestOffer] = useOptimistic(
-        isBestOffer,
-        (state, newState: boolean) => newState
-    );
-
-    const action = async (formData: FormData) => {
-        startTransition(() => {
-             setOptimisticBestOffer(formData.get('isBestOffer') === 'true');
-        });
-
-        const result = await toggleBestOffer({ error: null, success: false }, formData);
-
-        if (result?.error) {
-            toast({ variant: 'destructive', title: 'Error', description: result.error });
+    React.useEffect(() => {
+        if (state.success) {
+            toast({ title: 'Service Deleted', description: 'The service has been successfully removed.' });
         }
-    };
-    
+        if (state.error) {
+            toast({ variant: 'destructive', title: 'Error', description: state.error });
+        }
+    }, [state, toast]);
+
     return (
-        <form action={action}>
-            <input type="hidden" name="serviceId" value={service.id} />
-            <input type="hidden" name="isBestOffer" value={String(!optimisticBestOffer)} />
-            <Switch
-                id={`best-offer-${service.id}`}
-                checked={optimisticBestOffer}
-                onCheckedChange={() => {
-                    const formData = new FormData();
-                    formData.set('serviceId', service.id);
-                    formData.set('isBestOffer', String(!optimisticBestOffer));
-                    action(formData);
-                }}
-                disabled={isPending}
-            />
+        <form action={formAction}>
+            <input type="hidden" name="id" value={serviceId} />
+            <button type="submit" className="w-full text-left">
+                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                </DropdownMenuItem>
+            </button>
         </form>
     );
 }
 
+export default function ServiceManagement({ services }: { services: Service[] }) {
+    const [editorOpen, setEditorOpen] = React.useState(false);
+    const [serviceToEdit, setServiceToEdit] = React.useState<Service | null>(null);
 
-export default function ServiceManagement({ services }: { services: ImagePlaceholder[] }) {
+    const handleEdit = (service: Service) => {
+        setServiceToEdit(service);
+        setEditorOpen(true);
+    };
+
+    const handleAdd = () => {
+        setServiceToEdit(null);
+        setEditorOpen(true);
+    };
+
+    const handleCloseEditor = () => {
+        setEditorOpen(false);
+        setServiceToEdit(null);
+    }
+
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Service Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead className="text-right">Best Offer</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {services.map((service) => (
-                    <TableRow key={service.id}>
-                        <TableCell className="font-medium">{(service as any).name || service.description}</TableCell>
-                        <TableCell className="capitalize">{(service as any).category || 'N/A'}</TableCell>
-                        <TableCell className="text-right">
-                           <BestOfferToggle service={service} />
-                        </TableCell>
-                    </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+        <>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <CardTitle>Services Management</CardTitle>
+                            <CardDescription>Add, edit, or remove services.</CardDescription>
+                        </div>
+                        <Button onClick={handleAdd}>
+                            <PlusCircle className="mr-2 h-4 w-4" />
+                            Add Service
+                        </Button>
+                    </div>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Name</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead>Price</TableHead>
+                                <TableHead>Best Offer</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {services.map((service) => (
+                                <TableRow key={service.id}>
+                                    <TableCell className="font-medium">{service.name}</TableCell>
+                                    <TableCell className="capitalize">{service.category}</TableCell>
+                                    <TableCell>${service.price} / {service.priceUnit}</TableCell>
+                                    <TableCell>
+                                        {service.isBestOffer ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button variant="ghost" className="h-8 w-8 p-0">
+                                                    <span className="sr-only">Open menu</span>
+                                                    <MoreHorizontal className="h-4 w-4" />
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onClick={() => handleEdit(service)}>
+                                                    Edit
+                                                </DropdownMenuItem>
+                                                <DeleteServiceForm serviceId={service.id} />
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+            <ServiceEditor
+                isOpen={editorOpen}
+                onClose={handleCloseEditor}
+                service={serviceToEdit}
+            />
+        </>
     );
 }

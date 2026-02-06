@@ -7,9 +7,12 @@ import { redirect } from 'next/navigation';
 import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
+import type { Service } from './types';
 
 const adminsFilePath = path.join(process.cwd(), 'src', 'lib', 'admins.json');
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
+const servicesFilePath = path.join(process.cwd(), 'src', 'lib', 'placeholder-images.json');
+
 
 // --- Auth Helpers & Actions ---
 
@@ -19,7 +22,6 @@ async function readAdmins() {
         return JSON.parse(data);
     } catch (error) {
         console.error("Failed to read admins file:", error);
-        // If file doesn't exist or is invalid, return a default structure
         return { admins: [] };
     }
 }
@@ -55,14 +57,8 @@ export async function login(prevState: { error: string | null }, formData: FormD
 
   const { login, password } = parsed.data;
 
-  let foundAdmin = null;
-
-  // Bypass file system and check credentials directly for reliability
-  if (login === 'eljabbaryhicham' && password === '069338147') {
-    foundAdmin = { id: 'superadmin-01', login: 'eljabbaryhicham', role: 'superadmin' };
-  } else if (login === 'admin' && password === 'password123') {
-    foundAdmin = { id: 'admin-01', login: 'admin', role: 'admin' };
-  }
+  const { admins } = await readAdmins();
+  const foundAdmin = admins.find((admin: any) => admin.login === login && admin.password === password);
 
 
   if (!foundAdmin) {
@@ -91,7 +87,6 @@ export async function logout() {
 
 export async function getAdmins() {
     const { admins } = await readAdmins();
-    // Return admins without their passwords for security
     return admins.map(({ password, ...rest }: any) => rest);
 }
 
@@ -210,7 +205,6 @@ export async function submitReservation(data: ReservationFormValues) {
   console.log('Message:', parsed.data.message || 'N/A');
   console.log('-----------------------------');
 
-  // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return { success: true };
@@ -245,44 +239,100 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
     }
 }
 
-export async function toggleBestOffer(prevState: { error: string | null, success: boolean }, formData: FormData) {
-  const serviceId = formData.get('serviceId') as string;
-  const isBestOffer = !!formData.get('isBestOffer');
+// --- Service Management Actions ---
 
-  if (!serviceId) {
-    return { error: 'Service ID is missing.', success: false };
-  }
-
-  try {
-    const filePath = path.join(process.cwd(), 'src', 'lib', 'placeholder-images.json');
-    const fileData = await fs.readFile(filePath, 'utf-8');
-    const jsonData = JSON.parse(fileData);
-
-    const serviceIndex = jsonData.placeholderImages.findIndex((s: any) => s.id === serviceId);
-
-    if (serviceIndex === -1) {
-      return { error: 'Service not found.', success: false };
+async function readServices(): Promise<{ services: Service[] }> {
+    try {
+        const data = await fs.readFile(servicesFilePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error("Failed to read services file:", error);
+        return { services: [] };
     }
-    
-    if (isBestOffer) {
-      jsonData.placeholderImages[serviceIndex].isBestOffer = true;
-    } else {
-      delete jsonData.placeholderImages[serviceIndex].isBestOffer;
-    }
-    
-    const updatedData = JSON.stringify(jsonData, null, 2);
-    await fs.writeFile(filePath, updatedData, 'utf-8');
-    
+}
+
+async function writeServices(data: { services: Service[] }) {
+    await fs.writeFile(servicesFilePath, JSON.stringify(data, null, 2), 'utf-8');
     revalidatePath('/admin');
     revalidatePath('/');
     revalidatePath('/services/cars');
     revalidatePath('/services/hotels');
     revalidatePath('/services/transport');
+}
 
+const serviceSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, 'Name is required'),
+    description: z.string().min(1, 'Description is required'),
+    imageUrl: z.string().url('Must be a valid URL'),
+    imageHint: z.string().min(1, 'Image hint is required'),
+    category: z.enum(['cars', 'hotels', 'transport']),
+    price: z.coerce.number().min(0, 'Price must be non-negative'),
+    priceUnit: z.enum(['day', 'night', 'trip']),
+    location: z.string().min(1, 'Location is required'),
+    isBestOffer: z.preprocess((val) => val === 'on' || val === true, z.boolean()),
+    details: z.string().transform((str, ctx) => {
+        try {
+            return JSON.parse(str);
+        } catch (e) {
+            ctx.addIssue({ code: 'custom', message: 'Details must be valid JSON' });
+            return z.NEVER;
+        }
+    }),
+    additionalMedia: z.string().transform((str, ctx) => {
+        try {
+            if (!str) return [];
+            return JSON.parse(str);
+        } catch (e) {
+            ctx.addIssue({ code: 'custom', message: 'Additional Media must be valid JSON array' });
+            return z.NEVER;
+        }
+    })
+});
+
+export async function saveService(prevState: { error: string | null, success: boolean }, formData: FormData) {
+    const data = Object.fromEntries(formData);
+    const parsed = serviceSchema.safeParse(data);
+
+    if (!parsed.success) {
+        return { error: parsed.error.errors.map(e => e.message).join(', '), success: false };
+    }
+
+    const { id, ...serviceData } = parsed.data;
+    const { services } = await readServices();
+    
+    if (id) { // Update existing service
+        const index = services.findIndex(s => s.id === id);
+        if (index === -1) {
+            return { error: 'Service not found.', success: false };
+        }
+        services[index] = { ...services[index], ...serviceData };
+    } else { // Add new service
+        const newService: Service = {
+            id: `${serviceData.category}-${Date.now()}`,
+            ...serviceData
+        };
+        services.push(newService);
+    }
+    
+    await writeServices({ services });
     return { error: null, success: true };
+}
 
-  } catch (error) {
-    console.error('Failed to update best offer status:', error);
-    return { error: 'Could not update best offer status.', success: false };
-  }
+
+export async function deleteService(prevState: { error: string | null, success: boolean }, formData: FormData) {
+    const id = formData.get('id') as string;
+    if (!id) {
+        return { error: 'Service ID is missing.', success: false };
+    }
+    
+    const { services } = await readServices();
+    const updatedServices = services.filter(s => s.id !== id);
+
+    if (services.length === updatedServices.length) {
+        return { error: 'Service not found.', success: false };
+    }
+
+    await writeServices({ services: updatedServices });
+    return { error: null, success: true };
 }

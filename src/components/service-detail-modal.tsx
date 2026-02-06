@@ -42,7 +42,6 @@ const ServiceDetailModal = ({
 
   const todayDate = React.useMemo(() => {
     const d = new Date();
-    // Format to YYYY-MM-DD for the input min attribute
     const year = d.getFullYear();
     const month = (d.getMonth() + 1).toString().padStart(2, '0');
     const day = d.getDate().toString().padStart(2, '0');
@@ -57,10 +56,7 @@ const ServiceDetailModal = ({
 
         if (to <= from) return { days: null, totalPrice: null };
 
-        // The time difference in milliseconds
         const timeDiff = to.getTime() - from.getTime();
-        
-        // The difference in days, rounded to handle DST
         const dayDifference = Math.round(timeDiff / (1000 * 3600 * 24));
 
         let dayCount;
@@ -74,7 +70,6 @@ const ServiceDetailModal = ({
           return { days: dayCount, totalPrice: dayCount * service.price };
         }
       } catch (e) {
-        // Invalid date string
         return { days: null, totalPrice: null };
       }
     }
@@ -129,28 +124,19 @@ const ServiceDetailModal = ({
                       />
                     </div>
                   </CarouselItem>
-                  <CarouselItem>
-                    <div className="relative aspect-[16/9] w-full">
-                      <Image
-                        src="https://picsum.photos/seed/media1/1280/720"
-                        alt="Additional media 1"
-                        fill
-                        className="object-cover"
-                        data-ai-hint="service amenity"
-                      />
-                    </div>
-                  </CarouselItem>
-                  <CarouselItem>
-                    <div className="relative aspect-[16/9] w-full">
-                      <Image
-                        src="https://picsum.photos/seed/media2/1280/720"
-                        alt="Additional media 2"
-                        fill
-                        className="object-cover"
-                        data-ai-hint="service view"
-                      />
-                    </div>
-                  </CarouselItem>
+                  {service.additionalMedia?.map((media, index) => (
+                    <CarouselItem key={index}>
+                        <div className="relative aspect-[16/9] w-full">
+                        <Image
+                            src={media.imageUrl}
+                            alt={media.description}
+                            fill
+                            className="object-cover"
+                            data-ai-hint={media.imageHint}
+                        />
+                        </div>
+                    </CarouselItem>
+                  ))}
                 </CarouselContent>
                 <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10" />
                 <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10" />
@@ -158,7 +144,6 @@ const ServiceDetailModal = ({
             </div>
           </DialogHeader>
 
-          {/* Booking Section */}
           <div className="px-6 pt-6">
             <div className="pb-6">
               <DialogTitle className="text-3xl font-headline mb-2">
@@ -207,7 +192,6 @@ const ServiceDetailModal = ({
 
           <Separator />
           
-          {/* Details Section */}
           <div className="px-6 pt-6 pb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>

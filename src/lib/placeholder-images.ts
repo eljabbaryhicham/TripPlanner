@@ -1,11 +1,6 @@
 import data from './placeholder-images.json';
+import type { Service } from './types';
 
-export type ImagePlaceholder = {
-  id: string;
-  description: string;
-  imageUrl: string;
-  imageHint: string;
-  isBestOffer?: boolean;
-};
-
-export const PlaceHolderImages: ImagePlaceholder[] = data.placeholderImages;
+// The source JSON contains the full service objects now.
+// The name of this file is misleading, but we cannot rename it.
+export const services: Service[] = (data as any).services || [];

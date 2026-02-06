@@ -1,61 +1,138 @@
 {
-  "placeholderImages": [
+  "services": [
     {
       "id": "car-1",
+      "name": "City Compact",
       "description": "A modern compact car in an urban setting.",
       "imageUrl": "https://images.unsplash.com/photo-1766602111000-96a7685d79f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb21wYWN0JTIwY2FyfGVufDB8fHx8MTc3MDM5NjIwNXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "compact car",
-      "isBestOffer": true
+      "isBestOffer": true,
+      "category": "cars",
+      "price": 45,
+      "priceUnit": "day",
+      "location": "Downtown",
+      "details": {
+        "Seats": "4",
+        "Transmission": "Automatic",
+        "Fuel Policy": "Full to full"
+      },
+      "additionalMedia": []
     },
     {
       "id": "car-2",
+      "name": "Adventure SUV",
       "description": "A luxury SUV on a scenic road.",
       "imageUrl": "https://images.unsplash.com/photo-1747414632749-6c8b14ba30fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBzdXZ8ZW58MHx8fHwxNzcwMzg1MDA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "luxury suv"
+      "imageHint": "luxury suv",
+      "category": "cars",
+      "price": 80,
+      "priceUnit": "day",
+      "location": "Airport",
+      "details": {
+        "Seats": "5",
+        "Transmission": "Automatic",
+        "Fuel Policy": "Full to full"
+      },
+      "additionalMedia": []
     },
     {
       "id": "car-3",
+      "name": "Eco-Friendly Sedan",
       "description": "An electric sedan charging.",
       "imageUrl": "https://images.unsplash.com/photo-1607197109166-3ab4ee4b468f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZWxlY3RyaWMlMjBjYXJ8ZW58MHx8fHwxNzcwMzM5OTQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "electric car"
+      "imageHint": "electric car",
+      "category": "cars",
+      "price": 60,
+      "priceUnit": "day",
+      "location": "City Center",
+      "details": {
+        "Seats": "5",
+        "Transmission": "Automatic",
+        "Type": "Electric"
+      },
+      "additionalMedia": []
     },
     {
       "id": "hotel-1",
+      "name": "The Grand View Hotel",
       "description": "A boutique hotel room with a beautiful view.",
       "imageUrl": "https://images.unsplash.com/photo-1611892440504-42a792e24d32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MHx8fHwxNzcwMzY5MzEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "hotel room",
-      "isBestOffer": true
+      "isBestOffer": true,
+      "category": "hotels",
+      "price": 250,
+      "priceUnit": "night",
+      "location": "Seaside",
+      "details": {
+        "Rating": "★★★★★",
+        "Amenities": "Pool, Spa, Free WiFi",
+        "Room Type": "Deluxe King"
+      },
+      "additionalMedia": []
     },
     {
       "id": "hotel-2",
+      "name": "The Backpacker Nook",
       "description": "A cozy hostel common area.",
       "imageUrl": "https://picsum.photos/seed/hotel2/600/400",
-      "imageHint": "hostel common"
+      "imageHint": "hostel common",
+      "category": "hotels",
+      "price": 40,
+      "priceUnit": "night",
+      "location": "Old Town",
+      "details": {
+        "Rating": "★★★★☆",
+        "Amenities": "Shared Kitchen, Lockers, WiFi",
+        "Room Type": "8-Bed Dorm"
+      },
+      "additionalMedia": []
     },
     {
       "id": "hotel-3",
+      "name": "Metropolis Business Inn",
       "description": "The luxurious lobby of a five-star hotel.",
       "imageUrl": "https://images.unsplash.com/photo-1692153142524-60285a93c249?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxob3RlbCUyMGxvYmJ5fGVufDB8fHx8MTc3MDM4ODM2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "hotel lobby"
+      "imageHint": "hotel lobby",
+      "category": "hotels",
+      "price": 150,
+      "priceUnit": "night",
+      "location": "Financial District",
+      "details": {
+        "Rating": "★★★★☆",
+        "Amenities": "Gym, Conference Rooms, Restaurant",
+        "Room Type": "Standard Queen"
+      },
+      "additionalMedia": []
     },
     {
       "id": "transport-1",
-      "description": "A friendly guide holding a welcome sign at an airport arrivals gate.",
+      "name": "Airport Pickup & Guide",
+      "description": "A personal guide will meet you at the arrivals gate and a private car will take you to your destination, with a quick orientation of the city on the way.",
       "imageUrl": "https://images.unsplash.com/photo-1687986476040-82354f3c730e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhaXJwb3J0JTIwZ3VpZGV8ZW58MHx8fHwxNzcwNDA1ODE4fDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "airport guide",
-      "isBestOffer": true
-    },
-    {
-      "id": "transport-2",
-      "description": "A comfortable sedan waiting outside an airport terminal.",
-      "imageUrl": "https://images.unsplash.com/photo-1736104761587-d9babea20923?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhaXJwb3J0JTIwY2FyfGVufDB8fHx8MTc3MDQwNTgxOHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "airport car"
-    },
-    {
-      "id": "transport-3",
-      "description": "A detailed map of the city for tourists.",
-      "imageUrl": "https://images.unsplash.com/photo-1603466183710-70b84997a93f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwbWFwfGVufDB8fHx8MTc3MDMyNzM5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "city map"
+      "isBestOffer": true,
+      "category": "transport",
+      "price": 150,
+      "priceUnit": "trip",
+      "location": "Airport Arrivals",
+      "details": {
+        "Rating": "★★★★★",
+        "Service": "Personal meet & greet",
+        "Includes": "City orientation, Private car",
+        "Vehicle": "Comfortable Sedan"
+      },
+      "additionalMedia": [
+        {
+          "description": "A comfortable sedan waiting outside an airport terminal.",
+          "imageUrl": "https://images.unsplash.com/photo-1736104761587-d9babea20923?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhaXJwb3J0JTIwY2FyfGVufDB8fHx8MTc3MDQwNTgxOHww&ixlib=rb-4.1.0&q=80&w=1080",
+          "imageHint": "airport car"
+        },
+        {
+          "description": "A detailed map of the city for tourists.",
+          "imageUrl": "https://images.unsplash.com/photo-1603466183710-70b84997a93f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwbWFwfGVufDB8fHx8MTc3MDMyNzM5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+          "imageHint": "city map"
+        }
+      ]
     }
   ]
 }

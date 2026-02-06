@@ -18,21 +18,15 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import ReservationFlow from '@/components/reservation-flow';
 import ReviewsPopup from '@/components/reviews-popup';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { Star } from 'lucide-react';
 
 export default function TransportPage() {
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
 
-  // Since there is only one transport service, we can get it directly.
   const service: Service | undefined = services.find(
     (s) => s.category === 'transport'
   );
   
-  // Find the additional images for the carousel
-  const mediaImage1 = PlaceHolderImages.find(img => img.id === 'transport-2');
-  const mediaImage2 = PlaceHolderImages.find(img => img.id === 'transport-3');
-
   if (!service) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -66,32 +60,19 @@ export default function TransportPage() {
                           />
                         </div>
                       </CarouselItem>
-                      {mediaImage1 && (
-                        <CarouselItem>
+                      {service.additionalMedia?.map((media, index) => (
+                        <CarouselItem key={index}>
                             <div className="relative aspect-[16/9] w-full">
                             <Image
-                                src={mediaImage1.imageUrl}
-                                alt={mediaImage1.description}
+                                src={media.imageUrl}
+                                alt={media.description}
                                 fill
                                 className="object-cover"
-                                data-ai-hint={mediaImage1.imageHint}
+                                data-ai-hint={media.imageHint}
                             />
                             </div>
                         </CarouselItem>
-                      )}
-                       {mediaImage2 && (
-                        <CarouselItem>
-                            <div className="relative aspect-[16/9] w-full">
-                            <Image
-                                src={mediaImage2.imageUrl}
-                                alt={mediaImage2.description}
-                                fill
-                                className="object-cover"
-                                data-ai-hint={mediaImage2.imageHint}
-                            />
-                            </div>
-                        </CarouselItem>
-                      )}
+                      ))}
                     </CarouselContent>
                     <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10" />
                     <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10" />

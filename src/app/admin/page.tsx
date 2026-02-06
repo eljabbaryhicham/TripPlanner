@@ -1,3 +1,4 @@
+
 'use server';
 
 import { cookies } from 'next/headers';
@@ -8,7 +9,6 @@ import { LogOut, Settings, Shield, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { logout } from '@/lib/actions';
 import { getAdmins } from '@/lib/actions';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -16,7 +16,7 @@ import AdminManagement from '@/components/admin/admin-management';
 import ServiceManagement from '@/components/admin/service-management';
 import SettingsManagement from '@/components/admin/settings-management';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-
+import { services } from '@/lib/placeholder-images';
 
 async function readSettings() {
   try {
@@ -47,7 +47,6 @@ export default async function AdminPage() {
     }
 
     const admins = await getAdmins();
-    const services = PlaceHolderImages;
     const settings = await readSettings();
 
     return (
@@ -79,15 +78,7 @@ export default async function AdminPage() {
                         </TabsTrigger>
                     </TabsList>
                     <TabsContent value="services">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Services Management</CardTitle>
-                                <CardDescription>Toggle 'Best Offer' status for services. Changes are saved automatically.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <ServiceManagement services={services} />
-                            </CardContent>
-                        </Card>
+                        <ServiceManagement services={services} />
                     </TabsContent>
                     <TabsContent value="admins">
                          {currentUser.role === 'superadmin' ? (
