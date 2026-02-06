@@ -39,6 +39,14 @@ const ServiceDetailModal = ({
 }: ServiceDetailModalProps) => {
   const [date, setDate] = React.useState<DateRange | undefined>();
 
+  // Memoize today's date to prevent creating it on every render, ensuring stability.
+  const today = React.useMemo(() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+
   const { days, totalPrice } = React.useMemo(() => {
     if (service && date?.from && date?.to) {
       let dayCount;
@@ -60,7 +68,7 @@ const ServiceDetailModal = ({
 
   React.useEffect(() => {
     // Reset date when service or modal state changes
-    if (service) {
+    if (isOpen) {
         setDate(undefined);
     }
   }, [service, isOpen]);
@@ -174,7 +182,7 @@ const ServiceDetailModal = ({
                   selected={date}
                   onSelect={setDate}
                   numberOfMonths={2}
-                  disabled={(day) => day < new Date(new Date().setHours(0,0,0,0))}
+                  disabled={(day) => day < today}
                 />
               </PopoverContent>
             </Popover>
