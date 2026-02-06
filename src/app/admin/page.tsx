@@ -1,19 +1,29 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useEffect, useState, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { services } from '@/lib/data';
-import { logout, updateWhatsappNumber, toggleBestOffer } from '@/lib/actions';
+import {
+    logout,
+    updateWhatsappNumber,
+    toggleBestOffer,
+    addAdmin,
+    removeAdmin,
+    setSuperAdmin,
+    getCurrentUser,
+    getAdmins,
+} from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LogOut, Save } from 'lucide-react';
+import { LogOut, Save, UserPlus, Trash2, ShieldCheck, Crown, Loader2, UserX, UserCheck } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Separator } from '@/components/ui/separator';
 
 function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
     const [state, formAction] = useActionState(updateWhatsappNumber, { error: null, success: false });
@@ -93,73 +103,203 @@ function BestOfferToggle({ serviceId, isBestOffer }: { serviceId: string; isBest
     );
 }
 
+function AddAdminForm({ onAdminAdded }: { onAdminAdded: () => void }) {
+    const [state, formAction] = useActionState(addAdmin, { error: null, success: false });
+    const { toast } = useToast();
+    const formRef = useRef<HTMLFormElement>(null);
 
-export default function AdminPage() {
-  const searchParams = useSearchParams();
-  const whatsappNumber = searchParams.get('whatsappNumber') || '';
-  
-  return (
-    <div className="min-h-screen bg-muted/40">
-      <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
-        <h1 className="text-2xl font-headline">Admin Dashboard</h1>
-        <form action={logout} className="ml-auto">
-          <Button variant="outline" size="sm">
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </Button>
+    useEffect(() => {
+        if (state.success) {
+            toast({ title: "Admin Added", description: "The new admin has been created." });
+            formRef.current?.reset();
+            onAdminAdded();
+        }
+        if (state.error) {
+            toast({ variant: 'destructive', title: "Failed to Add Admin", description: state.error });
+        }
+    }, [state, toast, onAdminAdded]);
+
+    return (
+        <form action={formAction} ref={formRef} className="space-y-4 rounded-lg border p-4">
+            <h4 className="font-medium">Add New Admin</h4>
+            <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" name="email" type="email" placeholder="newadmin@example.com" required />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input id="password" name="password" type="password" required />
+                </div>
+            </div>
+            {state.error && <p className="text-sm text-destructive">{state.error}</p>}
+            <Button type="submit"><UserPlus /> Add Admin</Button>
         </form>
-      </header>
-      <main className="p-4 sm:px-6 sm:py-0 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Services</CardTitle>
-            <CardDescription>
-              A list of all services available on TriPlanner.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Best Offer</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead className="text-right">Price</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {services.map((service) => (
-                  <TableRow key={service.id}>
-                    <TableCell className="font-medium">{service.name}</TableCell>
-                    <TableCell>
-                      <Badge variant="secondary" className="capitalize">{service.category}</Badge>
-                    </TableCell>
-                    <TableCell>
-                        <BestOfferToggle serviceId={service.id} isBestOffer={!!service.isBestOffer} />
-                    </TableCell>
-                    <TableCell>{service.location}</TableCell>
-                    <TableCell className="text-right">
-                      ${service.price}/{service.priceUnit}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+    );
+}
+
+function AdminManagementCard({ admins: initialAdmins, currentUser, onAdminsChange }: { admins: any[], currentUser: any, onAdminsChange: () => void }) {
+    const { toast } = useToast();
+
+    const handleAction = async (action: (formData: FormData) => Promise<{ error: string | null; success: boolean }>, formData: FormData, successMessage: string) => {
+        const result = await action(formData);
+        if (result.success) {
+            toast({ title: successMessage });
+            onAdminsChange();
+        }
+        if (result.error) {
+            toast({ variant: 'destructive', title: "Action Failed", description: result.error });
+        }
+    };
+
+    return (
         <Card>
             <CardHeader>
-                <CardTitle>Application Settings</CardTitle>
-                <CardDescription>
-                    Update general settings for the application.
-                </CardDescription>
+                <CardTitle className="flex items-center"><ShieldCheck className="mr-2" /> Admin Management</CardTitle>
+                <CardDescription>Add, remove, or change admin roles.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <UpdateSettingsForm whatsappNumber={whatsappNumber} />
+            <CardContent className="space-y-6">
+                <div className="rounded-lg border">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {initialAdmins.map((admin) => (
+                                <TableRow key={admin.id}>
+                                    <TableCell className="font-medium">{admin.email}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={admin.role === 'superadmin' ? 'default' : 'secondary'} className="capitalize">
+                                            {admin.role === 'superadmin' && <Crown className="mr-1.5" />}
+                                            {admin.role}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        {admin.id !== currentUser.id && (
+                                            <div className="flex justify-end gap-2">
+                                                <form action={(fd) => handleAction(removeAdmin, fd, "Admin removed.")}>
+                                                    <input type="hidden" name="id" value={admin.id} />
+                                                    <Button type="submit" variant="destructive" size="sm" ><UserX/></Button>
+                                                </form>
+                                                {admin.role !== 'superadmin' && (
+                                                    <form action={(fd) => handleAction(setSuperAdmin, fd, "Super admin updated.")}>
+                                                        <input type="hidden" name="id" value={admin.id} />
+                                                        <Button type="submit" variant="outline" size="sm"><UserCheck /></Button>
+                                                    </form>
+                                                )}
+                                            </div>
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+                <Separator />
+                <AddAdminForm onAdminAdded={onAdminsChange} />
             </CardContent>
         </Card>
-      </main>
-    </div>
-  );
+    );
+}
+
+export default function AdminPage() {
+    const searchParams = useSearchParams();
+    const whatsappNumber = searchParams.get('whatsappNumber') || '';
+
+    const [admins, setAdmins] = useState<any[]>([]);
+    const [currentUser, setCurrentUser] = useState<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const fetchAdminData = () => {
+        setIsLoading(true);
+        Promise.all([getCurrentUser(), getAdmins()]).then(([user, adminsData]) => {
+            setCurrentUser(user);
+            setAdmins(adminsData);
+            setIsLoading(false);
+        });
+    };
+
+    useEffect(() => {
+        fetchAdminData();
+    }, []);
+
+    if (isLoading) {
+        return (
+            <div className="min-h-screen bg-muted/40 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    return (
+        <div className="min-h-screen bg-muted/40">
+            <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
+                <h1 className="text-2xl font-headline">Admin Dashboard</h1>
+                {currentUser && <Badge variant="secondary" className="hidden sm:inline-flex">Logged in as {currentUser.email}</Badge>}
+                <form action={logout} className="ml-auto">
+                    <Button variant="outline" size="sm">
+                        <LogOut className="mr-2 h-4 w-4" />
+                        Logout
+                    </Button>
+                </form>
+            </header>
+            <main className="p-4 sm:px-6 sm:py-0 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                <Card className="lg:col-span-2">
+                    <CardHeader>
+                        <CardTitle>Services</CardTitle>
+                        <CardDescription>A list of all services available on TriPlanner.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Name</TableHead>
+                                    <TableHead>Category</TableHead>
+                                    <TableHead>Best Offer</TableHead>
+                                    <TableHead>Location</TableHead>
+                                    <TableHead className="text-right">Price</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {services.map((service) => (
+                                    <TableRow key={service.id}>
+                                        <TableCell className="font-medium">{service.name}</TableCell>
+                                        <TableCell>
+                                            <Badge variant="secondary" className="capitalize">{service.category}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <BestOfferToggle serviceId={service.id} isBestOffer={!!service.isBestOffer} />
+                                        </TableCell>
+                                        <TableCell>{service.location}</TableCell>
+                                        <TableCell className="text-right">
+                                            ${service.price}/{service.priceUnit}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Application Settings</CardTitle>
+                        <CardDescription>Update general settings for the application.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <UpdateSettingsForm whatsappNumber={whatsappNumber} />
+                    </CardContent>
+                </Card>
+
+                {currentUser && currentUser.role === 'superadmin' && (
+                    <div className="lg:col-span-3">
+                        <AdminManagementCard admins={admins} currentUser={currentUser} onAdminsChange={fetchAdminData} />
+                    </div>
+                )}
+            </main>
+        </div>
+    );
 }

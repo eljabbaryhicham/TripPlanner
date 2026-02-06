@@ -1,6 +1,38 @@
 
 {
   "entities": {
+    "Admin": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Admin",
+      "type": "object",
+      "description": "Represents an admin user of the TriPlanner application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the admin."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the admin.",
+          "format": "email"
+        },
+        "password": {
+          "type": "string",
+          "description": "Password for the admin account."
+        },
+        "role": {
+          "type": "string",
+          "description": "Role of the admin.",
+          "enum": ["admin", "superadmin"]
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "password",
+        "role"
+      ]
+    },
     "CarRental": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CarRental",

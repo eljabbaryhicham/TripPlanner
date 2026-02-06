@@ -44,9 +44,9 @@ export default function LoginPage() {
                 id="email"
                 name="email"
                 type="email"
-                placeholder="admin@triplanner.com"
+                placeholder="your-email@example.com"
                 required
-                defaultValue="admin@triplanner.com"
+                defaultValue="eljabbaryhicham"
               />
             </div>
             <div className="space-y-2">
@@ -56,7 +56,7 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
-                defaultValue="password123"
+                defaultValue="069338147"
               />
             </div>
             {state.error && (

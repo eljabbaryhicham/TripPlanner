@@ -8,17 +8,45 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 
-// --- Login Action ---
+const adminsFilePath = path.join(process.cwd(), 'src', 'lib', 'admins.json');
+const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
+
+// --- Auth Helpers & Actions ---
+
+async function readAdmins() {
+    try {
+        const data = await fs.readFile(adminsFilePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.error("Failed to read admins file:", error);
+        // If file doesn't exist or is invalid, return a default structure
+        return { admins: [] };
+    }
+}
+
+async function writeAdmins(data: any) {
+    await fs.writeFile(adminsFilePath, JSON.stringify(data, null, 2), 'utf-8');
+}
+
+export async function getCurrentUser() {
+  const cookieStore = cookies();
+  const authCookie = cookieStore.get('auth');
+  if (authCookie) {
+    try {
+      return JSON.parse(authCookie.value);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
 
 const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string(),
   password: z.string(),
 });
 
-export async function login(
-  prevState: { error: string | null },
-  formData: FormData
-) {
+export async function login(prevState: { error: string | null }, formData: FormData) {
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
@@ -26,17 +54,17 @@ export async function login(
   }
 
   const { email, password } = parsed.data;
+  const { admins } = await readAdmins();
 
-  // In a real app, you would validate against a database.
-  if (
-    email !== 'admin@triplanner.com' ||
-    password !== 'password123'
-  ) {
+  const foundAdmin = admins.find((admin: any) => admin.email === email && admin.password === password);
+
+  if (!foundAdmin) {
     return { error: 'Invalid email or password.' };
   }
 
-  // Set a session cookie
-  cookies().set('auth', 'true', {
+  const userPayload = { id: foundAdmin.id, email: foundAdmin.email, role: foundAdmin.role };
+
+  cookies().set('auth', JSON.stringify(userPayload), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     maxAge: 60 * 60 * 24, // 1 day
@@ -50,6 +78,98 @@ export async function logout() {
   cookies().delete('auth');
   redirect('/login');
 }
+
+
+// --- Admin Management Actions ---
+
+export async function getAdmins() {
+    const { admins } = await readAdmins();
+    // Return admins without their passwords for security
+    return admins.map(({ password, ...rest }: any) => rest);
+}
+
+const addAdminSchema = z.object({
+    email: z.string().email(),
+    password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
+});
+
+export async function addAdmin(prevState: { error: string | null, success: boolean }, formData: FormData) {
+    const currentUser = await getCurrentUser();
+    if (currentUser?.role !== 'superadmin') {
+        return { error: 'Permission denied. Only super admins can add new admins.', success: false };
+    }
+
+    const parsed = addAdminSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) {
+        return { error: parsed.error.errors[0].message, success: false };
+    }
+
+    const { email, password } = parsed.data;
+    const adminData = await readAdmins();
+
+    if (adminData.admins.some((admin: any) => admin.email === email)) {
+        return { error: 'An admin with this email already exists.', success: false };
+    }
+
+    adminData.admins.push({
+        id: `admin-${Date.now()}`,
+        email,
+        password,
+        role: 'admin',
+    });
+
+    await writeAdmins(adminData);
+    revalidatePath('/admin');
+    return { error: null, success: true };
+}
+
+export async function removeAdmin(formData: FormData) {
+    const currentUser = await getCurrentUser();
+    if (currentUser?.role !== 'superadmin') {
+        return { error: 'Permission denied.', success: false };
+    }
+
+    const idToRemove = formData.get('id') as string;
+    if (currentUser.id === idToRemove) {
+        return { error: "You cannot remove yourself.", success: false };
+    }
+
+    const adminData = await readAdmins();
+    adminData.admins = adminData.admins.filter((admin: any) => admin.id !== idToRemove);
+    
+    await writeAdmins(adminData);
+    revalidatePath('/admin');
+    return { error: null, success: true };
+}
+
+export async function setSuperAdmin(formData: FormData) {
+    const currentUser = await getCurrentUser();
+    if (currentUser?.role !== 'superadmin') {
+        return { error: 'Permission denied.', success: false };
+    }
+
+    const idToPromote = formData.get('id') as string;
+    const adminData = await readAdmins();
+
+    // Demote current superadmin
+    const currentSuperAdmin = adminData.admins.find((admin: any) => admin.role === 'superadmin');
+    if (currentSuperAdmin) {
+        currentSuperAdmin.role = 'admin';
+    }
+
+    // Promote new superadmin
+    const newSuperAdmin = adminData.admins.find((admin: any) => admin.id === idToPromote);
+    if (newSuperAdmin) {
+        newSuperAdmin.role = 'superadmin';
+    } else {
+        return { error: "Admin to promote not found.", success: false };
+    }
+    
+    await writeAdmins(adminData);
+    revalidatePath('/admin');
+    return { error: null, success: true };
+}
+
 
 // --- Reservation Action ---
 const reservationSchema = z.object({
@@ -83,9 +203,6 @@ export async function submitReservation(data: ReservationFormValues) {
   console.log('Message:', parsed.data.message || 'N/A');
   console.log('-----------------------------');
 
-  // Here you would integrate with Resend API
-  // e.g., await resend.emails.send({ ... });
-
   // Simulate network delay
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
@@ -108,9 +225,8 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
     const { whatsappNumber } = parsed.data;
     
     try {
-        const filePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
         const newSettings = JSON.stringify({ whatsappNumber }, null, 2);
-        await fs.writeFile(filePath, newSettings, 'utf-8');
+        await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
         
         revalidatePath('/admin');
         revalidatePath('/api/settings');
@@ -122,7 +238,7 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
     }
 }
 
-export async function toggleBestOffer(prevState: { error: string | null }, formData: FormData) {
+export async function toggleBestOffer(prevState: { error: string | null, success: boolean }, formData: FormData) {
   const serviceId = formData.get('serviceId') as string;
   const isBestOffer = !!formData.get('isBestOffer');
 
