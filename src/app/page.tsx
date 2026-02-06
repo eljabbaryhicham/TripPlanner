@@ -5,13 +5,9 @@ import {
   Car,
   BedDouble,
   Plane,
-  Sparkles,
-  MapPin,
-  DollarSign,
 } from 'lucide-react';
 
-import type { Service } from '@/lib/types';
-import { services } from '@/lib/data';
+import { bestOffers } from '@/lib/data';
 
 import Header from '@/components/header';
 import Footer from '@/components/footer';
@@ -20,13 +16,6 @@ import AiSuggestions from '@/components/ai-suggestions';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Home() {
-  const [activeTab, setActiveTab] = React.useState('all');
-
-  const filteredServices = React.useMemo(() => {
-    if (activeTab === 'all') return services;
-    return services.filter((service) => service.category === activeTab);
-  }, [activeTab]);
-
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -48,12 +37,11 @@ export default function Home() {
         <section id="services" className="py-16 md:py-24">
           <div className="container mx-auto px-4">
             <h2 className="mb-12 text-center font-headline text-3xl font-bold md:text-4xl">
-              Our Services
+              Best Service Offers
             </h2>
             <Tabs
               defaultValue="all"
               className="w-full"
-              onValueChange={setActiveTab}
             >
               <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 mb-8">
                 <TabsTrigger value="all">All</TabsTrigger>
@@ -71,25 +59,25 @@ export default function Home() {
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="all">
-                <ServiceList services={services} />
+                <ServiceList services={bestOffers} />
               </TabsContent>
               <TabsContent value="cars">
                 <ServiceList
-                  services={services.filter(
+                  services={bestOffers.filter(
                     (service) => service.category === 'cars'
                   )}
                 />
               </TabsContent>
               <TabsContent value="hotels">
                 <ServiceList
-                  services={services.filter(
+                  services={bestOffers.filter(
                     (service) => service.category === 'hotels'
                   )}
                 />
               </TabsContent>
               <TabsContent value="transport">
                 <ServiceList
-                  services={services.filter(
+                  services={bestOffers.filter(
                     (service) => service.category === 'transport'
                   )}
                 />
