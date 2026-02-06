@@ -5,6 +5,7 @@ import { BedDouble, Car, Briefcase, Mountain } from 'lucide-react';
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useAuth, useUser, initiateAnonymousSignIn } from '@/firebase';
 
 const NavLink = ({
   href,
@@ -43,6 +44,16 @@ const NavLink = ({
 };
 
 const Header = () => {
+  const { user, isUserLoading } = useUser();
+  const auth = useAuth();
+
+  React.useEffect(() => {
+    // If auth is ready, and we're done checking, and there's no user, sign in anonymously.
+    if (auth && !isUserLoading && !user) {
+      initiateAnonymousSignIn(auth);
+    }
+  }, [auth, isUserLoading, user]);
+
   return (
     <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
       <nav className="flex h-20 items-start justify-center gap-4 rounded-3xl border bg-background/50 p-3 shadow-lg backdrop-blur-md">

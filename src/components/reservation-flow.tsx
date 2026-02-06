@@ -5,7 +5,10 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Send, Loader2, CheckCircle } from 'lucide-react';
+import { Send, Loader2, CheckCircle, CreditCard } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useFirestore, useUser } from '@/firebase';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -60,10 +63,15 @@ const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 
 const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) => {
+  const router = useRouter();
+  const firestore = useFirestore();
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+
   const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
   const [showInquiryConfirmation, setShowInquiryConfirmation] = React.useState(false);
-  const { toast } = useToast();
   const [whatsappNumber, setWhatsappNumber] = React.useState<string>('');
+  const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
     React.useEffect(() => {
         fetch('/api/settings')
@@ -109,6 +117,63 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
       });
     }
   };
+
+  const handleCheckout = async () => {
+    setIsCheckingOut(true);
+
+    if (isUserLoading) {
+        toast({ description: "User session is loading, please wait." });
+        setIsCheckingOut(false);
+        return;
+    }
+
+    if (!user) {
+        toast({
+            variant: "destructive",
+            title: "You're not signed in.",
+            description: "Please wait a moment for session initialization and try again.",
+        });
+        setIsCheckingOut(false);
+        return;
+    }
+    
+    if (!firestore) {
+         toast({ variant: 'destructive', title: 'Database service is not ready.' });
+        setIsCheckingOut(false);
+        return;
+    }
+    
+    try {
+        const reservationsCol = collection(firestore, 'reservations');
+        
+        const reservationPayload = {
+            userId: user.uid,
+            serviceType: service.category,
+            serviceId: service.id,
+            serviceName: service.name,
+            price: service.price,
+            priceUnit: service.priceUnit,
+            totalPrice: totalPrice ?? service.price,
+            startDate: dates?.from ? Timestamp.fromDate(dates.from) : new Date(),
+            endDate: dates?.to ? Timestamp.fromDate(dates.to) : new Date(),
+            paymentStatus: 'pending',
+            createdAt: serverTimestamp(),
+        };
+
+        const docRef = await addDoc(reservationsCol, reservationPayload);
+        router.push(`/checkout/${docRef.id}`);
+    } catch (error: any) {
+        console.error('Failed to create reservation:', error);
+        toast({
+            variant: 'destructive',
+            title: 'Reservation Failed',
+            description: error.message || 'Could not create your reservation. Please try again.',
+        });
+    } finally {
+        setIsCheckingOut(false);
+    }
+  };
+
 
   if (showInquiryConfirmation) {
     return (
@@ -204,29 +269,47 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   }
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-      <Button
-        className="w-full sm:flex-1"
-        variant="secondary"
-        onClick={() => setReservationType('contact')}
-      >
-        <Send className="mr-2 h-4 w-4" />
-        Book via Email
-      </Button>
-      <div className="text-sm text-muted-foreground shrink-0">or</div>
-      <Button
-        asChild
-        className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
-        disabled={!whatsappNumber}
-      >
-        <a href={`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}`} target="_blank" rel="noopener noreferrer">
-            <WhatsappIcon className="mr-2 h-5 w-5" />
-            Book via Whatsapp
-        </a>
-      </Button>
+    <div className="space-y-4">
+        <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading}>
+            {isCheckingOut ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+            ) : (
+                <CreditCard className="mr-2 h-5 w-5" />
+            )}
+            {isUserLoading ? 'Initializing...' : 'Checkout Now'}
+        </Button>
+        <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">
+                    Or book manually
+                </span>
+            </div>
+        </div>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button
+                className="w-full sm:flex-1"
+                variant="secondary"
+                onClick={() => setReservationType('contact')}
+            >
+                <Send className="mr-2 h-4 w-4" />
+                Book via Email
+            </Button>
+            <Button
+                asChild
+                className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+                disabled={!whatsappNumber}
+            >
+                <a href={`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}`} target="_blank" rel="noopener noreferrer">
+                    <WhatsappIcon className="mr-2 h-5 w-5" />
+                    Book via Whatsapp
+                </a>
+            </Button>
+        </div>
     </div>
   );
 };
 
 export default ReservationFlow;
-
