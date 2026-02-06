@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "CarRental": {
@@ -215,23 +216,19 @@
         }
       },
       {
-        "path": "/users/{userId}/reservations/{reservationId}",
+        "path": "/reservations/{reservationId}",
         "definition": {
-          "entityName": "Reservation",
-          "schema": {
-            "$ref": "#/backend/entities/Reservation"
-          },
-          "description": "Stores reservations made by a specific user. Includes denormalized 'userId' for authorization independence.",
-          "params": [
-            {
-              "name": "userId",
-              "description": "The unique identifier for the user making the reservation."
+            "entityName": "Reservation",
+            "schema": {
+                "$ref": "#/backend/entities/Reservation"
             },
-            {
-              "name": "reservationId",
-              "description": "The unique identifier for the reservation."
-            }
-          ]
+            "description": "Stores reservations made by a specific user. Includes denormalized 'userId' for authorization independence.",
+            "params": [
+                {
+                    "name": "reservationId",
+                    "description": "The unique identifier for the reservation."
+                }
+            ]
         }
       },
       {
@@ -282,7 +279,6 @@
           ]
         }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to accommodate the TriPlanner application's needs, focusing on car rentals, hotels, and transport services, as well as user reservations and payment processing. The design emphasizes security, scalability, and ease of debugging, adhering to the core design principles and strategy mandates.\n\n1.  **Authorization Independence:** The structure uses path-based ownership for user reservations (`/users/{userId}/reservations/{reservationId}`).  There is no need to `get()` parent document data to validate ownership.  Future collaborative features can leverage membership maps denormalized into each reservation document.\n\n2.  **Clarity of Intent:** The structure explicitly separates user data and reservation data, making security rules easier to understand and maintain. Path-based ownership makes the intent clear.\n\n3.  **DBAC (No Custom Claims):** Authorization relies solely on `request.auth.uid` and path-based ownership. Roles are not stored, as admin access is assumed to be handled outside of Firestore via the app's backend using direct authentication.  Future role-based access control would rely on dedicated collections like `/roles_admin/{uid}`.\n\n4.  **QAPs (Rules are not Filters):** Secure `list` operations are supported through path-based ownership. Users can only list reservations under their own user ID, preventing unauthorized access to other users' reservations.\n\n5.  **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data. The `userId` field in the `/users/{userId}/reservations/{reservationId}` collection enforces ownership. Timestamps (`createdAt`) are included in the Reservation entity.\n\n**Denormalization Strategy:** The `reservations` subcollection contains a `userId` field, denormalizing the user's ID into the reservation document. This allows security rules to validate ownership without needing to read the user document. For example, `match /users/{userId}/reservations/{reservationId} { allow read, write: if request.auth.uid == userId; }`.\n\n**Structural Segregation:** The structure segregates data with different access needs. User profiles are stored in `/users/{userId}`, and reservations are stored in `/users/{userId}/reservations/{reservationId}`. This segregation simplifies security rules and improves data isolation.\n\n**Access Modeling:** The structure employs path-based ownership for user-owned data (reservations) by using a hierarchical path (`/users/{userId}/reservations/{reservationId}`). This is a secure and efficient approach.  If collaborative reservations were needed, a `members` map would be added to the reservation document with the user's roles on the document."
+    ]
   }
 }

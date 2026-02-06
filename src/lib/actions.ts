@@ -53,6 +53,8 @@ const reservationSchema = z.object({
   email: z.string().email(),
   message: z.string().optional(),
   serviceName: z.string(),
+  serviceId: z.string(),
+  price: z.number(),
 });
 
 type ReservationFormValues = z.infer<typeof reservationSchema>;
