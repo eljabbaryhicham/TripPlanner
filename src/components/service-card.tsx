@@ -61,7 +61,7 @@ const ServiceCard = ({
             </span>
           </div>
           <Button asChild variant="outline">
-            <Link href={`${pathname}?service=${slugify(service.name)}`} scroll={false}>
+            <Link href={`${pathname}?${slugify(service.name)}`} scroll={false}>
               Book
             </Link>
           </Button>

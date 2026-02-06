@@ -20,17 +20,18 @@ const ServiceList = ({
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  const serviceSlug = searchParams.get('service');
-
   const selectedService = React.useMemo(() => {
-    if (!serviceSlug) return null;
-    return services.find((s) => slugify(s.name) === serviceSlug) ?? null;
-  }, [serviceSlug, services]);
+    const serviceSlugs = services.map(s => slugify(s.name));
+    for (const key of searchParams.keys()) {
+      if (serviceSlugs.includes(key)) {
+        return services.find(s => slugify(s.name) === key) ?? null;
+      }
+    }
+    return null;
+  }, [searchParams, services]);
 
   const handleClose = () => {
-    // Replaces the current URL in the history with the pathname, which
-    // effectively removes any query parameters like "?service=...".
-    router.replace(pathname);
+    router.replace(pathname, { scroll: false });
   };
 
   return (
