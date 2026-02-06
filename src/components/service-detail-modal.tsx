@@ -20,6 +20,13 @@ import {
 } from '@internationalized/date';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from '@/components/ui/carousel';
 
 interface ServiceDetailModalProps {
   service: Service | null;
@@ -96,14 +103,46 @@ const ServiceDetailModal = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
         <DialogHeader>
-          <div className="relative w-full aspect-[16/9] rounded-t-lg overflow-hidden -mt-6">
-            <Image
-              src={service.imageUrl}
-              alt={service.description}
-              fill
-              className="object-cover"
-              data-ai-hint={service.imageHint}
-            />
+           <div className="relative -mx-6 -mt-6 rounded-t-lg overflow-hidden">
+            <Carousel>
+              <CarouselContent>
+                <CarouselItem>
+                  <div className="relative aspect-[16/9] w-full">
+                    <Image
+                      src={service.imageUrl}
+                      alt={service.description}
+                      fill
+                      className="object-cover"
+                      data-ai-hint={service.imageHint}
+                    />
+                  </div>
+                </CarouselItem>
+                <CarouselItem>
+                  <div className="relative aspect-[16/9] w-full">
+                    <Image
+                      src="https://picsum.photos/seed/media1/1280/720"
+                      alt="Additional media 1"
+                      fill
+                      className="object-cover"
+                      data-ai-hint="service amenity"
+                    />
+                  </div>
+                </CarouselItem>
+                <CarouselItem>
+                  <div className="relative aspect-[16/9] w-full">
+                    <Image
+                      src="https://picsum.photos/seed/media2/1280/720"
+                      alt="Additional media 2"
+                      fill
+                      className="object-cover"
+                      data-ai-hint="service view"
+                    />
+                  </div>
+                </CarouselItem>
+              </CarouselContent>
+              <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10" />
+              <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10" />
+            </Carousel>
           </div>
           <div className="pt-6">
             <DialogTitle className="text-3xl font-headline mb-2">

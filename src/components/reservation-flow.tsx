@@ -266,7 +266,6 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
       <Button
         className="flex-1"
         variant="default"
-        style={{ backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)'}}
         onClick={onCheckout}
       >
         <CreditCard className="mr-2 h-4 w-4" />
