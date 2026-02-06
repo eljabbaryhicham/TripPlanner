@@ -200,7 +200,7 @@ const reservationSchema = z.object({
   message: z.string().optional(),
   serviceName: z.string(),
   serviceId: z.string(),
-  price: z.number(),
+  price: z.coerce.number(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
@@ -262,18 +262,19 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
 
 async function writeServices(data: { services: Service[] }) {
     await fs.writeFile(servicesFilePath, JSON.stringify(data, null, 2), 'utf-8');
-    revalidatePath('/admin');
-    revalidatePath('/');
-    revalidatePath('/services/cars');
-    revalidatePath('/services/hotels');
-    revalidatePath('/services/transport');
 }
+
+const additionalMediaSchema = z.object({
+  imageUrl: z.string().url('Media item must have a valid URL.'),
+  imageHint: z.string().min(1, 'Media item must have an image hint.'),
+  description: z.string().min(1, 'Media item must have a description.'),
+});
 
 const serviceSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(1, 'Name is required'),
     description: z.string().min(1, 'Description is required'),
-    imageUrl: z.string().url('Must be a valid URL'),
+    imageUrl: z.string().url('Image URL must be a valid URL'),
     imageHint: z.string().min(1, 'Image hint is required'),
     category: z.enum(['cars', 'hotels', 'transport']),
     price: z.coerce.number().min(0, 'Price must be non-negative'),
@@ -282,50 +283,93 @@ const serviceSchema = z.object({
     isBestOffer: z.preprocess((val) => val === 'on', z.boolean()).default(false),
     details: z.string().transform((str, ctx) => {
         try {
-            return JSON.parse(str);
+            const parsed = JSON.parse(str);
+            if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Details must be a valid JSON object.' });
+                return z.NEVER;
+            }
+            for (const key in parsed) {
+                if (typeof parsed[key] !== 'string') {
+                     ctx.addIssue({ code: z.ZodIssueCode.custom, message: `In Details, the value for "${key}" must be a string.` });
+                     return z.NEVER;
+                }
+            }
+            return parsed;
         } catch (e) {
-            ctx.addIssue({ code: 'custom', message: 'Details must be valid JSON' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Details must be valid JSON.' });
             return z.NEVER;
         }
     }),
     additionalMedia: z.string().transform((str, ctx) => {
         try {
-            if (!str) return [];
-            return JSON.parse(str);
+            if (!str || str.trim() === '') return []; // Allow empty string
+            const parsed = JSON.parse(str);
+            const arraySchema = z.array(additionalMediaSchema);
+            const result = arraySchema.safeParse(parsed);
+            if (!result.success) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Additional Media is not a valid array of media objects. Check URLs and ensure all fields are present.' });
+                return z.NEVER;
+            }
+            return result.data;
         } catch (e) {
-            ctx.addIssue({ code: 'custom', message: 'Additional Media must be valid JSON array' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Additional Media must be a valid JSON array.' });
             return z.NEVER;
         }
     })
 });
 
 export async function saveService(prevState: { error: string | null, success: boolean }, formData: FormData) {
-    const data = Object.fromEntries(formData);
-    const parsed = serviceSchema.safeParse(data);
+    try {
+        const data = Object.fromEntries(formData);
+        const parsed = serviceSchema.safeParse(data);
 
-    if (!parsed.success) {
-        return { error: parsed.error.errors.map(e => e.message).join(', '), success: false };
-    }
-
-    const { id, ...serviceData } = parsed.data;
-    const { services } = await readServices();
-    
-    if (id) { // Update existing service
-        const index = services.findIndex(s => s.id === id);
-        if (index === -1) {
-            return { error: 'Service not found.', success: false };
+        if (!parsed.success) {
+            return { error: parsed.error.errors.map(e => e.message).join(', '), success: false };
         }
-        services[index] = { ...services[index], ...serviceData };
-    } else { // Add new service
-        const newService: Service = {
-            id: `${serviceData.category}-${Date.now()}`,
-            ...serviceData
-        };
-        services.push(newService);
+
+        const { id, ...serviceData } = parsed.data;
+        const dataContainer = await readServices();
+        let services = dataContainer.services;
+        
+        if (id) { // Update existing service
+            const index = services.findIndex(s => s.id === id);
+            if (index === -1) {
+                return { error: 'Service not found.', success: false };
+            }
+            // Ensure ID from the original object is preserved
+            services[index] = { ...services[index], ...serviceData };
+        } else { // Add new service
+            const newService: Service = {
+                id: `${serviceData.category}-${Date.now()}`,
+                name: serviceData.name,
+                description: serviceData.description,
+                imageUrl: serviceData.imageUrl,
+                imageHint: serviceData.imageHint,
+                category: serviceData.category,
+                price: serviceData.price,
+                priceUnit: serviceData.priceUnit,
+                location: serviceData.location,
+                isBestOffer: serviceData.isBestOffer,
+                details: serviceData.details,
+                additionalMedia: serviceData.additionalMedia,
+            };
+            services.push(newService);
+        }
+        
+        await writeServices({ services });
+        
+        // Revalidate all relevant paths to ensure data freshness
+        revalidatePath('/admin');
+        revalidatePath('/');
+        revalidatePath('/services/cars');
+        revalidatePath('/services/hotels');
+        revalidatePath('/services/transport');
+
+        return { error: null, success: true };
+    } catch (e: any) {
+        console.error("Critical error in saveService action:", e);
+        return { error: "A critical server error occurred. Could not save the service.", success: false };
     }
-    
-    await writeServices({ services });
-    return { error: null, success: true };
 }
 
 
