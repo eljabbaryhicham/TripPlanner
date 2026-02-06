@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { updateWhatsappNumber } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,17 +21,19 @@ function SubmitButton() {
 }
 
 export default function SettingsManagement({ currentWhatsappNumber }: { currentWhatsappNumber: string }) {
+    const router = useRouter();
     const { toast } = useToast();
     const [state, formAction] = useActionState(updateWhatsappNumber, { error: null, success: false });
 
     useEffect(() => {
         if (state.success) {
             toast({ title: 'Settings Updated', description: 'Your changes have been saved successfully.' });
+            router.refresh();
         }
         if (state.error) {
             toast({ variant: 'destructive', title: 'Error', description: state.error });
         }
-    }, [state, toast]);
+    }, [state, toast, router]);
 
     return (
         <form action={formAction} className="space-y-4 max-w-md">

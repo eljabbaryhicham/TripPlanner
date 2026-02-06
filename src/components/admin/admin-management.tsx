@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { addAdmin, removeAdmin, setSuperAdmin } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,17 +22,19 @@ function SubmitButton({ children, variant = 'default' }: { children: React.React
 }
 
 function AddAdminForm() {
+    const router = useRouter();
     const { toast } = useToast();
     const [state, formAction] = useActionState(addAdmin, { error: null, success: false });
 
     useEffect(() => {
         if (state.success) {
             toast({ title: 'Admin Added', description: 'The new admin has been successfully added.' });
+            router.refresh();
         }
         if (state.error) {
             toast({ variant: 'destructive', title: 'Error', description: state.error });
         }
-    }, [state, toast]);
+    }, [state, toast, router]);
 
     return (
         <form action={formAction} className="space-y-4">
@@ -56,16 +59,18 @@ function AddAdminForm() {
 }
 
 function RemoveAdminForm({ adminId }: { adminId: string }) {
+    const router = useRouter();
     const { toast } = useToast();
     const [state, formAction] = useActionState(removeAdmin, { error: null, success: false });
      useEffect(() => {
         if (state.success) {
             toast({ title: 'Admin Removed' });
+            router.refresh();
         }
         if (state.error) {
             toast({ variant: 'destructive', title: 'Error', description: state.error });
         }
-    }, [state, toast]);
+    }, [state, toast, router]);
 
     return (
         <form action={formAction}>
@@ -78,17 +83,19 @@ function RemoveAdminForm({ adminId }: { adminId: string }) {
 }
 
 function SetSuperAdminForm({ adminId }: { adminId: string }) {
-     const { toast } = useToast();
+    const router = useRouter();
+    const { toast } = useToast();
     const [state, formAction] = useActionState(setSuperAdmin, { error: null, success: false });
 
      useEffect(() => {
         if (state.success) {
             toast({ title: 'Super Admin Updated' });
+            router.refresh();
         }
         if (state.error) {
             toast({ variant: 'destructive', title: 'Error', description: state.error });
         }
-    }, [state, toast]);
+    }, [state, toast, router]);
 
      return (
         <form action={formAction}>

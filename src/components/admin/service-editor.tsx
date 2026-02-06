@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { saveService } from '@/lib/actions';
 import type { Service } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
@@ -33,6 +34,7 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 }
 
 export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
+    const router = useRouter();
     const { toast } = useToast();
     const isEditing = !!service;
     const [state, formAction] = useActionState(saveService, { error: null, success: false });
@@ -41,11 +43,12 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
         if (state.success) {
             toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
             onClose();
+            router.refresh();
         }
         if (state.error) {
             toast({ variant: 'destructive', title: 'Error', description: state.error });
         }
-    }, [state, toast, isEditing, onClose]);
+    }, [state, toast, isEditing, onClose, router]);
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
