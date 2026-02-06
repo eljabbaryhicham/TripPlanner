@@ -70,31 +70,36 @@ function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
 }
 
 function BestOfferToggle({ serviceId, isBestOffer }: { serviceId: string; isBestOffer: boolean }) {
+    // Correctly use useActionState to manage form state and actions.
+    const [state, formAction] = useActionState(toggleBestOffer, { error: null, success: false });
     const formRef = React.useRef<HTMLFormElement>(null);
     const { toast } = useToast();
 
-    const dispatchToggleBestOffer = async (formData: FormData) => {
-        const result = await toggleBestOffer({ error: null, success: false }, formData);
-        if (result.success) {
+    // Effect to show toast notifications based on the result of the server action.
+    React.useEffect(() => {
+        if (state.success) {
             toast({
                 title: "Best Offer Updated",
             });
         }
-        if (result.error) {
+        if (state.error) {
             toast({
                 variant: 'destructive',
                 title: "Update Failed",
-                description: result.error,
+                description: state.error,
             });
         }
-    };
+    }, [state, toast]);
 
     return (
-        <form action={dispatchToggleBestOffer} ref={formRef}>
+        // The form's action is now correctly bound to the `formAction` from `useActionState`.
+        <form action={formAction} ref={formRef}>
             <input type="hidden" name="serviceId" value={serviceId} />
             <Checkbox
                 name="isBestOffer"
                 defaultChecked={isBestOffer}
+                // When the checkbox state changes, programmatically submit the form.
+                // This will trigger the server action.
                 onCheckedChange={() => {
                     setTimeout(() => formRef.current?.requestSubmit(), 50);
                 }}
