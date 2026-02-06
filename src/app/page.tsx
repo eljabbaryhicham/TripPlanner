@@ -2,7 +2,13 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { Car, BedDouble, Briefcase, ArrowRight } from 'lucide-react';
+import {
+  Car,
+  BedDouble,
+  Briefcase,
+  ArrowRight,
+  ArrowDown,
+} from 'lucide-react';
 
 import { bestOffers } from '@/lib/data';
 
@@ -37,6 +43,17 @@ export default function Home() {
               Your ultimate travel planning assistant. Seamlessly book cars,
               hotels, and transport.
             </p>
+            <Button
+              asChild
+              size="lg"
+              variant="outline"
+              className="mt-8 border-white/50 bg-transparent text-white hover:bg-white/10 hover:text-white backdrop-blur-sm"
+            >
+              <Link href="#services">
+                Explore Services
+                <ArrowDown className="ml-2 h-5 w-5" />
+              </Link>
+            </Button>
           </div>
         </section>
 
