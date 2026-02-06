@@ -42,26 +42,28 @@ const ServiceDetailModal = ({
   const { days, totalPrice } = React.useMemo(() => {
     if (service && date?.from && date?.to) {
       let dayCount;
-      // For hotels, we count nights. For cars, we count days inclusive.
-      if (service.priceUnit === 'day') {
-        dayCount = differenceInDays(date.to, date.from) + 1;
-      } else { // 'night'
+      // For hotels, we count nights (exclusive end date).
+      if (service.priceUnit === 'night') {
         dayCount = differenceInDays(date.to, date.from);
+      } else { // For cars, we count days (inclusive).
+        dayCount = differenceInDays(date.to, date.from) + 1;
       }
       
+      // Ensure the duration is valid before calculating a price.
       if (dayCount > 0) {
         return { days: dayCount, totalPrice: dayCount * service.price };
       }
     }
-    return { days: null, totalPrice: service?.price };
+    // If no valid date range is selected, return null for days and totalPrice.
+    return { days: null, totalPrice: null };
   }, [date, service]);
 
   React.useEffect(() => {
-    // Reset date when service changes
+    // Reset date when service or modal state changes
     if (service) {
         setDate(undefined);
     }
-  }, [service]);
+  }, [service, isOpen]);
 
 
   if (!service) return null;
@@ -109,10 +111,10 @@ const ServiceDetailModal = ({
               </div>
               <div className="flex justify-between items-baseline">
                 <span className="text-foreground/80">Price:</span>
-                 {days ? (
+                 {totalPrice !== null && days ? (
                   <div className="text-right">
                     <Badge variant="secondary" className="text-lg">
-                      ${totalPrice?.toFixed(2)}
+                      ${totalPrice.toFixed(2)}
                     </Badge>
                     <p className="text-xs text-muted-foreground mt-1">
                       (${service.price} / {service.priceUnit} for {days}{' '}

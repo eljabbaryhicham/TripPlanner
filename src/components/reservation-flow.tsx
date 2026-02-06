@@ -84,13 +84,23 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   };
 
   const onCheckout = () => {
-    if ((service.category === 'cars' || service.category === 'hotels') && (!dates || !dates.from || !dates.to)) {
-      toast({
-          variant: 'destructive',
-          title: 'Select Dates',
-          description: 'Please select a start and end date for your reservation.',
-      });
-      return;
+    if ((service.category === 'cars' || service.category === 'hotels')) {
+        if (!dates || !dates.from || !dates.to) {
+            toast({
+                variant: 'destructive',
+                title: 'Select Dates',
+                description: 'Please select a start and end date for your reservation.',
+            });
+            return;
+        }
+        if (totalPrice === null || totalPrice <= 0) {
+            toast({
+                variant: 'destructive',
+                title: 'Invalid Date Range',
+                description: `Please select a valid range. A booking must be for at least one ${service.priceUnit}.`,
+            });
+            return;
+        }
     }
 
     if (!firestore) {
