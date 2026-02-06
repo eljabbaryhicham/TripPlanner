@@ -4,8 +4,9 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle, CreditCard, Send, Loader2 } from 'lucide-react';
-import { collection, serverTimestamp, doc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { CreditCard, Send, Loader2 } from 'lucide-react';
+import { collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
@@ -23,7 +24,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { submitReservation } from '@/lib/actions';
-import { Card, CardContent } from '@/components/ui/card';
 
 const reservationSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -41,12 +41,11 @@ interface ReservationFlowProps {
 }
 
 const ReservationFlow = ({ service }: ReservationFlowProps) => {
-  const [reservationType, setReservationType] = React.useState<
-    'contact' | 'checkout' | null
-  >(null);
+  const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
+  const router = useRouter();
 
   const form = useForm<ReservationFormValues>({
     resolver: zodResolver(reservationSchema),
@@ -82,9 +81,15 @@ const ReservationFlow = ({ service }: ReservationFlowProps) => {
   };
 
   const onCheckout = () => {
-    if (!firestore) return;
+    if (!firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Uh oh! Something went wrong.',
+        description: 'Database service is not available. Please try again later.',
+      });
+      return;
+    }
 
-    // A real user ID would be used here
     const userId = user?.uid || 'anonymous';
     const reservationData = {
       userId,
@@ -92,6 +97,7 @@ const ReservationFlow = ({ service }: ReservationFlowProps) => {
       serviceId: service.id,
       serviceName: service.name,
       totalPrice: service.price,
+      priceUnit: service.priceUnit,
       paymentStatus: 'pending',
       createdAt: serverTimestamp(),
       startDate: new Date().toISOString(), // Placeholder
@@ -99,13 +105,30 @@ const ReservationFlow = ({ service }: ReservationFlowProps) => {
     };
 
     const reservationsCol = collection(firestore, 'reservations');
-    addDocumentNonBlocking(reservationsCol, reservationData);
     
-    setReservationType('checkout');
     toast({
-      title: 'Reservation Initiated!',
-      description: 'Redirecting to our secure payment gateway...',
+      title: 'Creating Reservation...',
+      description: 'Please wait while we prepare your checkout.',
     });
+
+    addDocumentNonBlocking(reservationsCol, reservationData)
+      .then(docRef => {
+        if (docRef) {
+          router.push(`/checkout/${docRef.id}`);
+        } else {
+          // This case might happen if the non-blocking function fails early,
+          // though the .catch in it should handle permissions errors.
+          throw new Error('Failed to create reservation document.');
+        }
+      })
+      .catch(error => {
+        console.error("Error creating reservation or redirecting:", error);
+        toast({
+          variant: 'destructive',
+          title: 'Checkout Failed',
+          description: 'Could not create a reservation to proceed to checkout.',
+        });
+      });
   };
 
   if (reservationType === 'contact') {
@@ -182,29 +205,6 @@ const ReservationFlow = ({ service }: ReservationFlowProps) => {
     );
   }
 
-  if (reservationType === 'checkout') {
-    return (
-      <Card className="text-center bg-secondary/50">
-        <CardContent className="p-6">
-          <CheckCircle className="mx-auto h-12 w-12 text-green-500 mb-4" />
-          <h3 className="text-lg font-semibold">Redirecting to Checkout</h3>
-          <p className="text-sm text-muted-foreground">
-            Your reservation has been recorded. You will now be redirected to our secure payment gateway.
-          </p>
-          <div className="mt-4 flex justify-end">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setReservationType(null)}
-            >
-              Go Back
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
   return (
     <div className="flex flex-col sm:flex-row justify-center gap-4">
       <Button
@@ -222,7 +222,7 @@ const ReservationFlow = ({ service }: ReservationFlowProps) => {
         onClick={onCheckout}
       >
         <CreditCard className="mr-2 h-4 w-4" />
-        Checkout Now
+        Proceed to Checkout
       </Button>
     </div>
   );
