@@ -9,6 +9,7 @@ import { CreditCard, Send, Loader2 } from 'lucide-react';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import type { DateRange } from 'react-day-picker';
 
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -38,9 +39,11 @@ type ReservationFormValues = z.infer<typeof reservationSchema>;
 
 interface ReservationFlowProps {
   service: Service;
+  dates: DateRange | undefined;
+  totalPrice: number | null;
 }
 
-const ReservationFlow = ({ service }: ReservationFlowProps) => {
+const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) => {
   const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
   const { toast } = useToast();
   const firestore = useFirestore();
@@ -81,6 +84,15 @@ const ReservationFlow = ({ service }: ReservationFlowProps) => {
   };
 
   const onCheckout = () => {
+    if ((service.category === 'cars' || service.category === 'hotels') && (!dates || !dates.from || !dates.to)) {
+      toast({
+          variant: 'destructive',
+          title: 'Select Dates',
+          description: 'Please select a start and end date for your reservation.',
+      });
+      return;
+    }
+
     if (!firestore) {
       toast({
         variant: 'destructive',
@@ -96,12 +108,12 @@ const ReservationFlow = ({ service }: ReservationFlowProps) => {
       serviceType: service.category,
       serviceId: service.id,
       serviceName: service.name,
-      totalPrice: service.price,
+      totalPrice: totalPrice || service.price,
       priceUnit: service.priceUnit,
       paymentStatus: 'pending',
       createdAt: serverTimestamp(),
-      startDate: new Date().toISOString(), // Placeholder
-      endDate: new Date().toISOString(), // Placeholder
+      startDate: dates?.from?.toISOString() || new Date().toISOString(),
+      endDate: dates?.to?.toISOString() || new Date().toISOString(),
     };
 
     const reservationsCol = collection(firestore, 'reservations');
