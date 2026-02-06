@@ -14,6 +14,25 @@ const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json
 const servicesFilePath = path.join(process.cwd(), 'src', 'lib', 'placeholder-images.json');
 
 
+// --- Data Fetching Actions ---
+async function readServices(): Promise<{ services: Service[] }> {
+    try {
+        const data = await fs.readFile(servicesFilePath, 'utf-8');
+        return JSON.parse(data);
+    } catch (error) {
+        // If the file doesn't exist or is invalid, return an empty array.
+        // This prevents the app from crashing on first run.
+        console.error("Failed to read services file:", error);
+        return { services: [] };
+    }
+}
+
+export async function getServices(): Promise<Service[]> {
+    const { services } = await readServices();
+    return services;
+}
+
+
 // --- Auth Helpers & Actions ---
 
 async function readAdmins() {
@@ -240,16 +259,6 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
 }
 
 // --- Service Management Actions ---
-
-async function readServices(): Promise<{ services: Service[] }> {
-    try {
-        const data = await fs.readFile(servicesFilePath, 'utf-8');
-        return JSON.parse(data);
-    } catch (error) {
-        console.error("Failed to read services file:", error);
-        return { services: [] };
-    }
-}
 
 async function writeServices(data: { services: Service[] }) {
     await fs.writeFile(servicesFilePath, JSON.stringify(data, null, 2), 'utf-8');

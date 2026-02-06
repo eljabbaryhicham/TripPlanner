@@ -1,13 +1,13 @@
-'use client';
 
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import ServiceList from '@/components/service-list';
-import { services } from '@/lib/data';
+import { getServices } from '@/lib/actions';
 import { Car } from 'lucide-react';
 
-export default function CarsPage() {
-  const carServices = services.filter((service) => service.category === 'cars');
+export default async function CarsPage() {
+  const allServices = await getServices();
+  const carServices = allServices.filter((service) => service.category === 'cars');
 
   return (
     <div className="flex min-h-screen flex-col">

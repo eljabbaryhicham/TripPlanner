@@ -1,8 +1,3 @@
-import { services } from './placeholder-images';
-import type { Service } from './types';
-
-export { services };
-
-export const bestOffers: Service[] = services.filter(
-  (service) => service.isBestOffer
-);
+// This file previously contained static service data.
+// To prevent stale data after edits in the admin panel, service data is now
+// loaded dynamically on each page using the `getServices()` server action.

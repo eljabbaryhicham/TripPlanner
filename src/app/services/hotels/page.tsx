@@ -1,13 +1,13 @@
-'use client';
 
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import ServiceList from '@/components/service-list';
-import { services } from '@/lib/data';
+import { getServices } from '@/lib/actions';
 import { BedDouble } from 'lucide-react';
 
-export default function HotelsPage() {
-  const hotelServices = services.filter(
+export default async function HotelsPage() {
+  const allServices = await getServices();
+  const hotelServices = allServices.filter(
     (service) => service.category === 'hotels'
   );
 

@@ -7,8 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, Settings, Shield, Star } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { logout } from '@/lib/actions';
-import { getAdmins } from '@/lib/actions';
+import { logout, getAdmins, getServices } from '@/lib/actions';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -16,7 +15,6 @@ import AdminManagement from '@/components/admin/admin-management';
 import ServiceManagement from '@/components/admin/service-management';
 import SettingsManagement from '@/components/admin/settings-management';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { services } from '@/lib/placeholder-images';
 
 async function readSettings() {
   try {
@@ -48,6 +46,7 @@ export default async function AdminPage() {
 
     const admins = await getAdmins();
     const settings = await readSettings();
+    const services = await getServices();
 
     return (
         <div className="min-h-screen bg-muted/40">
