@@ -20,6 +20,7 @@ const ServiceCard = ({
   isBestOffer = false,
 }: ServiceCardProps) => {
   const pathname = usePathname();
+
   return (
     <Card className="overflow-hidden transition-all duration-300 hover:shadow-lg hover:-translate-y-1 flex flex-col">
       <CardHeader className="p-0">
@@ -42,30 +43,28 @@ const ServiceCard = ({
           />
         </div>
       </CardHeader>
-      <CardContent className="p-4 flex-1 flex flex-col justify-between">
-        <div>
+      <CardContent className="p-4 flex-1 flex flex-col">
+        <div className="flex-grow">
           <CardTitle className="mb-2 text-xl font-headline">
             {service.name}
           </CardTitle>
-          <div className="flex items-center text-sm text-foreground/80 mb-4">
+          <div className="flex items-center text-sm text-foreground/80 mb-2">
             <MapPin className="w-4 h-4 mr-2" />
             <span>{service.location}</span>
           </div>
-        </div>
-        <div className="flex justify-between items-center">
-          <div className="flex items-baseline text-lg font-semibold">
+           <div className="flex items-baseline text-lg font-semibold">
             <DollarSign className="w-4 h-4 mr-1" />
             {service.price}
             <span className="text-sm font-normal text-foreground/60">
               /{service.priceUnit}
             </span>
           </div>
-          <Button asChild variant="outline" size="lg">
+        </div>
+        <Button asChild variant="default" className="w-full mt-4 h-14 text-lg font-bold">
             <Link href={`${pathname}?${slugify(service.name)}`} scroll={false}>
               Book
             </Link>
-          </Button>
-        </div>
+        </Button>
       </CardContent>
     </Card>
   );
