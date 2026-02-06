@@ -156,7 +156,11 @@ const ServiceDetailModal = ({
                 <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10" />
               </Carousel>
             </div>
-            <div className="pt-6">
+          </DialogHeader>
+
+          {/* Booking Section */}
+          <div className="px-6 pt-6">
+            <div className="pb-6">
               <DialogTitle className="text-3xl font-headline mb-2">
                 {service.name}
               </DialogTitle>
@@ -164,100 +168,105 @@ const ServiceDetailModal = ({
                 {service.description}
               </DialogDescription>
             </div>
-          </DialogHeader>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-            <div>
-              <h3 className="font-semibold mb-3">Details</h3>
-              <div className="space-y-2 text-sm">
-                {Object.entries(service.details).map(([key, value]) => (
-                  <div key={key} className="flex justify-between items-center">
-                    <span className="text-foreground/80">{key}:</span>
-                    {key === 'Rating' ? (
-                      <div className="flex items-center gap-2">
+            
+            {(service.category === 'cars' || service.category === 'hotels') && (
+              <div className="space-y-4 mb-6">
+                <Label>Reservation Dates</Label>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="start-date" className="text-xs text-muted-foreground">From</Label>
+                        <Input 
+                            id="start-date" 
+                            type="date" 
+                            value={startDate} 
+                            onChange={(e) => setStartDate(e.target.value)}
+                            min={todayDate}
+                            className="bg-secondary/50 text-foreground"
+                        />
+                    </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="end-date" className="text-xs text-muted-foreground">To</Label>
+                        <Input 
+                            id="end-date" 
+                            type="date" 
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            min={startDate || todayDate}
+                            className="bg-secondary/50 text-foreground"
+                        />
+                    </div>
+                </div>
+              </div>
+            )}
+            <ReservationFlow
+              service={service}
+              dates={dateForFlow}
+              totalPrice={totalPrice}
+            />
+          </div>
+
+          <Separator />
+          
+          {/* Details Section */}
+          <div className="px-6 pt-6 pb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-3">Details</h3>
+                <div className="space-y-2 text-sm">
+                  {Object.entries(service.details).map(([key, value]) => (
+                    <div key={key} className="flex justify-between items-center">
+                      <span className="text-foreground/80">{key}:</span>
+                      {key === 'Rating' ? (
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{value}</span>
+                          <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
+                            Show Reviews
+                          </Button>
+                        </div>
+                      ) : (
                         <span className="font-medium">{value}</span>
-                        <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
-                          Show Reviews
-                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3">Location & Pricing</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-foreground/80">Location:</span>
+                    <span className="font-medium">{service.location}</span>
+                  </div>
+                  <div className="flex justify-between items-baseline">
+                    <span className="text-foreground/80">Price:</span>
+                    {totalPrice !== null && days ? (
+                      <div className="text-right">
+                        <Badge variant="secondary" className="text-lg">
+                          ${totalPrice.toFixed(2)}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          (${service.price} / {service.priceUnit} for {days}{' '}
+                          {days === 1
+                            ? service.priceUnit === 'day'
+                              ? 'day'
+                              : 'night'
+                            : service.priceUnit === 'day'
+                            ? 'days'
+                            : 'nights'}
+                          )
+                        </p>
                       </div>
                     ) : (
-                      <span className="font-medium">{value}</span>
+                      <Badge variant="secondary" className="text-lg">
+                        ${service.price} / {service.priceUnit}
+                      </Badge>
                     )}
                   </div>
-                ))}
-              </div>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-3">Location & Pricing</h3>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-foreground/80">Location:</span>
-                  <span className="font-medium">{service.location}</span>
-                </div>
-                <div className="flex justify-between items-baseline">
-                  <span className="text-foreground/80">Price:</span>
-                  {totalPrice !== null && days ? (
-                    <div className="text-right">
-                      <Badge variant="secondary" className="text-lg">
-                        ${totalPrice.toFixed(2)}
-                      </Badge>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        (${service.price} / {service.priceUnit} for {days}{' '}
-                        {days === 1
-                          ? service.priceUnit === 'day'
-                            ? 'day'
-                            : 'night'
-                          : service.priceUnit === 'day'
-                          ? 'days'
-                          : 'nights'}
-                        )
-                      </p>
-                    </div>
-                  ) : (
-                    <Badge variant="secondary" className="text-lg">
-                      ${service.price} / {service.priceUnit}
-                    </Badge>
-                  )}
                 </div>
               </div>
             </div>
           </div>
 
-          {(service.category === 'cars' || service.category === 'hotels') && (
-            <div className="space-y-4">
-              <Label>Reservation Dates</Label>
-              <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-1.5">
-                      <Label htmlFor="start-date" className="text-xs text-muted-foreground">From</Label>
-                      <Input 
-                          id="start-date" 
-                          type="date" 
-                          value={startDate} 
-                          onChange={(e) => setStartDate(e.target.value)}
-                          min={todayDate}
-                          className="bg-secondary/50 text-foreground"
-                      />
-                  </div>
-                  <div className="grid gap-1.5">
-                      <Label htmlFor="end-date" className="text-xs text-muted-foreground">To</Label>
-                      <Input 
-                          id="end-date" 
-                          type="date" 
-                          value={endDate}
-                          onChange={(e) => setEndDate(e.target.value)}
-                          min={startDate || todayDate}
-                          className="bg-secondary/50 text-foreground"
-                      />
-                  </div>
-              </div>
-            </div>
-          )}
-
-          <Separator className="my-4" />
-          <ReservationFlow
-            service={service}
-            dates={dateForFlow}
-            totalPrice={totalPrice}
-          />
         </DialogContent>
       </Dialog>
       {service && (
