@@ -3,7 +3,7 @@
 
 import { useFormState } from 'react-dom';
 import { services } from '@/lib/data';
-import { logout, updateWhatsappNumber } from '@/lib/actions';
+import { logout, updateWhatsappNumber, toggleBestOffer } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import React from 'react';
+import { Checkbox } from '@/components/ui/checkbox';
 
 function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
     const [state, formAction] = useFormState(updateWhatsappNumber, { error: null, success: false });
@@ -58,6 +59,41 @@ function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
     );
 }
 
+function BestOfferToggle({ serviceId, isBestOffer }: { serviceId: string; isBestOffer: boolean }) {
+    const formRef = React.useRef<HTMLFormElement>(null);
+    const { toast } = useToast();
+
+    const dispatchToggleBestOffer = async (formData: FormData) => {
+        const result = await toggleBestOffer({ error: null, success: false }, formData);
+        if (result.success) {
+            toast({
+                title: "Best Offer Updated",
+            });
+        }
+        if (result.error) {
+            toast({
+                variant: 'destructive',
+                title: "Update Failed",
+                description: result.error,
+            });
+        }
+    };
+
+    return (
+        <form action={dispatchToggleBestOffer} ref={formRef}>
+            <input type="hidden" name="serviceId" value={serviceId} />
+            <Checkbox
+                name="isBestOffer"
+                defaultChecked={isBestOffer}
+                onCheckedChange={() => {
+                    setTimeout(() => formRef.current?.requestSubmit(), 50);
+                }}
+            />
+        </form>
+    );
+}
+
+
 export default function AdminPage({
     searchParams,
 }: {
@@ -88,6 +124,7 @@ export default function AdminPage({
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
+                  <TableHead>Best Offer</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead className="text-right">Price</TableHead>
                 </TableRow>
@@ -98,6 +135,9 @@ export default function AdminPage({
                     <TableCell className="font-medium">{service.name}</TableCell>
                     <TableCell>
                       <Badge variant="secondary" className="capitalize">{service.category}</Badge>
+                    </TableCell>
+                    <TableCell>
+                        <BestOfferToggle serviceId={service.id} isBestOffer={!!service.isBestOffer} />
                     </TableCell>
                     <TableCell>{service.location}</TableCell>
                     <TableCell className="text-right">

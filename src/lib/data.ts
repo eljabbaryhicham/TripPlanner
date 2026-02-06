@@ -106,12 +106,6 @@ export const services: Service[] = [
   },
 ];
 
-const bestCar = services.find((service) => service.category === 'cars');
-const bestHotel = services.find((service) => service.category === 'hotels');
-const bestTransport = services.find(
-  (service) => service.category === 'transport'
-);
-
-export const bestOffers: Service[] = [bestCar, bestHotel, bestTransport].filter(
-  (service): service is Service => service !== undefined
+export const bestOffers: Service[] = services.filter(
+  (service) => service.isBestOffer
 );

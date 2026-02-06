@@ -19,6 +19,7 @@ import { Button } from '@/components/ui/button';
 import ReservationFlow from '@/components/reservation-flow';
 import ReviewsPopup from '@/components/reviews-popup';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { Star } from 'lucide-react';
 
 export default function TransportPage() {
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
@@ -99,8 +100,14 @@ export default function TransportPage() {
 
               <div className="p-6">
                 <div className="pt-6 text-center md:text-left">
-                  <h1 className="text-3xl font-headline mb-2">
+                  <h1 className="text-3xl font-headline mb-2 flex items-center">
                     {service.name}
+                    {service.isBestOffer && (
+                        <Badge variant="default" className="ml-4 bg-accent text-accent-foreground">
+                            <Star className="w-3 h-3 mr-1.5" />
+                            Best Offer
+                        </Badge>
+                    )}
                   </h1>
                   <p className="text-base text-muted-foreground">
                     {service.description}

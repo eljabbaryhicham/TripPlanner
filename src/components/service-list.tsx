@@ -9,12 +9,10 @@ import { slugify } from '@/lib/utils';
 
 interface ServiceListProps {
   services: Service[];
-  showBestOfferBadge?: boolean;
 }
 
 const ServiceList = ({
   services,
-  showBestOfferBadge = false,
 }: ServiceListProps) => {
   const router = useRouter();
   const pathname = usePathname();
@@ -42,7 +40,7 @@ const ServiceList = ({
           <ServiceCard
             key={service.id}
             service={service}
-            isBestOffer={showBestOfferBadge}
+            isBestOffer={service.isBestOffer}
           />
         ))}
       </div>

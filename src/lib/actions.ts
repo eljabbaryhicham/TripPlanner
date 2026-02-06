@@ -121,3 +121,45 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
         return { error: 'Could not save settings.', success: false };
     }
 }
+
+export async function toggleBestOffer(prevState: { error: string | null }, formData: FormData) {
+  const serviceId = formData.get('serviceId') as string;
+  const isBestOffer = !!formData.get('isBestOffer');
+
+  if (!serviceId) {
+    return { error: 'Service ID is missing.', success: false };
+  }
+
+  try {
+    const filePath = path.join(process.cwd(), 'src', 'lib', 'placeholder-images.json');
+    const fileData = await fs.readFile(filePath, 'utf-8');
+    const jsonData = JSON.parse(fileData);
+
+    const serviceIndex = jsonData.placeholderImages.findIndex((s: any) => s.id === serviceId);
+
+    if (serviceIndex === -1) {
+      return { error: 'Service not found.', success: false };
+    }
+    
+    if (isBestOffer) {
+      jsonData.placeholderImages[serviceIndex].isBestOffer = true;
+    } else {
+      delete jsonData.placeholderImages[serviceIndex].isBestOffer;
+    }
+    
+    const updatedData = JSON.stringify(jsonData, null, 2);
+    await fs.writeFile(filePath, updatedData, 'utf-8');
+    
+    revalidatePath('/admin');
+    revalidatePath('/');
+    revalidatePath('/services/cars');
+    revalidatePath('/services/hotels');
+    revalidatePath('/services/transport');
+
+    return { error: null, success: true };
+
+  } catch (error) {
+    console.error('Failed to update best offer status:', error);
+    return { error: 'Could not update best offer status.', success: false };
+  }
+}

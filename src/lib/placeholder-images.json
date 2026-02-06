@@ -4,7 +4,8 @@
       "id": "car-1",
       "description": "A modern compact car in an urban setting.",
       "imageUrl": "https://images.unsplash.com/photo-1766602111000-96a7685d79f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb21wYWN0JTIwY2FyfGVufDB8fHx8MTc3MDM5NjIwNXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "compact car"
+      "imageHint": "compact car",
+      "isBestOffer": true
     },
     {
       "id": "car-2",
@@ -22,7 +23,8 @@
       "id": "hotel-1",
       "description": "A boutique hotel room with a beautiful view.",
       "imageUrl": "https://images.unsplash.com/photo-1611892440504-42a792e24d32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MHx8fHwxNzcwMzY5MzEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "hotel room"
+      "imageHint": "hotel room",
+      "isBestOffer": true
     },
     {
       "id": "hotel-2",
@@ -40,7 +42,8 @@
       "id": "transport-1",
       "description": "A friendly guide holding a welcome sign at an airport arrivals gate.",
       "imageUrl": "https://images.unsplash.com/photo-1687986476040-82354f3c730e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhaXJwb3J0JTIwZ3VpZGV8ZW58MHx8fHwxNzcwNDA1ODE4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "airport guide"
+      "imageHint": "airport guide",
+      "isBestOffer": true
     },
     {
       "id": "transport-2",

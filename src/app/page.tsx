@@ -85,7 +85,7 @@ export default function Home() {
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="all">
-                  <ServiceList services={bestOffers} showBestOfferBadge={true} />
+                  <ServiceList services={bestOffers} />
                 </TabsContent>
                 <TabsContent value="cars">
                   <div className="space-y-8">
@@ -93,7 +93,6 @@ export default function Home() {
                       services={bestOffers.filter(
                         (service) => service.category === 'cars'
                       )}
-                      showBestOfferBadge={true}
                     />
                     <div className="text-center">
                       <Button asChild variant="outline">
@@ -111,7 +110,6 @@ export default function Home() {
                       services={bestOffers.filter(
                         (service) => service.category === 'hotels'
                       )}
-                      showBestOfferBadge={true}
                     />
                     <div className="text-center">
                       <Button asChild variant="outline">
@@ -129,7 +127,6 @@ export default function Home() {
                       services={bestOffers.filter(
                         (service) => service.category === 'transport'
                       )}
-                      showBestOfferBadge={true}
                     />
                     <div className="text-center">
                       <Button asChild variant="outline">
