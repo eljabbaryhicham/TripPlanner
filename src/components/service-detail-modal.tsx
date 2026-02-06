@@ -105,7 +105,14 @@ const ServiceDetailModal = ({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={onClose}>
+      <Dialog
+        open={isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            onClose();
+          }
+        }}
+      >
         <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
             <div className="relative -mx-6 -mt-6 rounded-t-lg overflow-hidden">
