@@ -1,7 +1,7 @@
+
 'use client';
 
 import * as React from 'react';
-import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { saveService } from '@/lib/actions';
@@ -37,7 +37,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
     const router = useRouter();
     const { toast } = useToast();
     const isEditing = !!service;
-    const [state, formAction] = useActionState(saveService, { error: null, success: false });
+    const [state, formAction] = React.useActionState(saveService, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {

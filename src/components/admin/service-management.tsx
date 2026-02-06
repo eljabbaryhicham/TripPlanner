@@ -1,7 +1,8 @@
+
 'use client';
 
 import * as React from 'react';
-import { useActionState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,16 +16,18 @@ import { ServiceEditor } from './service-editor';
 
 function DeleteServiceForm({ serviceId }: { serviceId: string }) {
     const { toast } = useToast();
-    const [state, formAction] = useActionState(deleteService, { error: null, success: false });
+    const router = useRouter();
+    const [state, formAction] = React.useActionState(deleteService, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {
             toast({ title: 'Service Deleted', description: 'The service has been successfully removed.' });
+            router.refresh();
         }
         if (state.error) {
             toast({ variant: 'destructive', title: 'Error', description: state.error });
         }
-    }, [state, toast]);
+    }, [state, toast, router]);
 
     return (
         <form action={formAction}>

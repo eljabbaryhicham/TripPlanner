@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import * as React from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { updateWhatsappNumber } from '@/lib/actions';
@@ -23,9 +24,9 @@ function SubmitButton() {
 export default function SettingsManagement({ currentWhatsappNumber }: { currentWhatsappNumber: string }) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = useActionState(updateWhatsappNumber, { error: null, success: false });
+    const [state, formAction] = React.useActionState(updateWhatsappNumber, { error: null, success: false });
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (state.success) {
             toast({ title: 'Settings Updated', description: 'Your changes have been saved successfully.' });
             router.refresh();

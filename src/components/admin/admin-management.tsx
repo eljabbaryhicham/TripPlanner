@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useActionState, useEffect } from 'react';
+import * as React from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { addAdmin, removeAdmin, setSuperAdmin } from '@/lib/actions';
@@ -24,9 +25,9 @@ function SubmitButton({ children, variant = 'default' }: { children: React.React
 function AddAdminForm() {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = useActionState(addAdmin, { error: null, success: false });
+    const [state, formAction] = React.useActionState(addAdmin, { error: null, success: false });
 
-    useEffect(() => {
+    React.useEffect(() => {
         if (state.success) {
             toast({ title: 'Admin Added', description: 'The new admin has been successfully added.' });
             router.refresh();
@@ -61,8 +62,8 @@ function AddAdminForm() {
 function RemoveAdminForm({ adminId }: { adminId: string }) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = useActionState(removeAdmin, { error: null, success: false });
-     useEffect(() => {
+    const [state, formAction] = React.useActionState(removeAdmin, { error: null, success: false });
+     React.useEffect(() => {
         if (state.success) {
             toast({ title: 'Admin Removed' });
             router.refresh();
@@ -85,9 +86,9 @@ function RemoveAdminForm({ adminId }: { adminId: string }) {
 function SetSuperAdminForm({ adminId }: { adminId: string }) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = useActionState(setSuperAdmin, { error: null, success: false });
+    const [state, formAction] = React.useActionState(setSuperAdmin, { error: null, success: false });
 
-     useEffect(() => {
+     React.useEffect(() => {
         if (state.success) {
             toast({ title: 'Super Admin Updated' });
             router.refresh();
