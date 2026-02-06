@@ -1,6 +1,7 @@
 'use client';
 
 import { useActionState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { services } from '@/lib/data';
 import { logout, updateWhatsappNumber, toggleBestOffer } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
@@ -93,11 +94,10 @@ function BestOfferToggle({ serviceId, isBestOffer }: { serviceId: string; isBest
 }
 
 
-export default function AdminPage({
-    searchParams,
-}: {
-    searchParams: { whatsappNumber: string };
-}) {
+export default function AdminPage() {
+  const searchParams = useSearchParams();
+  const whatsappNumber = searchParams.get('whatsappNumber') || '';
+  
   return (
     <div className="min-h-screen bg-muted/40">
       <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
@@ -156,7 +156,7 @@ export default function AdminPage({
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <UpdateSettingsForm whatsappNumber={searchParams.whatsappNumber} />
+                <UpdateSettingsForm whatsappNumber={whatsappNumber} />
             </CardContent>
         </Card>
       </main>
