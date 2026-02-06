@@ -33,18 +33,18 @@ export default function LoginPage() {
           <Mountain className="mx-auto h-8 w-8 mb-2" />
           <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
           <CardDescription>
-            Enter your credentials to access the TriPlanner dashboard.
+            Enter your login and password to access the TriPlanner dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form action={formAction} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="login">Login</Label>
               <Input
-                id="email"
-                name="email"
-                type="email"
-                placeholder="your-email@example.com"
+                id="login"
+                name="login"
+                type="text"
+                placeholder="Enter your login"
                 required
                 defaultValue="eljabbaryhicham"
               />

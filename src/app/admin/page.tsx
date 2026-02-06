@@ -124,8 +124,8 @@ function AddAdminForm({ onAdminAdded }: { onAdminAdded: () => void }) {
             <h4 className="font-medium">Add New Admin</h4>
             <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" placeholder="newadmin@example.com" required />
+                    <Label htmlFor="login">Login</Label>
+                    <Input id="login" name="login" type="text" placeholder="newadmin" required />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
@@ -163,7 +163,7 @@ function AdminManagementCard({ admins: initialAdmins, currentUser, onAdminsChang
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Email</TableHead>
+                                <TableHead>Login</TableHead>
                                 <TableHead>Role</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -171,7 +171,7 @@ function AdminManagementCard({ admins: initialAdmins, currentUser, onAdminsChang
                         <TableBody>
                             {initialAdmins.map((admin) => (
                                 <TableRow key={admin.id}>
-                                    <TableCell className="font-medium">{admin.email}</TableCell>
+                                    <TableCell className="font-medium">{admin.login}</TableCell>
                                     <TableCell>
                                         <Badge variant={admin.role === 'superadmin' ? 'default' : 'secondary'} className="capitalize">
                                             {admin.role === 'superadmin' && <Crown className="mr-1.5" />}
@@ -239,7 +239,7 @@ export default function AdminPage() {
         <div className="min-h-screen bg-muted/40">
             <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
                 <h1 className="text-2xl font-headline">Admin Dashboard</h1>
-                {currentUser && <Badge variant="secondary" className="hidden sm:inline-flex">Logged in as {currentUser.email}</Badge>}
+                {currentUser && <Badge variant="secondary" className="hidden sm:inline-flex">Logged in as {currentUser.login}</Badge>}
                 <form action={logout} className="ml-auto">
                     <Button variant="outline" size="sm">
                         <LogOut className="mr-2 h-4 w-4" />

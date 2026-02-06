@@ -42,7 +42,7 @@ export async function getCurrentUser() {
 }
 
 const loginSchema = z.object({
-  email: z.string(),
+  login: z.string(),
   password: z.string(),
 });
 
@@ -50,19 +50,19 @@ export async function login(prevState: { error: string | null }, formData: FormD
   const parsed = loginSchema.safeParse(Object.fromEntries(formData));
 
   if (!parsed.success) {
-    return { error: 'Invalid email or password format.' };
+    return { error: 'Invalid login or password format.' };
   }
 
-  const { email, password } = parsed.data;
+  const { login, password } = parsed.data;
   const { admins } = await readAdmins();
 
-  const foundAdmin = admins.find((admin: any) => admin.email === email && admin.password === password);
+  const foundAdmin = admins.find((admin: any) => admin.login === login && admin.password === password);
 
   if (!foundAdmin) {
-    return { error: 'Invalid email or password.' };
+    return { error: 'Invalid login or password.' };
   }
 
-  const userPayload = { id: foundAdmin.id, email: foundAdmin.email, role: foundAdmin.role };
+  const userPayload = { id: foundAdmin.id, login: foundAdmin.login, role: foundAdmin.role };
 
   cookies().set('auth', JSON.stringify(userPayload), {
     httpOnly: true,
@@ -89,7 +89,7 @@ export async function getAdmins() {
 }
 
 const addAdminSchema = z.object({
-    email: z.string().email(),
+    login: z.string().min(3, { message: 'Login must be at least 3 characters.'}),
     password: z.string().min(6, { message: 'Password must be at least 6 characters.' }),
 });
 
@@ -104,16 +104,16 @@ export async function addAdmin(prevState: { error: string | null, success: boole
         return { error: parsed.error.errors[0].message, success: false };
     }
 
-    const { email, password } = parsed.data;
+    const { login, password } = parsed.data;
     const adminData = await readAdmins();
 
-    if (adminData.admins.some((admin: any) => admin.email === email)) {
-        return { error: 'An admin with this email already exists.', success: false };
+    if (adminData.admins.some((admin: any) => admin.login === login)) {
+        return { error: 'An admin with this login already exists.', success: false };
     }
 
     adminData.admins.push({
         id: `admin-${Date.now()}`,
-        email,
+        login,
         password,
         role: 'admin',
     });

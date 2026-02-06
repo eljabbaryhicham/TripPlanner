@@ -11,10 +11,9 @@
           "type": "string",
           "description": "Unique identifier for the admin."
         },
-        "email": {
+        "login": {
           "type": "string",
-          "description": "Email address of the admin.",
-          "format": "email"
+          "description": "Login for the admin."
         },
         "password": {
           "type": "string",
@@ -28,7 +27,7 @@
       },
       "required": [
         "id",
-        "email",
+        "login",
         "password",
         "role"
       ]

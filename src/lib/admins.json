@@ -2,13 +2,13 @@
   "admins": [
     {
       "id": "superadmin-01",
-      "email": "eljabbaryhicham",
+      "login": "eljabbaryhicham",
       "password": "069338147",
       "role": "superadmin"
     },
     {
       "id": "admin-01",
-      "email": "admin@triplanner.com",
+      "login": "admin",
       "password": "password123",
       "role": "admin"
     }
