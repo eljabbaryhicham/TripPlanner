@@ -85,8 +85,8 @@ service cloud.firestore {
     }
     
     match /reservations/{reservationId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
+      allow read: if true;
+      allow write: if true;
     }
 
     // --------------------------------------------------------------------
