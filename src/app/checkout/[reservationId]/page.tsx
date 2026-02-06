@@ -3,16 +3,18 @@
 import * as React from 'react';
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
+import Link from 'next/link';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { Info } from 'lucide-react';
+import { Info, XCircle } from 'lucide-react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import CheckoutFormWrapper from '@/components/checkout-form';
+import { Button } from '@/components/ui/button';
 
 type Reservation = {
     serviceName: string;
@@ -99,6 +101,15 @@ const CheckoutPage = () => {
                                     reservationRef={reservationRef}
                                 />
                             )}
+
+                            <div className="mt-4 text-center">
+                                <Button asChild variant="ghost" className="text-muted-foreground hover:text-foreground">
+                                    <Link href="/">
+                                        <XCircle className="mr-2 h-4 w-4" />
+                                        Cancel Checkout
+                                    </Link>
+                                </Button>
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
