@@ -13,7 +13,12 @@ import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Service } from '@/lib/types';
 import ReservationFlow from './reservation-flow';
-import { differenceInDays } from 'date-fns';
+import {
+  differenceInCalendarDays,
+  getLocalTimeZone,
+  parseDate,
+  today,
+} from '@internationalized/date';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 
@@ -31,29 +36,29 @@ const ServiceDetailModal = ({
   const [startDate, setStartDate] = React.useState('');
   const [endDate, setEndDate] = React.useState('');
 
-  const today = React.useMemo(() => {
-    const d = new Date();
-    // Adjust for timezone to get today's date in local time
-    const offset = d.getTimezoneOffset();
-    const localDate = new Date(d.getTime() - offset * 60 * 1000);
-    return localDate.toISOString().split('T')[0];
-  }, []);
+  const todayDate = React.useMemo(() => today(getLocalTimeZone()), []);
 
   const { days, totalPrice } = React.useMemo(() => {
     if (service && startDate && endDate) {
-      const from = new Date(startDate);
-      const to = new Date(endDate);
-      if (to <= from) return { days: null, totalPrice: null };
+      try {
+        const from = parseDate(startDate);
+        const to = parseDate(endDate);
 
-      let dayCount;
-      if (service.priceUnit === 'night') {
-        dayCount = differenceInDays(to, from);
-      } else {
-        dayCount = differenceInDays(to, from) + 1;
-      }
+        if (to.compare(from) <= 0) return { days: null, totalPrice: null };
 
-      if (dayCount > 0) {
-        return { days: dayCount, totalPrice: dayCount * service.price };
+        let dayCount;
+        if (service.priceUnit === 'night') {
+          dayCount = differenceInCalendarDays(to, from);
+        } else {
+          dayCount = differenceInCalendarDays(to, from) + 1;
+        }
+
+        if (dayCount > 0) {
+          return { days: dayCount, totalPrice: dayCount * service.price };
+        }
+      } catch (e) {
+        // Invalid date string
+        return { days: null, totalPrice: null };
       }
     }
     return { days: null, totalPrice: null };
@@ -61,10 +66,15 @@ const ServiceDetailModal = ({
 
   const dateForFlow = React.useMemo(() => {
     if (!startDate || !endDate) return undefined;
-    const from = new Date(`${startDate}T00:00:00`);
-    const to = new Date(`${endDate}T00:00:00`);
-    if (to <= from) return undefined;
-    return { from, to };
+    try {
+        const from = parseDate(startDate);
+        const to = parseDate(endDate);
+        if (to.compare(from) <= 0) return undefined;
+        const timeZone = getLocalTimeZone();
+        return { from: from.toDate(timeZone), to: to.toDate(timeZone) };
+    } catch(e) {
+        return undefined;
+    }
   }, [startDate, endDate]);
 
 
@@ -158,7 +168,7 @@ const ServiceDetailModal = ({
                         type="date" 
                         value={startDate} 
                         onChange={(e) => setStartDate(e.target.value)}
-                        min={today}
+                        min={todayDate.toString()}
                     />
                 </div>
                 <div className="grid gap-1.5">
@@ -168,7 +178,7 @@ const ServiceDetailModal = ({
                         type="date" 
                         value={endDate}
                         onChange={(e) => setEndDate(e.target.value)}
-                        min={startDate || today}
+                        min={startDate || todayDate.toString()}
                     />
                 </div>
             </div>
