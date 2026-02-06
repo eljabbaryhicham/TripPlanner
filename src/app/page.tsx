@@ -19,7 +19,7 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <section
-          className="relative py-20 text-white md:py-32"
+          className="relative flex min-h-screen items-center justify-center text-white"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
@@ -42,7 +42,10 @@ export default function Home() {
 
         <AiSuggestions />
 
-        <section id="services" className="py-16 md:py-24">
+        <section
+          id="services"
+          className="flex min-h-screen items-center py-16 md:py-24"
+        >
           <div className="container mx-auto px-4">
             <h2 className="mb-12 text-center font-headline text-3xl font-bold md:text-4xl">
               Best Service Offers
