@@ -15,7 +15,7 @@ const AiSuggestions = () => {
         backgroundAttachment: 'fixed',
       }}
     >
-      <div className="absolute inset-0 bg-black/70" />
+      <div className="absolute inset-0 bg-black/90" />
       <div className="container relative mx-auto px-4 text-center">
         <Compass className="mx-auto h-12 w-12 text-accent" />
         <h2 className="mt-4 font-headline text-3xl font-bold md:text-4xl">
