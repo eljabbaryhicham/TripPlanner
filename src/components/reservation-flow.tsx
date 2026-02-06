@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
-import { CreditCard, Send, Loader2 } from 'lucide-react';
+import { CreditCard, Send, Loader2, CheckCircle } from 'lucide-react';
 import { collection, serverTimestamp } from 'firebase/firestore';
 import { useFirestore, useUser } from '@/firebase';
 import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
@@ -50,6 +50,7 @@ interface ReservationFlowProps {
 
 const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) => {
   const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
+  const [showInquiryConfirmation, setShowInquiryConfirmation] = React.useState(false);
   const { toast } = useToast();
   const firestore = useFirestore();
   const { user } = useUser();
@@ -78,6 +79,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
           "We've received your inquiry and will get back to you shortly.",
       });
       form.reset();
+      setShowInquiryConfirmation(true);
       setReservationType(null);
     } else {
       toast({
@@ -157,6 +159,25 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
         });
       });
   };
+  
+  if (showInquiryConfirmation) {
+    return (
+      <div className="text-center p-8 bg-green-50/50 rounded-lg border border-green-200 dark:bg-green-950/20 dark:border-green-800/30">
+        <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+        <h3 className="mt-4 text-xl font-semibold">Inquiry Sent!</h3>
+        <p className="mt-2 text-muted-foreground">We've received your message and will get back to you shortly.</p>
+        <Button
+          className="mt-6"
+          variant="outline"
+          onClick={() => {
+            setShowInquiryConfirmation(false);
+          }}
+        >
+          Done
+        </Button>
+      </div>
+    );
+  }
 
   if (reservationType === 'contact') {
     return (
