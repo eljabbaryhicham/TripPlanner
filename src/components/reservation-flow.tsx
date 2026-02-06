@@ -28,6 +28,7 @@ import { submitReservation } from '@/lib/actions';
 const reservationSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
+  phone: z.string().optional(),
   message: z.string().optional(),
   serviceName: z.string(),
   serviceId: z.string(),
@@ -73,6 +74,9 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   const [whatsappNumber, setWhatsappNumber] = React.useState<string>('');
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
+  const isDateRequired = service.category === 'cars' || service.category === 'hotels';
+  const areDatesSelected = isDateRequired ? !!dates : true;
+
     React.useEffect(() => {
         fetch('/api/settings')
         .then(res => res.json())
@@ -89,6 +93,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
     defaultValues: {
       name: '',
       email: '',
+      phone: '',
       message: '',
       serviceName: service.name,
       serviceId: service.id,
@@ -99,12 +104,17 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   const { isSubmitting } = form.formState;
 
   const onContactSubmit = async (data: ReservationFormValues) => {
-    const result = await submitReservation(data);
+    const submissionData = {
+      ...data,
+      startDate: dates?.from?.toLocaleDateString(),
+      endDate: dates?.to?.toLocaleDateString(),
+    };
+    const result = await submitReservation(submissionData);
     if (result.success) {
       toast({
         title: 'Message Sent!',
         description:
-          "We've received your inquiry and will get back to you shortly.",
+          "We've received your message and will get back to you shortly (Within 1-3 Hours). thanks",
       });
       form.reset();
       setShowInquiryConfirmation(true);
@@ -174,13 +184,21 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
     }
   };
 
+  const whatsappMessage = React.useMemo(() => {
+    let message = `Hello, I'd like to book the service: ${service.name}.`;
+    if (dates?.from && dates?.to) {
+      message += ` From: ${dates.from.toLocaleDateString()} To: ${dates.to.toLocaleDateString()}.`;
+    }
+    return encodeURIComponent(message);
+  }, [service, dates]);
+
 
   if (showInquiryConfirmation) {
     return (
       <div className="text-center p-8 bg-green-50/50 rounded-lg border border-green-200 dark:bg-green-950/20 dark:border-green-800/30">
         <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
         <h3 className="mt-4 text-xl font-semibold">Inquiry Sent!</h3>
-        <p className="mt-2 text-muted-foreground">We've received your message and will get back to you shortly.</p>
+        <p className="mt-2 text-muted-foreground">We've received your message and will get back to you shortly (Within 1-3 Hours). thanks</p>
         <Button
           className="mt-6"
           variant="outline"
@@ -231,6 +249,19 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
           </div>
           <FormField
             control={form.control}
+            name="phone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number (Optional)</FormLabel>
+                <FormControl>
+                  <Input placeholder="+1 (555) 123-4567" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
             name="message"
             render={({ field }) => (
               <FormItem>
@@ -270,13 +301,13 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
 
   return (
     <div className="space-y-4">
-        <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading}>
+        <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading || !areDatesSelected}>
             {isCheckingOut ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
                 <CreditCard className="mr-2 h-5 w-5" />
             )}
-            {isUserLoading ? 'Initializing...' : 'Checkout Now'}
+            {isUserLoading ? 'Initializing...' : !areDatesSelected ? 'Please select dates' : 'Checkout Now'}
         </Button>
         <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -293,6 +324,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
                 className="w-full sm:flex-1"
                 variant="secondary"
                 onClick={() => setReservationType('contact')}
+                disabled={!areDatesSelected}
             >
                 <Send className="mr-2 h-4 w-4" />
                 Book via Email
@@ -300,9 +332,9 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
             <Button
                 asChild
                 className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
-                disabled={!whatsappNumber}
+                disabled={!whatsappNumber || !areDatesSelected}
             >
-                <a href={`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}`} target="_blank" rel="noopener noreferrer">
+                <a href={`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`} target="_blank" rel="noopener noreferrer">
                     <WhatsappIcon className="mr-2 h-5 w-5" />
                     Book via Whatsapp
                 </a>

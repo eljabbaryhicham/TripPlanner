@@ -55,10 +55,13 @@ export async function logout() {
 const reservationSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
+  phone: z.string().optional(),
   message: z.string().optional(),
   serviceName: z.string(),
   serviceId: z.string(),
   price: z.number(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
 });
 
 type ReservationFormValues = z.infer<typeof reservationSchema>;
@@ -74,6 +77,9 @@ export async function submitReservation(data: ReservationFormValues) {
   console.log('Service:', parsed.data.serviceName);
   console.log('Name:', parsed.data.name);
   console.log('Email:', parsed.data.email);
+  console.log('Phone:', parsed.data.phone || 'N/A');
+  console.log('Start Date:', parsed.data.startDate || 'N/A');
+  console.log('End Date:', parsed.data.endDate || 'N/A');
   console.log('Message:', parsed.data.message || 'N/A');
   console.log('-----------------------------');
 
