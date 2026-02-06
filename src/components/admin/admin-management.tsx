@@ -15,7 +15,7 @@ function SubmitButton({ children, variant = 'default' }: { children: React.React
     const { pending } = useFormStatus();
     return (
         <Button type="submit" size="sm" variant={variant} disabled={pending}>
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : children}
+            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
         </Button>
     );
 }
@@ -56,8 +56,19 @@ function AddAdminForm() {
 }
 
 function RemoveAdminForm({ adminId }: { adminId: string }) {
+    const { toast } = useToast();
+    const [state, formAction] = useActionState(removeAdmin, { error: null, success: false });
+     useEffect(() => {
+        if (state.success) {
+            toast({ title: 'Admin Removed' });
+        }
+        if (state.error) {
+            toast({ variant: 'destructive', title: 'Error', description: state.error });
+        }
+    }, [state, toast]);
+
     return (
-        <form action={removeAdmin}>
+        <form action={formAction}>
             <input type="hidden" name="id" value={adminId} />
             <SubmitButton variant="destructive">
                 <Trash2 className="h-4 w-4" />
@@ -67,8 +78,20 @@ function RemoveAdminForm({ adminId }: { adminId: string }) {
 }
 
 function SetSuperAdminForm({ adminId }: { adminId: string }) {
+     const { toast } = useToast();
+    const [state, formAction] = useActionState(setSuperAdmin, { error: null, success: false });
+
+     useEffect(() => {
+        if (state.success) {
+            toast({ title: 'Super Admin Updated' });
+        }
+        if (state.error) {
+            toast({ variant: 'destructive', title: 'Error', description: state.error });
+        }
+    }, [state, toast]);
+
      return (
-        <form action={setSuperAdmin}>
+        <form action={formAction}>
             <input type="hidden" name="id" value={adminId} />
             <SubmitButton variant="secondary">
                 <Crown className="h-4 w-4" />
