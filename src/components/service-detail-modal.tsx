@@ -66,14 +66,6 @@ const ServiceDetailModal = ({
     return { days: null, totalPrice: null };
   }, [date, service]);
 
-  React.useEffect(() => {
-    // Reset date when service or modal state changes
-    if (isOpen) {
-        setDate(undefined);
-    }
-  }, [service, isOpen]);
-
-
   if (!service) return null;
 
   return (

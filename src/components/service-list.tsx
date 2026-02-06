@@ -26,6 +26,7 @@ const ServiceList = ({ services }: ServiceListProps) => {
         ))}
       </div>
       <ServiceDetailModal
+        key={selectedService?.id}
         service={selectedService}
         isOpen={!!selectedService}
         onClose={() => setSelectedService(null)}
