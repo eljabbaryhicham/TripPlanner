@@ -143,19 +143,55 @@ function AddAdminForm({ onAdminAdded }: { onAdminAdded: () => void }) {
     );
 }
 
-function AdminManagementCard({ admins: initialAdmins, currentUser, onAdminsChange }: { admins: any[], currentUser: any, onAdminsChange: () => void }) {
-    const { toast } = useToast();
 
-    const handleAction = async (action: (formData: FormData) => Promise<{ error: string | null; success: boolean }>, formData: FormData, successMessage: string) => {
-        const result = await action(formData);
-        if (result.success) {
-            toast({ title: successMessage });
-            onAdminsChange();
+function RemoveAdminForm({ adminId, onActionComplete }: { adminId: string, onActionComplete: () => void }) {
+    const [state, formAction] = useActionState(removeAdmin, { error: null, success: false });
+    const { toast } = useToast();
+    const { pending } = useFormStatus();
+
+    useEffect(() => {
+        if (state.success) {
+            toast({ title: "Admin removed." });
+            onActionComplete();
         }
-        if (result.error) {
-            toast({ variant: 'destructive', title: "Action Failed", description: result.error });
+        if (state.error) {
+            toast({ variant: 'destructive', title: "Action Failed", description: state.error });
         }
-    };
+    }, [state, toast, onActionComplete]);
+
+    return (
+        <form action={formAction}>
+            <input type="hidden" name="id" value={adminId} />
+            <Button type="submit" variant="destructive" size="sm" disabled={pending}><UserX /></Button>
+        </form>
+    );
+}
+
+function SetSuperAdminForm({ adminId, onActionComplete }: { adminId: string, onActionComplete: () => void }) {
+    const [state, formAction] = useActionState(setSuperAdmin, { error: null, success: false });
+    const { toast } = useToast();
+    const { pending } = useFormStatus();
+
+    useEffect(() => {
+        if (state.success) {
+            toast({ title: "Super admin updated." });
+            onActionComplete();
+        }
+        if (state.error) {
+            toast({ variant: 'destructive', title: "Action Failed", description: state.error });
+        }
+    }, [state, toast, onActionComplete]);
+
+    return (
+        <form action={formAction}>
+            <input type="hidden" name="id" value={adminId} />
+            <Button type="submit" variant="outline" size="sm" disabled={pending}><UserCheck /></Button>
+        </form>
+    );
+}
+
+
+function AdminManagementCard({ admins: initialAdmins, currentUser, onAdminsChange }: { admins: any[], currentUser: any, onAdminsChange: () => void }) {
 
     return (
         <Card>
@@ -186,15 +222,9 @@ function AdminManagementCard({ admins: initialAdmins, currentUser, onAdminsChang
                                     <TableCell className="text-right">
                                         {admin.id !== currentUser.id && (
                                             <div className="flex justify-end gap-2">
-                                                <form action={(fd) => handleAction(removeAdmin, fd, "Admin removed.")}>
-                                                    <input type="hidden" name="id" value={admin.id} />
-                                                    <Button type="submit" variant="destructive" size="sm" ><UserX/></Button>
-                                                </form>
+                                                <RemoveAdminForm adminId={admin.id} onActionComplete={onAdminsChange} />
                                                 {admin.role !== 'superadmin' && (
-                                                    <form action={(fd) => handleAction(setSuperAdmin, fd, "Super admin updated.")}>
-                                                        <input type="hidden" name="id" value={admin.id} />
-                                                        <Button type="submit" variant="outline" size="sm"><UserCheck /></Button>
-                                                    </form>
+                                                    <SetSuperAdminForm adminId={admin.id} onActionComplete={onAdminsChange} />
                                                 )}
                                             </div>
                                         )}

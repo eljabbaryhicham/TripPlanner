@@ -123,7 +123,7 @@ export async function addAdmin(prevState: { error: string | null, success: boole
     return { error: null, success: true };
 }
 
-export async function removeAdmin(formData: FormData) {
+export async function removeAdmin(prevState: { error: string | null, success: boolean }, formData: FormData) {
     const currentUser = await getCurrentUser();
     if (currentUser?.role !== 'superadmin') {
         return { error: 'Permission denied.', success: false };
@@ -142,7 +142,7 @@ export async function removeAdmin(formData: FormData) {
     return { error: null, success: true };
 }
 
-export async function setSuperAdmin(formData: FormData) {
+export async function setSuperAdmin(prevState: { error: string | null, success: boolean }, formData: FormData) {
     const currentUser = await getCurrentUser();
     if (currentUser?.role !== 'superadmin') {
         return { error: 'Permission denied.', success: false };
