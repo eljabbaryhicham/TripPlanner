@@ -8,14 +8,13 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useFormState } from 'react-dom';
 import { deleteService } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ServiceEditor } from './service-editor';
 
 function DeleteServiceForm({ serviceId }: { serviceId: string }) {
     const { toast } = useToast();
-    const [state, formAction] = useFormState(deleteService, { error: null, success: false });
+    const [state, formAction] = React.useActionState(deleteService, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {
