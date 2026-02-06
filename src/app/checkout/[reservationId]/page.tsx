@@ -1,22 +1,18 @@
 'use client';
 
 import * as React from 'react';
-import { useParams, useRouter } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useParams } from 'next/navigation';
+import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { Info, CreditCard, ShieldCheck, Loader2 } from 'lucide-react';
+import { Info } from 'lucide-react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import { useToast } from '@/hooks/use-toast';
-import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import CheckoutFormWrapper from '@/components/checkout-form';
 
 type Reservation = {
     serviceName: string;
@@ -28,10 +24,7 @@ type Reservation = {
 
 const CheckoutPage = () => {
     const { reservationId } = useParams();
-    const router = useRouter();
-    const { toast } = useToast();
     const firestore = useFirestore();
-    const [isProcessing, setIsProcessing] = useState(false);
 
     const reservationRef = useMemoFirebase(() => {
         if (!firestore || !reservationId) return null;
@@ -49,31 +42,6 @@ const CheckoutPage = () => {
             day: 'numeric',
         });
     }, [reservation]);
-
-    const handlePayment = async () => {
-        if (!reservationRef || reservation?.paymentStatus === 'completed') return;
-        
-        setIsProcessing(true);
-        toast({
-            title: 'Processing Payment...',
-            description: 'Please wait, this will only take a moment.',
-        });
-
-        // Simulate payment gateway interaction
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        updateDocumentNonBlocking(reservationRef, { paymentStatus: 'completed' });
-        
-        toast({
-            title: 'Payment Successful!',
-            description: 'Your reservation has been confirmed.',
-        });
-
-        // Redirect to a confirmation or home page after a short delay
-        setTimeout(() => {
-            router.push('/');
-        }, 1500);
-    };
 
 
     return (
@@ -125,46 +93,12 @@ const CheckoutPage = () => {
 
                             <Separator />
 
-                            <div className="space-y-4">
-                                <h3 className="font-semibold">Payment Information</h3>
-                                <Alert>
-                                    <ShieldCheck className="h-4 w-4" />
-                                    <AlertTitle>This is a simulation</AlertTitle>
-                                    <AlertDescription>
-                                        In a real application, this form would be powered by a secure payment provider like Stripe or PayPal. Do not enter real credit card information.
-                                    </AlertDescription>
-                                </Alert>
-                                <div className="space-y-2">
-                                    <Label htmlFor="cardNumber">Card Number</Label>
-                                    <Input id="cardNumber" placeholder="**** **** **** 1234" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
-                                </div>
-                                <div className="grid grid-cols-3 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="expiry">Expires</Label>
-                                        <Input id="expiry" placeholder="MM/YY" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="cvc">CVC</Label>
-                                        <Input id="cvc" placeholder="123" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="zip">ZIP</Label>
-                                        <Input id="zip" placeholder="12345" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
-                                    </div>
-                                </div>
-                            </div>
-                            <Button size="lg" className="w-full" onClick={handlePayment} disabled={isProcessing || !reservation || reservation?.paymentStatus === 'completed'}>
-                                {isProcessing ? (
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                ) : (
-                                    <CreditCard className="mr-2 h-5 w-5" />
-                                )}
-                                {reservation?.paymentStatus === 'completed' 
-                                    ? 'Payment Confirmed' 
-                                    : isProcessing 
-                                        ? 'Processing...' 
-                                        : `Pay $${reservation ? reservation.totalPrice.toFixed(2) : '0.00'}`}
-                            </Button>
+                            {reservation && reservationRef && (
+                                <CheckoutFormWrapper 
+                                    reservation={reservation}
+                                    reservationRef={reservationRef}
+                                />
+                            )}
                         </CardContent>
                     </Card>
                 </div>
