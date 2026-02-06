@@ -1,32 +1,29 @@
-'use client';
+'use server';
 
-import { useEffect, useState } from 'react';
-import { logout, getCurrentUser } from '@/lib/actions';
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { logout } from '@/lib/actions';
 
-export default function AdminPage() {
-    const [currentUser, setCurrentUser] = useState<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
+export default async function AdminPage() {
+    const cookieStore = cookies();
+    const authCookie = cookieStore.get('auth');
+    let currentUser: { login: string; role: string } | null = null;
 
-    useEffect(() => {
-        getCurrentUser().then(user => {
-            setCurrentUser(user);
-            setIsLoading(false);
-        }).catch(err => {
-            console.error(err);
-            setIsLoading(false);
-        })
-    }, []);
+    if (authCookie) {
+        try {
+            currentUser = JSON.parse(authCookie.value);
+        } catch (e) {
+            // Invalid cookie, treat as not logged in
+        }
+    }
 
-    if (isLoading) {
-        return (
-            <div className="min-h-screen bg-muted/40 flex items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-        );
+    // If no valid user, redirect to login. This is a secondary check to the middleware.
+    if (!currentUser) {
+        redirect('/login');
     }
 
     return (
@@ -48,11 +45,7 @@ export default function AdminPage() {
                         <CardDescription>You have successfully logged into the admin panel.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {currentUser ? (
-                            <p>Welcome back, <span className="font-bold">{currentUser.login}</span>! Your role is: <span className="capitalize font-medium">{currentUser.role}</span>.</p>
-                        ) : (
-                            <p>Could not retrieve your user information. Please try logging out and back in.</p>
-                        )}
+                        <p>Welcome back, <span className="font-bold">{currentUser.login}</span>! Your role is: <span className="capitalize font-medium">{currentUser.role}</span>.</p>
                     </CardContent>
                 </Card>
             </main>
