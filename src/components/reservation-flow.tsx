@@ -254,22 +254,23 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   }
 
   return (
-    <div className="flex flex-col sm:flex-row justify-center gap-4">
+    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
       <Button
-        className="flex-1"
+        className="w-full sm:flex-1"
         variant="secondary"
         onClick={() => setReservationType('contact')}
       >
         <Send className="mr-2 h-4 w-4" />
-        Contact for Info
+        Reserve via Email
       </Button>
+      <div className="text-sm text-muted-foreground shrink-0">or</div>
       <Button
-        className="flex-1"
+        className="w-full sm:flex-1"
         variant="default"
         onClick={onCheckout}
       >
         <CreditCard className="mr-2 h-4 w-4" />
-        Proceed to Checkout
+        Checkout Now
       </Button>
     </div>
   );
