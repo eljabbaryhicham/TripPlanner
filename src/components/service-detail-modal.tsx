@@ -14,17 +14,10 @@ import { Badge } from '@/components/ui/badge';
 import type { Service } from '@/lib/types';
 import ReservationFlow from './reservation-flow';
 import { differenceInDays, format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
 import type { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
-import { Button } from '@/components/ui/button';
 
 interface ServiceDetailModalProps {
   service: Service | null;
@@ -46,17 +39,17 @@ const ServiceDetailModal = ({
     return d;
   }, []);
 
-
   const { days, totalPrice } = React.useMemo(() => {
     if (service && date?.from && date?.to) {
       let dayCount;
       // For hotels, we count nights (exclusive end date).
       if (service.priceUnit === 'night') {
         dayCount = differenceInDays(date.to, date.from);
-      } else { // For cars, we count days (inclusive).
+      } else {
+        // For cars, we count days (inclusive).
         dayCount = differenceInDays(date.to, date.from) + 1;
       }
-      
+
       // Ensure the duration is valid before calculating a price.
       if (dayCount > 0) {
         return { days: dayCount, totalPrice: dayCount * service.price };
@@ -65,6 +58,12 @@ const ServiceDetailModal = ({
     // If no valid date range is selected, return null for days and totalPrice.
     return { days: null, totalPrice: null };
   }, [date, service]);
+  
+  React.useEffect(() => {
+    if (isOpen) {
+      setDate(undefined);
+    }
+  }, [isOpen]);
 
   if (!service) return null;
 
@@ -111,7 +110,7 @@ const ServiceDetailModal = ({
               </div>
               <div className="flex justify-between items-baseline">
                 <span className="text-foreground/80">Price:</span>
-                 {totalPrice !== null && days ? (
+                {totalPrice !== null && days ? (
                   <div className="text-right">
                     <Badge variant="secondary" className="text-lg">
                       ${totalPrice.toFixed(2)}
@@ -137,52 +136,46 @@ const ServiceDetailModal = ({
             </div>
           </div>
         </div>
-        
+
         {(service.category === 'cars' || service.category === 'hotels') && (
-          <div className="grid gap-2">
-            <Label htmlFor="date">Reservation Dates</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  id="date"
-                  variant={'outline'}
-                  className={cn(
-                    'w-full justify-start text-left font-normal',
-                    !date && 'text-muted-foreground'
-                  )}
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {date?.from ? (
-                    date.to ? (
-                      <>
-                        {format(date.from, 'LLL dd, y')} -{' '}
-                        {format(date.to, 'LLL dd, y')}
-                      </>
-                    ) : (
-                      format(date.from, 'LLL dd, y')
-                    )
+          <div className="grid gap-4 rounded-md border p-4">
+            <div>
+              <Label>Reservation Dates</Label>
+              <div className="text-sm text-muted-foreground mt-1">
+                {date?.from ? (
+                  date.to ? (
+                    <>
+                      {format(date.from, 'LLL dd, y')} -{' '}
+                      {format(date.to, 'LLL dd, y')}
+                    </>
                   ) : (
-                    <span>Pick a date range</span>
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  initialFocus
-                  mode="range"
-                  defaultMonth={date?.from}
-                  selected={date}
-                  onSelect={setDate}
-                  numberOfMonths={2}
-                  disabled={(day) => day < today}
-                />
-              </PopoverContent>
-            </Popover>
+                    format(date.from, 'LLL dd, y')
+                  )
+                ) : (
+                  <span>Please select a date range below</span>
+                )}
+              </div>
+            </div>
+
+            <Calendar
+              initialFocus
+              mode="range"
+              defaultMonth={date?.from}
+              selected={date}
+              onSelect={setDate}
+              numberOfMonths={2}
+              disabled={(day) => day < today}
+              className="p-0"
+            />
           </div>
         )}
 
         <Separator className="my-4" />
-        <ReservationFlow service={service} dates={date} totalPrice={totalPrice} />
+        <ReservationFlow
+          service={service}
+          dates={date}
+          totalPrice={totalPrice}
+        />
       </DialogContent>
     </Dialog>
   );
