@@ -91,47 +91,26 @@ export const services: Service[] = [
   {
     ...getImage('transport-1'),
     category: 'transport',
-    name: 'Airport Express Shuttle',
-    price: 25,
+    name: 'Airport Pickup & Guide',
+    price: 150,
     priceUnit: 'trip',
-    location: 'Airport to Downtown',
+    location: 'Airport Arrivals',
+    description:
+      'A personal guide will meet you at the arrivals gate and a private car will take you to your destination, with a quick orientation of the city on the way.',
     details: {
-      'Max Passengers': '12',
-      'Luggage': '1 per person',
-      'Schedule': 'Every 30 mins',
-    },
-  },
-  {
-    ...getImage('transport-2'),
-    category: 'transport',
-    name: 'InterCity High-Speed Rail',
-    price: 75,
-    priceUnit: 'trip',
-    location: 'Central Station',
-    details: {
-      Class: 'First Class',
-      'Amenities': 'WiFi, Power Outlets, Cafe Car',
-      'Duration': '2 hours',
-    },
-  },
-  {
-    ...getImage('transport-3'),
-    category: 'transport',
-    name: 'Executive Chauffeur',
-    price: 120,
-    priceUnit: 'trip',
-    location: 'City-wide',
-    details: {
-      'Vehicle': 'Luxury Sedan',
-      'Service': 'Point-to-point',
-      'Includes': 'Water, Mints',
+      Rating: '★★★★★',
+      Service: 'Personal meet & greet',
+      Includes: 'City orientation, Private car',
+      Vehicle: 'Comfortable Sedan',
     },
   },
 ];
 
 const bestCar = services.find((service) => service.category === 'cars');
 const bestHotel = services.find((service) => service.category === 'hotels');
-const bestTransport = services.find((service) => service.category === 'transport');
+const bestTransport = services.find(
+  (service) => service.category === 'transport'
+);
 
 export const bestOffers: Service[] = [bestCar, bestHotel, bestTransport].filter(
   (service): service is Service => service !== undefined

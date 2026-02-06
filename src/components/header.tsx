@@ -56,7 +56,7 @@ const Header = () => {
         <NavLink href="/services/hotels" label="Hotels">
           <BedDouble className="h-7 w-7 text-foreground" />
         </NavLink>
-        <NavLink href="/services/transport" label="Transport">
+        <NavLink href="/services/transport" label="Pickup">
           <Plane className="h-7 w-7 text-foreground" />
         </NavLink>
       </nav>

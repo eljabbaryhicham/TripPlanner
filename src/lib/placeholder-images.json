@@ -38,21 +38,21 @@
     },
     {
       "id": "transport-1",
-      "description": "An airport shuttle bus waiting for passengers.",
-      "imageUrl": "https://images.unsplash.com/photo-1621120219014-058fa0e4f6fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhaXJwb3J0JTIwc2h1dHRsZXxlbnwwfHx8fDE3NzAzOTYyMDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "airport shuttle"
+      "description": "A friendly guide holding a welcome sign at an airport arrivals gate.",
+      "imageUrl": "https://images.unsplash.com/photo-1579582830062-2345a2789196?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxhaXJwb3J0JTIwd2VsY29tZXxlbnwwfHx8fDE3NzAzOTYzODV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "airport guide"
     },
     {
       "id": "transport-2",
-      "description": "A high-speed train traveling through the countryside.",
-      "imageUrl": "https://images.unsplash.com/photo-1632085912880-771de6e8e448?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxoaWdoc3BlZWQlMjB0cmFpbnxlbnwwfHx8fDE3NzAzOTYyMDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "highspeed train"
+      "description": "A comfortable sedan waiting outside an airport terminal.",
+      "imageUrl": "https://images.unsplash.com/photo-1616422285852-c3ffc32f8e1e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxhaXJwb3J0JTIwY2FyfGVufDB8fHx8MTc3MDQ2MjEzNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "airport car"
     },
     {
       "id": "transport-3",
-      "description": "A private chauffeur service car.",
-      "imageUrl": "https://images.unsplash.com/photo-1758785517263-aeec6aa4df66?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwcml2YXRlJTIwY2FyfGVufDB8fHx8MTc3MDM5NjIwNXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "private car"
+      "description": "A detailed map of the city for tourists.",
+      "imageUrl": "https://images.unsplash.com/photo-1531749667995-3e28409d295b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwbWFwfGVufDB8fHx8MTc3MDQ2MjE2MHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "city map"
     }
   ]
 }

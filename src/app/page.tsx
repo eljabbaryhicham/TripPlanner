@@ -50,7 +50,7 @@ export default function Home() {
                 </TabsTrigger>
                 <TabsTrigger value="transport">
                   <Plane className="w-4 h-4 mr-2" />
-                  Transport
+                  Pickup
                 </TabsTrigger>
               </TabsList>
               <TabsContent value="all">
@@ -103,7 +103,7 @@ export default function Home() {
                   <div className="text-center">
                     <Button asChild variant="outline">
                       <Link href="/services/transport">
-                        Show More Transport
+                        View Details & Book
                         <ArrowRight className="ml-2 h-4 w-4" />
                       </Link>
                     </Button>

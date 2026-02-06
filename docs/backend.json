@@ -75,7 +75,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transport",
       "type": "object",
-      "description": "Represents a transport service.",
+      "description": "Represents an airport pickup and guide service.",
       "properties": {
         "id": {
           "type": "string",
@@ -270,7 +270,7 @@
           "schema": {
             "$ref": "#/backend/entities/Transport"
           },
-          "description": "Stores transport service offerings.",
+          "description": "Stores the single airport pickup and guide service offering.",
           "params": [
             {
               "name": "transportId",
