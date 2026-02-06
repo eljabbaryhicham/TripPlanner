@@ -1,0 +1,288 @@
+{
+  "entities": {
+    "CarRental": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "CarRental",
+      "type": "object",
+      "description": "Represents a car rental service offering.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the car rental."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the car rental service."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the car rental service."
+        },
+        "pricePerHour": {
+          "type": "number",
+          "description": "The rental price per hour."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the car rental image."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "pricePerHour",
+        "imageUrl"
+      ]
+    },
+    "Hotel": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Hotel",
+      "type": "object",
+      "description": "Represents a hotel or hostel accommodation.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the hotel."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the hotel."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the hotel."
+        },
+        "pricePerNight": {
+          "type": "number",
+          "description": "Price per night for the hotel."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the hotel image."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "pricePerNight",
+        "imageUrl"
+      ]
+    },
+    "Transport": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Transport",
+      "type": "object",
+      "description": "Represents a transport service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the transport service."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the transport service."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the transport service."
+        },
+        "price": {
+          "type": "number",
+          "description": "Price of the transport service."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of the transport service image."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "price",
+        "imageUrl"
+      ]
+    },
+    "Reservation": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Reservation",
+      "type": "object",
+      "description": "Represents a reservation made by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the reservation."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Reservation)"
+        },
+        "serviceType": {
+          "type": "string",
+          "description": "Type of service reserved (e.g., 'carRental', 'hotel', 'transport')."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "ID of the specific service being reserved (references CarRental, Hotel, or Transport)."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of the reservation.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date of the reservation.",
+          "format": "date-time"
+        },
+        "totalPrice": {
+          "type": "number",
+          "description": "Total price of the reservation."
+        },
+        "paymentStatus": {
+          "type": "string",
+          "description": "Status of the payment for the reservation (e.g., 'pending', 'completed', 'failed')."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the reservation was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "serviceType",
+        "serviceId",
+        "startDate",
+        "endDate",
+        "totalPrice",
+        "paymentStatus",
+        "createdAt"
+      ]
+    },
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the TriPlanner application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the user.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full name of the user."
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Uses path-based ownership for private user data.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/reservations/{reservationId}",
+        "definition": {
+          "entityName": "Reservation",
+          "schema": {
+            "$ref": "#/backend/entities/Reservation"
+          },
+          "description": "Stores reservations made by a specific user. Includes denormalized 'userId' for authorization independence.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user making the reservation."
+            },
+            {
+              "name": "reservationId",
+              "description": "The unique identifier for the reservation."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/carRentals/{carRentalId}",
+        "definition": {
+          "entityName": "CarRental",
+          "schema": {
+            "$ref": "#/backend/entities/CarRental"
+          },
+          "description": "Stores car rental service offerings.",
+          "params": [
+            {
+              "name": "carRentalId",
+              "description": "The unique identifier for the car rental service."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/hotels/{hotelId}",
+        "definition": {
+          "entityName": "Hotel",
+          "schema": {
+            "$ref": "#/backend/entities/Hotel"
+          },
+          "description": "Stores hotel/hostel accommodations.",
+          "params": [
+            {
+              "name": "hotelId",
+              "description": "The unique identifier for the hotel."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/transports/{transportId}",
+        "definition": {
+          "entityName": "Transport",
+          "schema": {
+            "$ref": "#/backend/entities/Transport"
+          },
+          "description": "Stores transport service offerings.",
+          "params": [
+            {
+              "name": "transportId",
+              "description": "The unique identifier for the transport service."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to accommodate the TriPlanner application's needs, focusing on car rentals, hotels, and transport services, as well as user reservations and payment processing. The design emphasizes security, scalability, and ease of debugging, adhering to the core design principles and strategy mandates.\n\n1.  **Authorization Independence:** The structure uses path-based ownership for user reservations (`/users/{userId}/reservations/{reservationId}`).  There is no need to `get()` parent document data to validate ownership.  Future collaborative features can leverage membership maps denormalized into each reservation document.\n\n2.  **Clarity of Intent:** The structure explicitly separates user data and reservation data, making security rules easier to understand and maintain. Path-based ownership makes the intent clear.\n\n3.  **DBAC (No Custom Claims):** Authorization relies solely on `request.auth.uid` and path-based ownership. Roles are not stored, as admin access is assumed to be handled outside of Firestore via the app's backend using direct authentication.  Future role-based access control would rely on dedicated collections like `/roles_admin/{uid}`.\n\n4.  **QAPs (Rules are not Filters):** Secure `list` operations are supported through path-based ownership. Users can only list reservations under their own user ID, preventing unauthorized access to other users' reservations.\n\n5.  **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data. The `userId` field in the `/users/{userId}/reservations/{reservationId}` collection enforces ownership. Timestamps (`createdAt`) are included in the Reservation entity.\n\n**Denormalization Strategy:** The `reservations` subcollection contains a `userId` field, denormalizing the user's ID into the reservation document. This allows security rules to validate ownership without needing to read the user document. For example, `match /users/{userId}/reservations/{reservationId} { allow read, write: if request.auth.uid == userId; }`.\n\n**Structural Segregation:** The structure segregates data with different access needs. User profiles are stored in `/users/{userId}`, and reservations are stored in `/users/{userId}/reservations/{reservationId}`. This segregation simplifies security rules and improves data isolation.\n\n**Access Modeling:** The structure employs path-based ownership for user-owned data (reservations) by using a hierarchical path (`/users/{userId}/reservations/{reservationId}`). This is a secure and efficient approach.  If collaborative reservations were needed, a `members` map would be added to the reservation document with the user's roles on the document."
+  }
+}

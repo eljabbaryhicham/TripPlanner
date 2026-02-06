@@ -1,0 +1,205 @@
+/**
+ * This Firestore Security Ruleset is designed for the TriPlanner application,
+ * enforcing a strict user-ownership model for private data while providing
+ * public, read-only access to service catalogs.
+ *
+ * Core Philosophy:
+ * The security model prioritizes data isolation. Authenticated users have
+ * complete control over their own data tree (profile and reservations), but
+ * are strictly prohibited from accessing or even listing data belonging to
+ * other users. Service offerings like car rentals, hotels, and transports
+ * are treated as public catalogs, readable by anyone but writeable only by
+ * a trusted backend or admin, ensuring data integrity.
+ *
+ * Data Structure:
+ * - /users/{userId}: Contains the user's profile document. This path acts as
+ *   the root for all data owned by a specific user.
+ * - /users/{userId}/reservations/{reservationId}: A subcollection containing
+ *   all reservations made by the user. This hierarchical structure enables
+ *   simple, path-based security.
+ * - /carRentals, /hotels, /transports: Top-level collections that store the
+ *   service catalogs. They are intentionally kept separate from user data to
+ *   allow for public, unauthenticated read access.
+ *
+ * Key Security Decisions:
+ * - User Enumeration is Disabled: `list` operations on the top-level `/users`
+ *   collection are explicitly forbidden to protect user privacy.
+ * - Strict Ownership: All access to `/users/{userId}` and its subcollections
+ *   is gated by checking if the authenticated user's UID matches the {userId}
+ *   in the path.
+ * - Read-Only Catalogs: Client applications have read-only (`get`, `list`)
+ *   access to the service catalogs. All write operations (`create`, `update`,
+ *   `delete`) are denied, with the assumption that this data is managed by a
+ *   secure backend service or admin console.
+ * - Prototyping Flexibility: In line with the prototyping philosophy, these
+ *   rules focus on authorization (who can access what) and relational
+ *   integrity, but do not enforce the specific shape or data types of
+ *   documents. This allows the application schema to evolve without
+ *   requiring constant rule updates.
+ *
+ * Denormalization for Authorization:
+ * The `Reservation` document under `/users/{userId}/reservations/{reservationId}`
+ * contains a `userId` field. On creation, the rules validate that this field
+ * matches the `{userId}` from the path, ensuring a permanent and easily
+ * verifiable link to the owner. This avoids costly `get()` calls to parent
+ * documents for authorization checks.
+ *
+ * Structural Segregation:
+ * Private user data (profiles, reservations) is structurally segregated under
+ * the `/users/{userId}` path. Publicly accessible data (service catalogs)
+ * resides in separate top-level collections. This clear separation simplifies
+ * rules logic, improves query performance, and enhances security by preventing
+ * accidental data leakage.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // --------------------------------------------------------------------
+    // Helper Functions
+    // --------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the authenticated user's UID matches the provided userId.
+     * This is the foundation of the user-ownership security model.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * For state-changing operations (update, delete), ensures the user is the
+     * owner AND the document already exists. This prevents writes to
+     * non-existent paths.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * On create, validates that the new User document's internal `id` field
+     * matches the document ID ({userId}), enforcing data consistency.
+     */
+    function hasValidUserDataOnCreate(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * On update, ensures the User's `id` field is immutable, preventing
+     * the ownership link from being changed after creation.
+     */
+    function hasImmutableUserData() {
+      return request.resource.data.id == resource.data.id;
+    }
+    
+    /**
+     * On create, validates that the new Reservation document's internal `userId`
+     * field matches the {userId} from the path, creating an immutable
+     * ownership record.
+     */
+    function hasValidReservationDataOnCreate(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * On update, ensures the Reservation's `userId` field is immutable.
+     */
+    function hasImmutableReservationData() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    // --------------------------------------------------------------------
+    // User Data Rules
+    // --------------------------------------------------------------------
+
+    /**
+     * @description Controls access to a user's own profile document.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user can create their own profile document.
+     * @allow (get, update, delete) The owner of the profile can read, update, or delete it.
+     * @deny (list) Listing all users is forbidden to prevent user enumeration.
+     * @deny (get) A user cannot read another user's profile.
+     * @principle Restricts access to a user's own data tree and prevents data leakage.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && hasValidUserDataOnCreate(userId);
+      allow update: if isExistingOwner(userId) && hasImmutableUserData();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Secures the subcollection of reservations for a specific user.
+     * @path /users/{userId}/reservations/{reservationId}
+     * @allow (create) A user can create a reservation for themselves.
+     * @allow (get, list, update, delete) A user can read, list, update, and delete their own reservations.
+     * @deny (get) A user cannot read reservations belonging to another user.
+     * @deny (list) A user cannot list reservations belonging to another user.
+     * @principle Enforces strict data ownership within a user-specific subcollection.
+     */
+    match /users/{userId}/reservations/{reservationId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && hasValidReservationDataOnCreate(userId);
+      allow update: if isExistingOwner(userId) && hasImmutableReservationData();
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // --------------------------------------------------------------------
+    // Public Service Catalog Rules
+    // --------------------------------------------------------------------
+
+    /**
+     * @description Provides public, read-only access to the car rental catalog.
+     * @path /carRentals/{carRentalId}
+     * @allow (get, list) Any client, authenticated or not, can read the car rental listings.
+     * @deny (create, update, delete) All write operations from clients are forbidden.
+     * @principle Protects public data integrity by making it read-only for clients. Writes are assumed to be handled by a trusted backend.
+     */
+    match /carRentals/{carRentalId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Provides public, read-only access to the hotel catalog.
+     * @path /hotels/{hotelId}
+     * @allow (get, list) Any client, authenticated or not, can read the hotel listings.
+     * @deny (create, update, delete) All write operations from clients are forbidden.
+     * @principle Protects public data integrity by making it read-only for clients. Writes are assumed to be handled by a trusted backend.
+     */
+    match /hotels/{hotelId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Provides public, read-only access to the transport services catalog.
+     * @path /transports/{transportId}
+     * @allow (get, list) Any client, authenticated or not, can read the transport service listings.
+     * @deny (create, update, delete) All write operations from clients are forbidden.
+     * @principle Protects public data integrity by making it read-only for clients. Writes are assumed to be handled by a trusted backend.
+     */
+    match /transports/{transportId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+  }
+}
