@@ -1,8 +1,12 @@
+
 'use server';
 
 import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
+import fs from 'fs/promises';
+import path from 'path';
+import { revalidatePath } from 'next/cache';
 
 // --- Login Action ---
 
@@ -80,4 +84,34 @@ export async function submitReservation(data: ReservationFormValues) {
   await new Promise((resolve) => setTimeout(resolve, 1000));
 
   return { success: true };
+}
+
+// --- Settings Action ---
+
+const settingsSchema = z.object({
+    whatsappNumber: z.string().min(1, { message: 'WhatsApp number cannot be empty.' }),
+});
+
+export async function updateWhatsappNumber(prevState: { error: string | null, success: boolean }, formData: FormData) {
+    const parsed = settingsSchema.safeParse(Object.fromEntries(formData));
+
+    if (!parsed.success) {
+        return { error: parsed.error.errors[0].message, success: false };
+    }
+
+    const { whatsappNumber } = parsed.data;
+    
+    try {
+        const filePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
+        const newSettings = JSON.stringify({ whatsappNumber }, null, 2);
+        await fs.writeFile(filePath, newSettings, 'utf-8');
+        
+        revalidatePath('/admin');
+        revalidatePath('/api/settings');
+        
+        return { error: null, success: true };
+    } catch (error) {
+        console.error('Failed to update settings:', error);
+        return { error: 'Could not save settings.', success: false };
+    }
 }

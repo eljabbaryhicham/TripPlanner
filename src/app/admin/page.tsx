@@ -1,12 +1,68 @@
+
+'use client';
+
+import { useFormState } from 'react-dom';
 import { services } from '@/lib/data';
-import { logout } from '@/lib/actions';
+import { logout, updateWhatsappNumber } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { LogOut } from 'lucide-react';
+import { LogOut, Save } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import React from 'react';
 
-export default function AdminPage() {
+function UpdateSettingsForm({ whatsappNumber }: { whatsappNumber: string }) {
+    const [state, formAction] = useFormState(updateWhatsappNumber, { error: null, success: false });
+    const { toast } = useToast();
+
+    React.useEffect(() => {
+        if (state.success) {
+            toast({
+                title: "Settings Updated",
+                description: "The WhatsApp number has been saved.",
+            });
+        }
+        if (state.error) {
+            toast({
+                variant: 'destructive',
+                title: "Update Failed",
+                description: state.error,
+            });
+        }
+    }, [state, toast]);
+
+    return (
+        <form action={formAction} className="space-y-4">
+            <div className="space-y-2">
+                <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                <Input
+                    id="whatsappNumber"
+                    name="whatsappNumber"
+                    type="text"
+                    placeholder="+1234567890"
+                    required
+                    defaultValue={whatsappNumber}
+                />
+            </div>
+            {state.error && (
+                <p className="text-sm text-destructive">{state.error}</p>
+            )}
+            <Button type="submit">
+                <Save className="mr-2 h-4 w-4" />
+                Save Settings
+            </Button>
+        </form>
+    );
+}
+
+export default function AdminPage({
+    searchParams,
+}: {
+    searchParams: { whatsappNumber: string };
+}) {
   return (
     <div className="min-h-screen bg-muted/40">
       <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
@@ -18,8 +74,8 @@ export default function AdminPage() {
           </Button>
         </form>
       </header>
-      <main className="p-4 sm:px-6 sm:py-0">
-        <Card>
+      <main className="p-4 sm:px-6 sm:py-0 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Services</CardTitle>
             <CardDescription>
@@ -52,6 +108,17 @@ export default function AdminPage() {
               </TableBody>
             </Table>
           </CardContent>
+        </Card>
+        <Card>
+            <CardHeader>
+                <CardTitle>Application Settings</CardTitle>
+                <CardDescription>
+                    Update general settings for the application.
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                <UpdateSettingsForm whatsappNumber={searchParams.whatsappNumber} />
+            </CardContent>
         </Card>
       </main>
     </div>
