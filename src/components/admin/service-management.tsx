@@ -115,11 +115,11 @@ export default function ServiceManagement({ services }: { services: Service[] })
                     </Table>
                 </CardContent>
             </Card>
-            <ServiceEditor
+            {editorOpen && <ServiceEditor
                 isOpen={editorOpen}
                 onClose={handleCloseEditor}
                 service={serviceToEdit}
-            />
+            />}
         </>
     );
 }
