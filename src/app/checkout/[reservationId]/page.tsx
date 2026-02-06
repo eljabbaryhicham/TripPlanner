@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useParams } from 'next/navigation';
-import { useMemo } from 'react';
+import { useParams, useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import { doc } from 'firebase/firestore';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -12,20 +12,26 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { Info, CreditCard, ShieldCheck } from 'lucide-react';
+import { Info, CreditCard, ShieldCheck, Loader2 } from 'lucide-react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
+import { useToast } from '@/hooks/use-toast';
+import { updateDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 type Reservation = {
     serviceName: string;
     totalPrice: number;
     priceUnit: string;
     createdAt: { seconds: number; nanoseconds: number };
+    paymentStatus: string;
 };
 
 const CheckoutPage = () => {
     const { reservationId } = useParams();
+    const router = useRouter();
+    const { toast } = useToast();
     const firestore = useFirestore();
+    const [isProcessing, setIsProcessing] = useState(false);
 
     const reservationRef = useMemoFirebase(() => {
         if (!firestore || !reservationId) return null;
@@ -43,6 +49,32 @@ const CheckoutPage = () => {
             day: 'numeric',
         });
     }, [reservation]);
+
+    const handlePayment = async () => {
+        if (!reservationRef || reservation?.paymentStatus === 'completed') return;
+        
+        setIsProcessing(true);
+        toast({
+            title: 'Processing Payment...',
+            description: 'Please wait, this will only take a moment.',
+        });
+
+        // Simulate payment gateway interaction
+        await new Promise(resolve => setTimeout(resolve, 2000));
+
+        updateDocumentNonBlocking(reservationRef, { paymentStatus: 'completed' });
+        
+        toast({
+            title: 'Payment Successful!',
+            description: 'Your reservation has been confirmed.',
+        });
+
+        // Redirect to a confirmation or home page after a short delay
+        setTimeout(() => {
+            router.push('/');
+        }, 1500);
+    };
+
 
     return (
         <div className="flex min-h-screen flex-col bg-muted/40">
@@ -82,6 +114,9 @@ const CheckoutPage = () => {
                                             </p>
                                         </div>
                                         <p className="text-sm text-muted-foreground">Reserved on: {formattedDate}</p>
+                                        <p className="text-sm font-medium mt-2 capitalize">
+                                            Payment Status: <span className={reservation.paymentStatus === 'completed' ? 'text-green-600' : 'text-orange-500'}>{reservation.paymentStatus}</span>
+                                        </p>
                                     </div>
                                 ) : (
                                      <p>No reservation found.</p>
@@ -101,26 +136,34 @@ const CheckoutPage = () => {
                                 </Alert>
                                 <div className="space-y-2">
                                     <Label htmlFor="cardNumber">Card Number</Label>
-                                    <Input id="cardNumber" placeholder="**** **** **** 1234" disabled />
+                                    <Input id="cardNumber" placeholder="**** **** **** 1234" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="expiry">Expires</Label>
-                                        <Input id="expiry" placeholder="MM/YY" disabled />
+                                        <Input id="expiry" placeholder="MM/YY" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="cvc">CVC</Label>
-                                        <Input id="cvc" placeholder="123" disabled />
+                                        <Input id="cvc" placeholder="123" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
                                     </div>
                                     <div className="space-y-2">
                                         <Label htmlFor="zip">ZIP</Label>
-                                        <Input id="zip" placeholder="12345" disabled />
+                                        <Input id="zip" placeholder="12345" disabled={isProcessing || reservation?.paymentStatus === 'completed'} />
                                     </div>
                                 </div>
                             </div>
-                            <Button size="lg" className="w-full" disabled>
-                                <CreditCard className="mr-2 h-5 w-5" />
-                                Pay ${reservation ? reservation.totalPrice.toFixed(2) : '0.00'}
+                            <Button size="lg" className="w-full" onClick={handlePayment} disabled={isProcessing || !reservation || reservation?.paymentStatus === 'completed'}>
+                                {isProcessing ? (
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                ) : (
+                                    <CreditCard className="mr-2 h-5 w-5" />
+                                )}
+                                {reservation?.paymentStatus === 'completed' 
+                                    ? 'Payment Confirmed' 
+                                    : isProcessing 
+                                        ? 'Processing...' 
+                                        : `Pay $${reservation ? reservation.totalPrice.toFixed(2) : '0.00'}`}
                             </Button>
                         </CardContent>
                     </Card>
