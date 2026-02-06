@@ -270,7 +270,7 @@ const serviceSchema = z.object({
     price: z.coerce.number().min(0, 'Price must be non-negative'),
     priceUnit: z.enum(['day', 'night', 'trip']),
     location: z.string().min(1, 'Location is required'),
-    isBestOffer: z.preprocess((val) => val === 'on' || val === true, z.boolean()),
+    isBestOffer: z.preprocess((val) => val === 'on', z.boolean()).default(false),
     details: z.string().transform((str, ctx) => {
         try {
             return JSON.parse(str);
