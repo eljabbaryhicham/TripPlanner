@@ -18,12 +18,22 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
-        <section className="relative bg-primary/10 py-20 md:py-32">
-          <div className="container mx-auto px-4 text-center">
+        <section
+          className="relative py-20 text-white md:py-32"
+          style={{
+            backgroundImage:
+              "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundAttachment: 'fixed',
+          }}
+        >
+          <div className="absolute inset-0 bg-black/60" />
+          <div className="container relative mx-auto px-4 text-center">
             <h1 className="font-headline text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
               TriPlanner
             </h1>
-            <p className="mt-4 max-w-2xl mx-auto text-lg text-foreground/80 md:text-xl">
+            <p className="mt-4 max-w-2xl mx-auto text-lg text-white/90 md:text-xl">
               Your ultimate travel planning assistant. Seamlessly book cars,
               hotels, and transport.
             </p>
