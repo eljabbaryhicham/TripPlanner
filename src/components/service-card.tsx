@@ -57,7 +57,7 @@ const ServiceCard = ({
             </span>
           </div>
           <Button variant="outline" onClick={() => onSelect(service)}>
-            Details
+            Book
           </Button>
         </div>
       </CardContent>
