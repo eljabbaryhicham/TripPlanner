@@ -28,7 +28,9 @@ const ServiceList = ({
   }, [serviceSlug, services]);
 
   const handleClose = () => {
-    router.replace(pathname, { scroll: false });
+    // Replaces the current URL in the history with the pathname, which
+    // effectively removes any query parameters like "?service=...".
+    router.replace(pathname);
   };
 
   return (
