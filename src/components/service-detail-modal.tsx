@@ -9,6 +9,12 @@ import {
   DialogTitle,
   DialogDescription,
 } from '@/components/ui/dialog';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import type { Service } from '@/lib/types';
@@ -16,6 +22,7 @@ import ReservationFlow from './reservation-flow';
 import { differenceInDays, format } from 'date-fns';
 import type { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
+import { Calendar as CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Label } from '@/components/ui/label';
 
@@ -69,7 +76,7 @@ const ServiceDetailModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <div className="relative w-full aspect-[16/9] rounded-t-lg overflow-hidden -mt-6">
             <Image
@@ -138,36 +145,46 @@ const ServiceDetailModal = ({
         </div>
 
         {(service.category === 'cars' || service.category === 'hotels') && (
-          <div className="grid gap-4 rounded-md border p-4">
-            <div>
-              <Label>Reservation Dates</Label>
-              <div className="text-sm text-muted-foreground mt-1">
-                {date?.from ? (
-                  date.to ? (
-                    <>
-                      {format(date.from, 'LLL dd, y')} -{' '}
-                      {format(date.to, 'LLL dd, y')}
-                    </>
-                  ) : (
-                    format(date.from, 'LLL dd, y')
-                  )
-                ) : (
-                  <span>Please select a date range below</span>
-                )}
-              </div>
-            </div>
-
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={date?.from}
-              selected={date}
-              onSelect={setDate}
-              numberOfMonths={2}
-              disabled={(day) => day < today}
-              className="p-0"
-            />
-          </div>
+           <div className="grid gap-2">
+           <Label htmlFor="dates">Reservation Dates</Label>
+           <Popover>
+             <PopoverTrigger asChild>
+               <Button
+                 id="dates"
+                 variant={'outline'}
+                 className={cn(
+                   'w-full justify-start text-left font-normal',
+                   !date && 'text-muted-foreground'
+                 )}
+               >
+                 <CalendarIcon className="mr-2 h-4 w-4" />
+                 {date?.from ? (
+                   date.to ? (
+                     <>
+                       {format(date.from, 'LLL dd, y')} -{' '}
+                       {format(date.to, 'LLL dd, y')}
+                     </>
+                   ) : (
+                     format(date.from, 'LLL dd, y')
+                   )
+                 ) : (
+                   <span>Pick a date range</span>
+                 )}
+               </Button>
+             </PopoverTrigger>
+             <PopoverContent className="w-auto p-0" align="start">
+               <Calendar
+                 initialFocus
+                 mode="range"
+                 defaultMonth={date?.from}
+                 selected={date}
+                 onSelect={setDate}
+                 numberOfMonths={2}
+                 disabled={(day) => day < today}
+               />
+             </PopoverContent>
+           </Popover>
+         </div>
         )}
 
         <Separator className="my-4" />
