@@ -60,7 +60,7 @@ const ServiceCard = ({
               /{service.priceUnit}
             </span>
           </div>
-          <Button asChild variant="outline">
+          <Button asChild variant="outline" size="lg">
             <Link href={`${pathname}?${slugify(service.name)}`} scroll={false}>
               Book
             </Link>
