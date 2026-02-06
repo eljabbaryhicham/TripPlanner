@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "car-1",
+      "description": "A modern compact car in an urban setting.",
+      "imageUrl": "https://images.unsplash.com/photo-1766602111000-96a7685d79f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb21wYWN0JTIwY2FyfGVufDB8fHx8MTc3MDM5NjIwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "compact car"
+    },
+    {
+      "id": "car-2",
+      "description": "A luxury SUV on a scenic road.",
+      "imageUrl": "https://images.unsplash.com/photo-1747414632749-6c8b14ba30fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBzdXZ8ZW58MHx8fHwxNzcwMzg1MDA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "luxury suv"
+    },
+    {
+      "id": "car-3",
+      "description": "An electric sedan charging.",
+      "imageUrl": "https://images.unsplash.com/photo-1607197109166-3ab4ee4b468f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZWxlY3RyaWMlMjBjYXJ8ZW58MHx8fHwxNzcwMzM5OTQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "electric car"
+    },
+    {
+      "id": "hotel-1",
+      "description": "A boutique hotel room with a beautiful view.",
+      "imageUrl": "https://images.unsplash.com/photo-1611892440504-42a792e24d32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MHx8fHwxNzcwMzY5MzEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hotel room"
+    },
+    {
+      "id": "hotel-2",
+      "description": "A cozy hostel common area.",
+      "imageUrl": "https://picsum.photos/seed/hotel2/600/400",
+      "imageHint": "hostel common"
+    },
+    {
+      "id": "hotel-3",
+      "description": "The luxurious lobby of a five-star hotel.",
+      "imageUrl": "https://images.unsplash.com/photo-1692153142524-60285a93c249?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxob3RlbCUyMGxvYmJ5fGVufDB8fHx8MTc3MDM4ODM2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "hotel lobby"
+    },
+    {
+      "id": "transport-1",
+      "description": "An airport shuttle bus waiting for passengers.",
+      "imageUrl": "https://images.unsplash.com/photo-1621120219014-058fa0e4f6fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxhaXJwb3J0JTIwc2h1dHRsZXxlbnwwfHx8fDE3NzAzOTYyMDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "airport shuttle"
+    },
+    {
+      "id": "transport-2",
+      "description": "A high-speed train traveling through the countryside.",
+      "imageUrl": "https://images.unsplash.com/photo-1632085912880-771de6e8e448?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxoaWdoc3BlZWQlMjB0cmFpbnxlbnwwfHx8fDE3NzAzOTYyMDV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "highspeed train"
+    },
+    {
+      "id": "transport-3",
+      "description": "A private chauffeur service car.",
+      "imageUrl": "https://images.unsplash.com/photo-1758785517263-aeec6aa4df66?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxwcml2YXRlJTIwY2FyfGVufDB8fHx8MTc3MDM5NjIwNXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "private car"
+    }
+  ]
 }
