@@ -31,7 +31,8 @@ const ServiceList = ({
   }, [searchParams, services]);
 
   const handleClose = () => {
-    router.replace(pathname, { scroll: false });
+    // Using router.push to ensure a navigation event occurs and resets the URL.
+    router.push(pathname, { scroll: false });
   };
 
   return (
