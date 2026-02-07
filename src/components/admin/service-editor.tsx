@@ -2,7 +2,6 @@
 'use client';
 
 import * as React from 'react';
-import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { saveService } from '@/lib/actions';
 import type { Service } from '@/lib/types';
@@ -23,8 +22,7 @@ interface ServiceEditorProps {
     service: Service | null;
 }
 
-function SubmitButton({ isEditing }: { isEditing: boolean }) {
-    const { pending } = useFormStatus();
+function SubmitButton({ isEditing, pending }: { isEditing: boolean, pending: boolean }) {
     return (
         <Button type="submit" disabled={pending}>
             {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
@@ -37,18 +35,26 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
     const router = useRouter();
     const { toast } = useToast();
     const isEditing = !!service;
-    const [state, formAction] = React.useActionState(saveService, { error: null, success: false });
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    React.useEffect(() => {
-        if (state.success) {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+
+        const formData = new FormData(event.currentTarget);
+        const result = await saveService({ error: null, success: false }, formData);
+
+        setIsSubmitting(false);
+
+        if (result.success) {
             toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
             onClose();
             router.refresh();
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
+        if (result.error) {
+            toast({ variant: 'destructive', title: 'Error', description: result.error });
         }
-    }, [state, toast, isEditing, onClose, router]);
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
@@ -59,7 +65,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                         Fill in the details below. Click save when you're done.
                     </DialogDescription>
                 </DialogHeader>
-                <form action={formAction}>
+                <form onSubmit={handleSubmit}>
                     {isEditing && <input type="hidden" name="id" value={service.id} />}
                     <ScrollArea className="h-[60vh] p-1">
                         <div className="space-y-4 p-4">
@@ -136,8 +142,8 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                         </div>
                     </ScrollArea>
                     <DialogFooter className="mt-4">
-                        <Button variant="outline" type="button" onClick={onClose}>Cancel</Button>
-                        <SubmitButton isEditing={isEditing} />
+                        <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+                        <SubmitButton isEditing={isEditing} pending={isSubmitting} />
                     </DialogFooter>
                 </form>
             </DialogContent>
