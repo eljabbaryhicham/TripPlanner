@@ -1,37 +1,5 @@
-
 {
   "entities": {
-    "Admin": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Admin",
-      "type": "object",
-      "description": "Represents an admin user of the TriPlanner application.",
-      "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the admin."
-        },
-        "login": {
-          "type": "string",
-          "description": "Login for the admin."
-        },
-        "password": {
-          "type": "string",
-          "description": "Password for the admin account."
-        },
-        "role": {
-          "type": "string",
-          "description": "Role of the admin.",
-          "enum": ["admin", "superadmin"]
-        }
-      },
-      "required": [
-        "id",
-        "login",
-        "password",
-        "role"
-      ]
-    },
     "CarRental": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "CarRental",
@@ -40,31 +8,37 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the car rental."
+          "description": "Unique identifier for the car rental service."
         },
         "name": {
           "type": "string",
-          "description": "Name of the car rental service."
+          "description": "Name of the car rental company or service."
         },
         "description": {
           "type": "string",
           "description": "Detailed description of the car rental service."
         },
-        "pricePerHour": {
-          "type": "number",
-          "description": "The rental price per hour."
-        },
         "imageUrl": {
           "type": "string",
-          "description": "URL of the car rental image."
+          "description": "URL of an image representing the car rental service.",
+          "format": "uri"
+        },
+        "pricePerDay": {
+          "type": "number",
+          "description": "Price per day for renting the car."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location where the car rental service is available."
         }
       },
       "required": [
         "id",
         "name",
         "description",
-        "pricePerHour",
-        "imageUrl"
+        "imageUrl",
+        "pricePerDay",
+        "location"
       ]
     },
     "Hotel": {
@@ -75,38 +49,44 @@
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the hotel."
+          "description": "Unique identifier for the hotel or hostel."
         },
         "name": {
           "type": "string",
-          "description": "Name of the hotel."
+          "description": "Name of the hotel or hostel."
         },
         "description": {
           "type": "string",
-          "description": "Detailed description of the hotel."
-        },
-        "pricePerNight": {
-          "type": "number",
-          "description": "Price per night for the hotel."
+          "description": "Detailed description of the hotel or hostel."
         },
         "imageUrl": {
           "type": "string",
-          "description": "URL of the hotel image."
+          "description": "URL of an image representing the hotel or hostel.",
+          "format": "uri"
+        },
+        "pricePerNight": {
+          "type": "number",
+          "description": "Price per night for staying at the hotel or hostel."
+        },
+        "location": {
+          "type": "string",
+          "description": "Location of the hotel or hostel."
         }
       },
       "required": [
         "id",
         "name",
         "description",
+        "imageUrl",
         "pricePerNight",
-        "imageUrl"
+        "location"
       ]
     },
     "Transport": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Transport",
       "type": "object",
-      "description": "Represents an airport pickup and guide service.",
+      "description": "Represents a transport service offering.",
       "properties": {
         "id": {
           "type": "string",
@@ -120,21 +100,32 @@
           "type": "string",
           "description": "Detailed description of the transport service."
         },
-        "price": {
-          "type": "number",
-          "description": "Price of the transport service."
-        },
         "imageUrl": {
           "type": "string",
-          "description": "URL of the transport service image."
+          "description": "URL of an image representing the transport service.",
+          "format": "uri"
+        },
+        "price": {
+          "type": "number",
+          "description": "Price for the transport service."
+        },
+        "origin": {
+          "type": "string",
+          "description": "Origin location of the transport service."
+        },
+        "destination": {
+          "type": "string",
+          "description": "Destination location of the transport service."
         }
       },
       "required": [
         "id",
         "name",
         "description",
+        "imageUrl",
         "price",
-        "imageUrl"
+        "origin",
+        "destination"
       ]
     },
     "Reservation": {
@@ -153,11 +144,11 @@
         },
         "serviceType": {
           "type": "string",
-          "description": "Type of service reserved (e.g., 'carRental', 'hotel', 'transport')."
+          "description": "Type of service reserved (e.g., 'CarRental', 'Hotel', 'Transport')."
         },
         "serviceId": {
           "type": "string",
-          "description": "ID of the specific service being reserved (references CarRental, Hotel, or Transport)."
+          "description": "ID of the specific service being reserved (e.g., CarRental.id)."
         },
         "startDate": {
           "type": "string",
@@ -173,13 +164,9 @@
           "type": "number",
           "description": "Total price of the reservation."
         },
-        "paymentStatus": {
+        "reservationDate": {
           "type": "string",
-          "description": "Status of the payment for the reservation (e.g., 'pending', 'completed', 'failed')."
-        },
-        "createdAt": {
-          "type": "string",
-          "description": "Timestamp indicating when the reservation was created.",
+          "description": "Date when the reservation was created.",
           "format": "date-time"
         }
       },
@@ -191,15 +178,14 @@
         "startDate",
         "endDate",
         "totalPrice",
-        "paymentStatus",
-        "createdAt"
+        "reservationDate"
       ]
     },
     "User": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "User",
       "type": "object",
-      "description": "Represents a user of the TriPlanner application.",
+      "description": "Represents a user of the application.",
       "properties": {
         "id": {
           "type": "string",
@@ -210,15 +196,87 @@
           "description": "Email address of the user.",
           "format": "email"
         },
-        "name": {
+        "firstName": {
           "type": "string",
-          "description": "Full name of the user."
+          "description": "First name of the user."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "Last name of the user."
         }
       },
       "required": [
         "id",
         "email",
-        "name"
+        "firstName",
+        "lastName"
+      ]
+    },
+    "AdminUser": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AdminUser",
+      "type": "object",
+      "description": "Represents an administrator user for the dashboard.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the admin user."
+        },
+        "username": {
+          "type": "string",
+          "description": "Username for the admin user."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the admin user.",
+          "format": "email"
+        }
+      },
+      "required": [
+        "id",
+        "username",
+        "email"
+      ]
+    },
+    "ServiceSuggestion": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ServiceSuggestion",
+      "type": "object",
+      "description": "Represents a service suggestion generated by AI.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the service suggestion."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N ServiceSuggestion).  The user that this suggestion is for."
+        },
+        "serviceType": {
+          "type": "string",
+          "description": "The type of service being suggested (e.g., 'Hotel', 'Transport', 'CarRental')."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "Reference to the specific service being suggested.  For example, the ID of a hotel in the Hotel entity."
+        },
+        "suggestionReason": {
+          "type": "string",
+          "description": "Reason for the suggestion (e.g., 'Past booking history', 'Similar preferences')."
+        },
+        "suggestionDate": {
+          "type": "string",
+          "description": "Date when the suggestion was generated.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "serviceType",
+        "serviceId",
+        "suggestionReason",
+        "suggestionDate"
       ]
     }
   },
@@ -237,7 +295,7 @@
           "schema": {
             "$ref": "#/backend/entities/User"
           },
-          "description": "Stores user profiles. Uses path-based ownership for private user data.",
+          "description": "Stores user profile data. Path-based ownership for private user data.",
           "params": [
             {
               "name": "userId",
@@ -247,33 +305,41 @@
         }
       },
       {
-        "path": "/reservations/{reservationId}",
+        "path": "/users/{userId}/reservations/{reservationId}",
         "definition": {
-            "entityName": "Reservation",
-            "schema": {
-                "$ref": "#/backend/entities/Reservation"
+          "entityName": "Reservation",
+          "schema": {
+            "$ref": "#/backend/entities/Reservation"
+          },
+          "description": "Stores reservations made by a specific user. Path-based ownership.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
             },
-            "description": "Stores reservations made by a specific user. Includes denormalized 'userId' for authorization independence.",
-            "params": [
-                {
-                    "name": "reservationId",
-                    "description": "The unique identifier for the reservation."
-                }
-            ]
+            {
+              "name": "reservationId",
+              "description": "The unique identifier for the reservation."
+            }
+          ]
         }
       },
       {
-        "path": "/carRentals/{carRentalId}",
+        "path": "/users/{userId}/serviceSuggestions/{serviceSuggestionId}",
         "definition": {
-          "entityName": "CarRental",
+          "entityName": "ServiceSuggestion",
           "schema": {
-            "$ref": "#/backend/entities/CarRental"
+            "$ref": "#/backend/entities/ServiceSuggestion"
           },
-          "description": "Stores car rental service offerings.",
+          "description": "Stores service suggestions for a specific user. Path-based ownership.",
           "params": [
             {
-              "name": "carRentalId",
-              "description": "The unique identifier for the car rental service."
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "serviceSuggestionId",
+              "description": "The unique identifier for the service suggestion."
             }
           ]
         }
@@ -285,11 +351,27 @@
           "schema": {
             "$ref": "#/backend/entities/Hotel"
           },
-          "description": "Stores hotel/hostel accommodations.",
+          "description": "Stores hotel data.",
           "params": [
             {
               "name": "hotelId",
               "description": "The unique identifier for the hotel."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/carRentals/{carRentalId}",
+        "definition": {
+          "entityName": "CarRental",
+          "schema": {
+            "$ref": "#/backend/entities/CarRental"
+          },
+          "description": "Stores car rental data.",
+          "params": [
+            {
+              "name": "carRentalId",
+              "description": "The unique identifier for the car rental."
             }
           ]
         }
@@ -301,7 +383,7 @@
           "schema": {
             "$ref": "#/backend/entities/Transport"
           },
-          "description": "Stores the single airport pickup and guide service offering.",
+          "description": "Stores transport data.",
           "params": [
             {
               "name": "transportId",
@@ -309,7 +391,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/roles_admin/{adminId}",
+        "definition": {
+          "entityName": "AdminUser",
+          "schema": {
+            "$ref": "#/backend/entities/AdminUser"
+          },
+          "description": "Collection to store admin user IDs. Used for role-based access control. Existence over content.",
+          "params": [
+            {
+              "name": "adminId",
+              "description": "The unique identifier for the admin user."
+            }
+          ]
+        }
       }
-    ]
+    ],
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. User data is stored under `/users/{userId}` ensuring path-based ownership. Reservations made by each user are stored in a subcollection `/users/{userId}/reservations/{reservationId}`. Service Suggestions are similarly organized under `/users/{userId}/serviceSuggestions/{serviceSuggestionId}`, ensuring the suggestions are linked to the correct user.\n\nThe `hotels`, `carRentals`, and `transports` collections store the data for each of those service types.  Admin users are managed via existence checks in the `/roles_admin/{adminId}` collection.\n\nThis structure achieves Authorization Independence by avoiding hierarchical authorization dependencies. All authorization rules rely on `request.auth.uid` and the document paths. Denormalization is not required in this schema because user-owned data is stored in hierarchical paths. This approach ensures proper QAPs, as listing operations are secure based on path-based ownership.\n\nBy using this schema and appropriate security rules, we can prevent filter-based security and ensure that all listing operations are inherently secure."
   }
 }

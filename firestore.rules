@@ -1,11 +1,35 @@
-
+/**
+ * This ruleset enforces a security model with a clear separation between public and private data.
+ *
+ * Core Philosophy:
+ * The ruleset implements a dual-access model. All user-specific data (profiles, reservations, suggestions)
+ * is strictly private and governed by an ownership model. Publicly browsable service data
+ * (hotels, car rentals, transports) is readable by anyone but can only be modified by administrators,
+ * ensuring data integrity.
+ *
+ * Data Structure:
+ * - Private user data is nested under `/users/{userId}`, leveraging Firestore's path hierarchy for
+ *   inherent ownership-based security. This includes subcollections for `reservations` and `serviceSuggestions`.
+ * - Public service data is stored in top-level collections: `/hotels`, `/carRentals`, and `/transports`.
+ * - Administrator roles are managed by checking for the existence of a user's UID in the `/roles_admin` collection.
+ *
+ * Key Security Decisions:
+ * - User Enumeration is Disallowed: The top-level `/users` collection cannot be listed, protecting user privacy.
+ * - Admin-Only Content Management: All public service data can only be created, updated, or deleted by users
+ *   designated as admins in the `/roles_admin` collection.
+ * - Immutable Ownership: Once a user-owned document (like a reservation) is created, its link to the user
+ *   (the `userId` field) cannot be changed. This prevents data from being re-assigned to another user.
+ * - Out-of-Band Admin Management: The `/roles_admin` collection is read-only via these rules to prevent
+ *   admins from being added or removed through the client application. Admin roles should be managed
+ *   securely through the Firebase Console or a trusted backend server.
+ */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // --------------------------------------------------------------------
+    // ------------------------------------------------------------------------
     // Helper Functions
-    // --------------------------------------------------------------------
+    // ------------------------------------------------------------------------
 
     /**
      * Checks if the user is authenticated.
@@ -15,124 +39,150 @@ service cloud.firestore {
     }
 
     /**
-     * Checks if the authenticated user's UID matches the provided userId.
-     * This is the foundation of the user-ownership security model.
+     * Checks if the currently authenticated user's ID matches the provided userId.
+     * This is the foundation of the user-ownership model.
+     * @param userId The user ID to check against the request's auth UID.
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
     /**
-     * For state-changing operations (update, delete), ensures the user is the
-     * owner AND the document already exists. This prevents writes to
-     * non-existent paths.
+     * A stricter version of isOwner used for update/delete operations.
+     * It ensures the document exists before allowing the operation to proceed.
+     * @param userId The user ID to check against the request's auth UID.
      */
     function isExistingOwner(userId) {
       return isOwner(userId) && resource != null;
     }
 
     /**
-     * On create, validates that the new User document's internal `id` field
-     * matches the document ID ({userId}), enforcing data consistency.
+     * Checks if the requesting user has admin privileges.
+     * Admin status is determined by the existence of a document corresponding
+     * to their UID in the '/roles_admin' collection.
      */
-    function hasValidUserDataOnCreate(userId) {
-      return request.resource.data.id == userId;
+    function isAdmin() {
+      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
 
-    /**
-     * On update, ensures the User's `id` field is immutable, preventing
-     * the ownership link from being changed after creation.
-     */
-    function hasImmutableUserData() {
-      return request.resource.data.id == resource.data.id;
-    }
-    
-    /**
-     * On create, validates that the new Reservation document's internal `userId`
-     * field matches the {userId} from the path, creating an immutable
-     * ownership record.
-     */
-    function hasValidReservationDataOnCreate(userId) {
-      return request.resource.data.userId == userId;
-    }
-
-    /**
-     * On update, ensures the Reservation's `userId` field is immutable.
-     */
-    function hasImmutableReservationData() {
-      return request.resource.data.userId == resource.data.userId;
-    }
-
-    // --------------------------------------------------------------------
-    // User Data Rules
-    // --------------------------------------------------------------------
+    // ------------------------------------------------------------------------
+    // User Data Rules (/users)
+    // ------------------------------------------------------------------------
 
     /**
      * @description Controls access to a user's own profile document.
      * @path /users/{userId}
-     * @allow (create) An authenticated user can create their own profile document.
-     * @allow (get, update, delete) The owner of the profile can read, update, or delete it.
-     * @deny (list) Listing all users is forbidden to prevent user enumeration.
-     * @deny (get) A user cannot read another user's profile.
-     * @principle Restricts access to a user's own data tree and prevents data leakage.
+     * @allow A signed-in user (auth.uid: 'user_abc') can (create) their own profile at `/users/user_abc`.
+     * @deny A signed-in user (auth.uid: 'user_xyz') cannot (get) the profile at `/users/user_abc`.
+     * @deny Any user cannot (list) the `/users` collection to prevent user enumeration.
+     * @principle Enforces Self-Creation and strict document ownership. Deletion is disabled to prevent orphaning subcollections.
      */
     match /users/{userId} {
       allow get: if isOwner(userId);
       allow list: if false;
-      allow create: if isOwner(userId) && hasValidUserDataOnCreate(userId);
-      allow update: if isExistingOwner(userId) && hasImmutableUserData();
-      allow delete: if isExistingOwner(userId);
-    }
-    
-    match /reservations/{reservationId} {
-      allow read: if true;
-      allow write: if true;
-    }
-
-    // --------------------------------------------------------------------
-    // Public Service Catalog Rules
-    // --------------------------------------------------------------------
-
-    /**
-     * @description Provides public, read-only access to the car rental catalog.
-     * @path /carRentals/{carRentalId}
-     * @allow (get, list) Any client, authenticated or not, can read the car rental listings.
-     * @deny (create, update, delete) All write operations from clients are forbidden.
-     * @principle Protects public data integrity by making it read-only for clients. Writes are assumed to be handled by a trusted backend.
-     */
-    match /carRentals/{carRentalId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if false;
-      allow update: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isOwner(userId);
       allow delete: if false;
     }
 
     /**
-     * @description Provides public, read-only access to the hotel catalog.
+     * @description Controls access to a user's private list of reservations.
+     * @path /users/{userId}/reservations/{reservationId}
+     * @allow A user (auth.uid: 'user_abc') can (list) all documents under `/users/user_abc/reservations`.
+     * @allow A user (auth.uid: 'user_abc') can (create) a new reservation with `userId: 'user_abc'` in the document data.
+     * @deny A user (auth.uid: 'user_xyz') cannot (create) a reservation under `/users/user_abc/reservations`.
+     * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
+     */
+    match /users/{userId}/reservations/{reservationId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Controls access to a user's private service suggestions.
+     * @path /users/{userId}/serviceSuggestions/{serviceSuggestionId}
+     * @allow A user (auth.uid: 'user_abc') can (get) a suggestion at `/users/user_abc/serviceSuggestions/suggestion_123`.
+     * @deny A user (auth.uid: 'user_xyz') cannot (delete) a suggestion for another user.
+     * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
+     */
+    match /users/{userId}/serviceSuggestions/{serviceSuggestionId} {
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.userId == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    // ------------------------------------------------------------------------
+    // Public Service Data Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to public hotel listings.
      * @path /hotels/{hotelId}
-     * @allow (get, list) Any client, authenticated or not, can read the hotel listings.
-     * @deny (create, update, delete) All write operations from clients are forbidden.
-     * @principle Protects public data integrity by making it read-only for clients. Writes are assumed to be handled by a trusted backend.
+     * @allow Any user, including anonymous ones, can (get) or (list) hotel data.
+     * @allow An admin user can (create) a new hotel document.
+     * @deny A non-admin signed-in user cannot (update) or (delete) hotel data.
+     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
      */
     match /hotels/{hotelId} {
       allow get: if true;
       allow list: if true;
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
     }
 
     /**
-     * @description Provides public, read-only access to the transport services catalog.
+     * @description Controls access to public car rental listings.
+     * @path /carRentals/{carRentalId}
+     * @allow Any user, including anonymous ones, can (get) or (list) car rental data.
+     * @allow An admin user can (create) a new car rental document.
+     * @deny A non-admin signed-in user cannot (update) or (delete) car rental data.
+     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
+     */
+    match /carRentals/{carRentalId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Controls access to public transport listings.
      * @path /transports/{transportId}
-     * @allow (get, list) Any client, authenticated or not, can read the transport service listings.
-     * @deny (create, update, delete) All write operations from clients are forbidden.
-     * @principle Protects public data integrity by making it read-only for clients. Writes are assumed to be handled by a trusted backend.
+     * @allow Any user, including anonymous ones, can (get) or (list) transport data.
+     * @allow An admin user can (create) a new transport document.
+     * @deny A non-admin signed-in user cannot (update) or (delete) transport data.
+     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
      */
     match /transports/{transportId} {
       allow get: if true;
       allow list: if true;
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ------------------------------------------------------------------------
+    // Admin Role Management Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Secures the admin role collection.
+     * @path /roles_admin/{adminId}
+     * @allow An admin user can (get) this document to verify another admin's status.
+     * @deny A non-admin user cannot (get) or (list) any data in this collection, preventing discovery of admins.
+     * @deny All users, including admins, cannot (create), (update), or (delete) roles via the client.
+     * @principle Secures the role system by making it read-only from the client. Roles must be managed via the Firebase Console or a trusted server.
+     */
+    match /roles_admin/{adminId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
       allow create: if false;
       allow update: if false;
       allow delete: if false;
