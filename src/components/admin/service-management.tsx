@@ -176,6 +176,7 @@ export default function ServiceManagement({ services }: { services: Service[] })
                 </CardContent>
             </Card>
             {editorOpen && <ServiceEditor
+                key={serviceToEdit?.id || 'new-service-editor'}
                 isOpen={editorOpen}
                 onClose={handleCloseEditor}
                 service={serviceToEdit}

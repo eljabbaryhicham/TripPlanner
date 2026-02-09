@@ -42,7 +42,7 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
               </TabsTrigger>
             </TabsList>
             <TabsContent value="all">
-              <ServiceList services={bestOffers} />
+              <ServiceList services={bestOffers.slice(0, 3)} />
             </TabsContent>
             <TabsContent value="cars">
               <div className="space-y-8">

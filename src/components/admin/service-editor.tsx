@@ -18,6 +18,8 @@ import { useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
 
 interface ServiceEditorProps {
     isOpen: boolean;
@@ -59,6 +61,12 @@ const detailOptions = {
         'Service': ['Personal meet & greet', 'Shuttle Service', 'Private Transfer'],
         'Vehicle': ['Comfortable Sedan', 'Minivan', 'Luxury Car', 'Shuttle Bus'],
     }
+};
+
+const detailKeySuggestions = {
+    cars: ['Seats', 'Transmission', 'Fuel Policy'],
+    hotels: ['Amenities', 'Room Type'],
+    transport: ['Service', 'Includes', 'Vehicle']
 };
 
 export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
@@ -125,7 +133,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
         newDetails[index][field] = value;
         setDetails(newDetails);
     };
-    const addDetail = () => setDetails([...details, { id: Date.now(), key: '', value: '' }]);
+    const addDetail = (key: string = '') => setDetails([...details, { id: Date.now(), key, value: '' }]);
     const removeDetail = (id: number) => setDetails(details.filter(d => d.id !== id));
 
     const handleMediaChange = (index: number, field: keyof Omit<Media, 'id'>, value: string) => {
@@ -301,7 +309,21 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                                         </div>
                                     )})}
                                 </div>
-                                <Button type="button" variant="outline" size="sm" onClick={addDetail}><PlusCircle className="mr-2 h-4 w-4" />Add Detail</Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button type="button" variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Add Detail</Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        {(detailKeySuggestions[category] || []).map(key => (
+                                            <DropdownMenuItem key={key} onSelect={() => addDetail(key)}>
+                                                Add '{key}'
+                                            </DropdownMenuItem>
+                                        ))}
+                                        <DropdownMenuItem onSelect={() => addDetail('')}>
+                                            Add Custom Detail
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
 
                             <div className="space-y-2 rounded-md border p-4">
