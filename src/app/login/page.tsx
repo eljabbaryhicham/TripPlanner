@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/firebase';
+import { useAuth, useUser } from '@/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,11 +14,18 @@ import { useToast } from '@/hooks/use-toast';
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
+  const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!isUserLoading && user) {
+        router.push('/admin');
+    }
+  }, [user, isUserLoading, router]);
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -31,7 +38,6 @@ export default function LoginPage() {
       }
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-      // Force a full page reload to ensure auth state is propagated everywhere.
       window.location.assign('/admin');
     } catch (err: any) {
       let errorMessage = 'An unknown error occurred.';
@@ -53,6 +59,14 @@ export default function LoginPage() {
       setIsLoading(false);
     }
   };
+
+  if (isUserLoading || user) {
+    return (
+      <div className="flex min-h-screen items-center justify-center p-4">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">

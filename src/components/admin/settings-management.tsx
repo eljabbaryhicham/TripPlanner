@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -10,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -37,20 +37,28 @@ export default function SettingsManagement({ currentWhatsappNumber }: { currentW
     }, [state, toast, router]);
 
     return (
-        <form action={formAction} className="space-y-4 max-w-md">
-            <div className="space-y-2">
-                <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
-                <Input
-                    id="whatsappNumber"
-                    name="whatsappNumber"
-                    defaultValue={currentWhatsappNumber}
-                    placeholder="e.g., +15551234567"
-                    required
-                />
-            </div>
-            <div className="flex justify-end">
-                <SubmitButton />
-            </div>
-        </form>
+        <Card>
+            <CardHeader>
+                <CardTitle>General Settings</CardTitle>
+                <CardDescription>Manage application-wide settings.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <form action={formAction} className="space-y-4 max-w-md">
+                    <div className="space-y-2">
+                        <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
+                        <Input
+                            id="whatsappNumber"
+                            name="whatsappNumber"
+                            defaultValue={currentWhatsappNumber}
+                            placeholder="e.g., +15551234567"
+                            required
+                        />
+                    </div>
+                    <div className="flex justify-end">
+                        <SubmitButton />
+                    </div>
+                </form>
+            </CardContent>
+        </Card>
     );
 }
