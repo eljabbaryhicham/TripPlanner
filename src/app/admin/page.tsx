@@ -105,14 +105,27 @@ export default function AdminPage() {
 
     if (!user || !isAdmin) {
         return (
-            <div className="flex min-h-screen items-center justify-center">
-                <Card className="max-w-md text-center">
+            <div className="flex min-h-screen items-center justify-center p-4">
+                <Card className="mx-auto w-full max-w-lg text-center">
                     <CardHeader>
                         <ShieldCheck className="mx-auto h-12 w-12 text-destructive" />
                         <CardTitle>Access Denied</CardTitle>
                         <CardDescription>You do not have permission to view this page. Please contact an administrator if you believe this is an error.</CardDescription>
                     </CardHeader>
                     <CardContent>
+                        {user && (
+                            <div className="mb-6 rounded-md border border-dashed border-destructive/50 bg-destructive/10 p-4 text-sm">
+                                <p className="font-semibold text-destructive">Debugging Information</p>
+                                <p className="mt-1 text-left text-destructive/80">
+                                    You are logged in, but the system does not recognize you as an admin. Please verify your Firestore setup.
+                                </p>
+                                <ul className="mt-3 space-y-1.5 text-left text-xs text-destructive/80">
+                                    <li>1. In Firestore, ensure you have a collection named exactly: <br /><code className="mt-1 inline-block font-mono bg-destructive/20 p-1 rounded">roles_admin</code></li>
+                                    <li className="pt-1.5">2. In that collection, ensure there is a document whose ID is exactly your User UID:</li>
+                                    <li className="text-center"><code className="font-mono bg-destructive/20 p-1 rounded break-all">{user.uid}</code></li>
+                                </ul>
+                            </div>
+                        )}
                         <Button onClick={() => router.push('/login')}>Return to Login</Button>
                     </CardContent>
                 </Card>

@@ -181,7 +181,10 @@ service cloud.firestore {
      * @principle Secures the role system by making it read-only from the client. Roles must be managed via the Firebase Console or a trusted server.
      */
     match /roles_admin/{adminId} {
-      allow get: if request.auth != null && request.auth.uid == adminId;
+      // DEBUG: Temporarily allowing any read to diagnose the login issue.
+      // This is insecure for production but helps confirm if the problem is permissions vs. data entry.
+      // Original rule: allow get: if request.auth != null && request.auth.uid == adminId;
+      allow get: if true;
       allow list: if isAdmin();
       allow create: if false;
       allow update: if false;
