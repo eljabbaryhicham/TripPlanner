@@ -156,43 +156,8 @@ const ServiceDetailModal = ({
                 Show Reviews
               </Button>
             </div>
-            
-            {(service.category === 'cars' || service.category === 'hotels') && (
-              <div className="space-y-4 mb-6">
-                <Label>Reservation Dates</Label>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="start-date" className="text-xs text-muted-foreground">From</Label>
-                        <Input 
-                            id="start-date" 
-                            type="date" 
-                            value={startDate} 
-                            onChange={(e) => setStartDate(e.target.value)}
-                            min={todayDate}
-                            className="bg-secondary/50 text-foreground"
-                        />
-                    </div>
-                    <div className="grid gap-1.5">
-                        <Label htmlFor="end-date" className="text-xs text-muted-foreground">To</Label>
-                        <Input 
-                            id="end-date" 
-                            type="date" 
-                            value={endDate}
-                            onChange={(e) => setEndDate(e.target.value)}
-                            min={startDate || todayDate}
-                            className="bg-secondary/50 text-foreground"
-                        />
-                    </div>
-                </div>
-              </div>
-            )}
-            <ReservationFlow
-              service={service}
-              dates={dateForFlow}
-              totalPrice={totalPrice}
-            />
           </div>
-
+          
           <Separator />
           
           <div className="px-6 pt-6 pb-6">
@@ -243,6 +208,45 @@ const ServiceDetailModal = ({
                 </div>
               </div>
             </div>
+          </div>
+
+          <Separator />
+
+          <div className="px-6 pt-6 pb-6">
+            {(service.category === 'cars' || service.category === 'hotels') && (
+              <div className="space-y-4 mb-6">
+                <Label>Reservation Dates</Label>
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="start-date" className="text-xs text-muted-foreground">From</Label>
+                        <Input 
+                            id="start-date" 
+                            type="date" 
+                            value={startDate} 
+                            onChange={(e) => setStartDate(e.target.value)}
+                            min={todayDate}
+                            className="bg-secondary/50 text-foreground"
+                        />
+                    </div>
+                    <div className="grid gap-1.5">
+                        <Label htmlFor="end-date" className="text-xs text-muted-foreground">To</Label>
+                        <Input 
+                            id="end-date" 
+                            type="date" 
+                            value={endDate}
+                            onChange={(e) => setEndDate(e.target.value)}
+                            min={startDate || todayDate}
+                            className="bg-secondary/50 text-foreground"
+                        />
+                    </div>
+                </div>
+              </div>
+            )}
+            <ReservationFlow
+              service={service}
+              dates={dateForFlow}
+              totalPrice={totalPrice}
+            />
           </div>
 
         </DialogContent>

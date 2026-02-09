@@ -18,6 +18,7 @@ import { Textarea } from './ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import type { Review } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
+import { Input } from './ui/input';
 
 // Form for submitting a new review
 const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName: string }) => {
@@ -26,6 +27,7 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
     const { toast } = useToast();
     const [rating, setRating] = React.useState(0);
     const [comment, setComment] = React.useState('');
+    const [name, setName] = React.useState('');
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     if (!user || !firestore) {
@@ -47,7 +49,7 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
             rating,
             comment,
             createdAt: serverTimestamp(),
-            authorName: user.displayName || user.email || 'Anonymous',
+            authorName: name.trim() || user.displayName || user.email || 'Client',
             authorImage: user.photoURL || null,
         };
 
@@ -56,6 +58,7 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
             toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.' });
             setRating(0);
             setComment('');
+            setName('');
         } catch (error) {
             console.error("Error submitting review:", error);
             toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not submit your review. Please try again.' });
@@ -80,6 +83,11 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 required
+            />
+            <Input
+                placeholder="Your Name (Optional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
             />
             <div className="flex justify-end">
                 <Button type="submit" disabled={isSubmitting}>
@@ -112,10 +120,11 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
 
   const sortedReviews = React.useMemo(() => {
     if (!reviews) return [];
+    // Create a mutable copy before sorting
     return [...reviews].sort((a, b) => {
       const timeA = a.createdAt?.seconds ?? 0;
       const timeB = b.createdAt?.seconds ?? 0;
-      return timeB - timeA;
+      return timeB - timeA; // Sort descending
     });
   }, [reviews]);
   
