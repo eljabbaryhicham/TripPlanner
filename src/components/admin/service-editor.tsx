@@ -11,7 +11,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, PlusCircle, Trash2 } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase';
@@ -26,9 +26,9 @@ interface ServiceEditorProps {
 }
 
 const additionalMediaSchema = z.object({
-  imageUrl: z.string().url('Media item must have a valid URL.'),
-  imageHint: z.string().min(1, 'Media item must have an image hint.'),
-  description: z.string().min(1, 'Media item must have a description.'),
+  imageUrl: z.string().url({ message: 'Media item must have a valid URL.' }),
+  imageHint: z.string().min(1, { message: 'Media item must have an image hint.' }),
+  description: z.string().min(1, { message: 'Media item must have a description.' }),
 });
 
 const serviceSchema = z.object({
@@ -41,60 +41,87 @@ const serviceSchema = z.object({
     price: z.coerce.number().min(0, 'Price must be non-negative'),
     priceUnit: z.enum(['day', 'night', 'trip']),
     location: z.string().min(1, 'Location is required'),
-    isBestOffer: z.preprocess((val) => val === 'on' || val === true, z.boolean()).default(false),
-    details: z.string().transform((str, ctx) => {
-        try {
-            const parsed = JSON.parse(str);
-            if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Details must be a valid JSON object.' });
-                return z.NEVER;
-            }
-            for (const key in parsed) {
-                if (typeof parsed[key] !== 'string') {
-                     ctx.addIssue({ code: z.ZodIssueCode.custom, message: `In Details, the value for "${key}" must be a string.` });
-                     return z.NEVER;
-                }
-            }
-            return parsed;
-        } catch (e) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Details must be valid JSON.' });
-            return z.NEVER;
-        }
-    }),
-    additionalMedia: z.string().transform((str, ctx) => {
-        try {
-            if (!str || str.trim() === '') return []; // Allow empty string
-            const parsed = JSON.parse(str);
-            const arraySchema = z.array(additionalMediaSchema);
-            const result = arraySchema.safeParse(parsed);
-            if (!result.success) {
-                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Additional Media is not a valid array of media objects. Check URLs and ensure all fields are present.' });
-                return z.NEVER;
-            }
-            return result.data;
-        } catch (e) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Additional Media must be a valid JSON array.' });
-            return z.NEVER;
-        }
-    })
+    isBestOffer: z.boolean().default(false),
+    details: z.record(z.string()),
+    additionalMedia: z.array(additionalMediaSchema)
 });
 
+type Detail = { id: number; key: string; value: string };
+type Media = { id: number; imageUrl: string; imageHint: string; description: string };
+
 export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
-    const router = useRouter();
     const { toast } = useToast();
     const firestore = useFirestore();
     const isEditing = !!service;
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    // Form state
+    const [name, setName] = React.useState(service?.name || '');
+    const [description, setDescription] = React.useState(service?.description || '');
+    const [imageUrl, setImageUrl] = React.useState(service?.imageUrl || '');
+    const [imageHint, setImageHint] = React.useState(service?.imageHint || '');
+    const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport'>(service?.category || 'cars');
+    const [location, setLocation] = React.useState(service?.location || '');
+    const [price, setPrice] = React.useState<number | string>(service?.price ?? '');
+    const [priceUnit, setPriceUnit] = React.useState<'day' | 'night' | 'trip'>(service?.priceUnit || 'day');
+    const [isBestOffer, setIsBestOffer] = React.useState(service?.isBestOffer || false);
     
-    const formRef = React.useRef<HTMLFormElement>(null);
+    const [details, setDetails] = React.useState<Detail[]>(
+        service?.details
+            ? Object.entries(service.details).map(([key, value], i) => ({ id: i, key, value }))
+            : []
+    );
+    const [additionalMedia, setAdditionalMedia] = React.useState<Media[]>(
+        service?.additionalMedia
+            ? service.additionalMedia.map((m, i) => ({ ...m, id: i }))
+            : []
+    );
+
+    // Handlers for dynamic fields
+    const handleDetailChange = (index: number, field: 'key' | 'value', value: string) => {
+        const newDetails = [...details];
+        newDetails[index][field] = value;
+        setDetails(newDetails);
+    };
+    const addDetail = () => setDetails([...details, { id: Date.now(), key: '', value: '' }]);
+    const removeDetail = (id: number) => setDetails(details.filter(d => d.id !== id));
+
+    const handleMediaChange = (index: number, field: keyof Omit<Media, 'id'>, value: string) => {
+        const newMedia = [...additionalMedia];
+        newMedia[index][field] = value;
+        setAdditionalMedia(newMedia);
+    };
+    const addMedia = () => setAdditionalMedia([...additionalMedia, { id: Date.now(), imageUrl: '', imageHint: '', description: '' }]);
+    const removeMedia = (id: number) => setAdditionalMedia(additionalMedia.filter(m => m.id !== id));
+
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsSubmitting(true);
 
-        const formData = new FormData(event.currentTarget);
-        const data = Object.fromEntries(formData);
-        const parsed = serviceSchema.safeParse(data);
+        const detailsObject = details.reduce((acc, { key, value }) => {
+            if (key) acc[key] = value;
+            return acc;
+        }, {} as Record<string, string>);
+
+        const mediaArray = additionalMedia.map(({ imageUrl, imageHint, description }) => ({ imageUrl, imageHint, description }));
+
+        const dataToValidate = {
+            id: service?.id,
+            name,
+            description,
+            imageUrl,
+            imageHint,
+            category,
+            price,
+            priceUnit,
+            location,
+            isBestOffer,
+            details: detailsObject,
+            additionalMedia: mediaArray,
+        };
+
+        const parsed = serviceSchema.safeParse(dataToValidate);
 
         if (!parsed.success) {
             toast({ variant: 'destructive', title: 'Invalid Data', description: parsed.error.errors.map(e => e.message).join('\n') });
@@ -108,11 +135,11 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
             return;
         }
 
-        const { id, category, ...serviceData } = parsed.data;
-        const docId = id || `${category}-${Date.now()}`;
+        const { id, category: serviceCategory, ...serviceData } = parsed.data;
+        const docId = id || `${serviceCategory}-${Date.now()}`;
         
         let collectionPath: string;
-        switch(category) {
+        switch(serviceCategory) {
             case 'cars': collectionPath = 'carRentals'; break;
             case 'hotels': collectionPath = 'hotels'; break;
             case 'transport': collectionPath = 'transports'; break;
@@ -129,7 +156,6 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
             .then(() => {
                 toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
                 onClose();
-                // No router.refresh needed because useCollection provides live data
             })
             .catch((error) => {
                 const permissionError = new FirestorePermissionError({
@@ -147,40 +173,39 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? 'Edit Service' : 'Add New Service'}</DialogTitle>
                     <DialogDescription>
                         Fill in the details below. Click save when you're done.
                     </DialogDescription>
                 </DialogHeader>
-                <form ref={formRef} onSubmit={handleSubmit}>
-                    {isEditing && <input type="hidden" name="id" value={service.id} />}
+                <form onSubmit={handleSubmit}>
                     <ScrollArea className="h-[60vh] p-1">
                         <div className="space-y-4 p-4">
                             <div className="space-y-2">
                                 <Label htmlFor="name">Name</Label>
-                                <Input id="name" name="name" defaultValue={service?.name} required />
+                                <Input id="name" value={name} onChange={e => setName(e.target.value)} required />
                             </div>
                             <div className="space-y-2">
                                 <Label htmlFor="description">Description</Label>
-                                <Textarea id="description" name="description" defaultValue={service?.description} required />
+                                <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="imageUrl">Main Image URL</Label>
-                                    <Input id="imageUrl" name="imageUrl" type="url" defaultValue={service?.imageUrl} required />
+                                    <Input id="imageUrl" type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="imageHint">Image Hint</Label>
-                                    <Input id="imageHint" name="imageHint" defaultValue={service?.imageHint} required />
+                                    <Input id="imageHint" value={imageHint} onChange={e => setImageHint(e.target.value)} required />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="category">Category</Label>
-                                    <Select name="category" defaultValue={service?.category}>
-                                        <SelectTrigger id="category">
+                                    <Label>Category</Label>
+                                    <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport') => setCategory(v)}>
+                                        <SelectTrigger>
                                             <SelectValue placeholder="Select a category" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -192,18 +217,18 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="location">Location</Label>
-                                    <Input id="location" name="location" defaultValue={service?.location} required />
+                                    <Input id="location" value={location} onChange={e => setLocation(e.target.value)} required />
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                <div className="space-y-2">
                                     <Label htmlFor="price">Price</Label>
-                                    <Input id="price" name="price" type="number" step="0.01" defaultValue={service?.price} required />
+                                    <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="priceUnit">Price Unit</Label>
-                                     <Select name="priceUnit" defaultValue={service?.priceUnit}>
-                                        <SelectTrigger id="priceUnit">
+                                    <Label>Price Unit</Label>
+                                     <Select value={priceUnit} onValueChange={(v: 'day' | 'night' | 'trip') => setPriceUnit(v)}>
+                                        <SelectTrigger>
                                             <SelectValue placeholder="Select a unit" />
                                         </SelectTrigger>
                                         <SelectContent>
@@ -214,18 +239,38 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                                     </Select>
                                 </div>
                             </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="details">Details (JSON Format)</Label>
-                                <Textarea id="details" name="details" rows={5} defaultValue={JSON.stringify(service?.details || {}, null, 2)} required />
-                                <p className="text-xs text-muted-foreground">Provide service details as a JSON object.</p>
+                            
+                            <div className="space-y-2 rounded-md border p-4">
+                                <Label>Service Details</Label>
+                                <div className="space-y-2">
+                                    {details.map((detail, index) => (
+                                        <div key={detail.id} className="flex items-center gap-2">
+                                            <Input placeholder="Key (e.g., Seats)" value={detail.key} onChange={e => handleDetailChange(index, 'key', e.target.value)} />
+                                            <Input placeholder="Value (e.g., 4)" value={detail.value} onChange={e => handleDetailChange(index, 'value', e.target.value)} />
+                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeDetail(detail.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={addDetail}><PlusCircle className="mr-2 h-4 w-4" />Add Detail</Button>
                             </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="additionalMedia">Additional Media (JSON Array)</Label>
-                                <Textarea id="additionalMedia" name="additionalMedia" rows={5} defaultValue={JSON.stringify(service?.additionalMedia || [], null, 2)} />
-                                <p className="text-xs text-muted-foreground">Provide an array of objects: {`[{ "imageUrl": "...", "imageHint": "...", "description": "..." }]`}</p>
+
+                            <div className="space-y-2 rounded-md border p-4">
+                                <Label>Additional Media (Optional)</Label>
+                                <div className="space-y-3">
+                                    {additionalMedia.map((media, index) => (
+                                        <div key={media.id} className="space-y-2 border-t pt-3 relative">
+                                            <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-0" onClick={() => removeMedia(media.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            <Input placeholder="Image URL" value={media.imageUrl} onChange={e => handleMediaChange(index, 'imageUrl', e.target.value)} />
+                                            <Input placeholder="Image Hint" value={media.imageHint} onChange={e => handleMediaChange(index, 'imageHint', e.target.value)} />
+                                            <Textarea placeholder="Short Description" value={media.description} onChange={e => handleMediaChange(index, 'description', e.target.value)} />
+                                        </div>
+                                    ))}
+                                </div>
+                                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={addMedia}><PlusCircle className="mr-2 h-4 w-4" />Add Media</Button>
                             </div>
-                            <div className="flex items-center space-x-2">
-                                <Switch id="isBestOffer" name="isBestOffer" defaultChecked={service?.isBestOffer} />
+                            
+                            <div className="flex items-center space-x-2 pt-2">
+                                <Switch id="isBestOffer" checked={isBestOffer} onCheckedChange={setIsBestOffer} />
                                 <Label htmlFor="isBestOffer">Mark as Best Offer</Label>
                             </div>
                         </div>
