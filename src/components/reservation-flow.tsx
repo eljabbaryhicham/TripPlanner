@@ -47,6 +47,7 @@ interface ReservationFlowProps {
   service: Service;
   dates: DateRange | undefined;
   totalPrice: number | null;
+  fullName: string;
 }
 
 const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -63,7 +64,7 @@ const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) => {
+const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFlowProps) => {
   const router = useRouter();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
@@ -75,7 +76,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
   const isDateRequired = service.category === 'cars' || service.category === 'hotels';
-  const areDatesSelected = isDateRequired ? !!dates : true;
+  const isFlowDisabled = !fullName || (isDateRequired && !dates);
 
     React.useEffect(() => {
         fetch('/api/settings')
@@ -91,7 +92,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   const form = useForm<ReservationFormValues>({
     resolver: zodResolver(reservationSchema),
     defaultValues: {
-      name: '',
+      name: fullName || '',
       email: '',
       phone: '',
       message: '',
@@ -100,6 +101,10 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
       price: service.price,
     },
   });
+  
+  React.useEffect(() => {
+      form.setValue('name', fullName);
+  }, [fullName, form]);
 
   const { isSubmitting } = form.formState;
 
@@ -123,7 +128,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',
-        description: 'There was a problem with your request. Please try again.',
+        description: result.error || 'There was a problem with your request. Please try again.',
       });
     }
   };
@@ -190,12 +195,12 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
   };
 
   const whatsappMessage = React.useMemo(() => {
-    let message = `Hello, I'd like to book the service: ${service.name}.`;
+    let message = `Hello, I'd like to book the service: ${service.name}. My name is ${fullName}.`;
     if (dates?.from && dates?.to) {
       message += ` From: ${dates.from.toLocaleDateString()} To: ${dates.to.toLocaleDateString()}.`;
     }
     return encodeURIComponent(message);
-  }, [service, dates]);
+  }, [service, dates, fullName]);
 
 
   if (showInquiryConfirmation) {
@@ -232,7 +237,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
                 <FormItem>
                   <FormLabel>Full Name</FormLabel>
                   <FormControl>
-                    <Input placeholder="John Doe" {...field} />
+                    <Input placeholder="John Doe" {...field} readOnly className="bg-muted/50"/>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -306,13 +311,13 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
 
   return (
     <div className="space-y-4">
-        <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading || !areDatesSelected}>
+        <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading || isFlowDisabled}>
             {isCheckingOut ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
             ) : (
                 <CreditCard className="mr-2 h-5 w-5" />
             )}
-            {isUserLoading ? 'Initializing...' : !areDatesSelected ? 'Please select dates' : 'Checkout Now'}
+            {isUserLoading ? 'Initializing...' : isFlowDisabled ? 'Please provide name & dates' : 'Checkout Now'}
         </Button>
         <div className="relative">
             <div className="absolute inset-0 flex items-center">
@@ -329,7 +334,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
                 className="w-full sm:flex-1"
                 variant="secondary"
                 onClick={() => setReservationType('contact')}
-                disabled={!areDatesSelected}
+                disabled={isFlowDisabled}
             >
                 <Send className="mr-2 h-4 w-4" />
                 Book via Email
@@ -337,7 +342,7 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
             <Button
                 asChild
                 className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
-                disabled={!whatsappNumber || !areDatesSelected}
+                disabled={!whatsappNumber || isFlowDisabled}
             >
                 <a href={`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`} target="_blank" rel="noopener noreferrer">
                     <WhatsappIcon className="mr-2 h-5 w-5" />

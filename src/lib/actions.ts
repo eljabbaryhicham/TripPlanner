@@ -1,16 +1,18 @@
+
 'use server';
 
 import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
+import { Resend } from 'resend';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 
 // --- Reservation Action ---
 const reservationSchema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
   phone: z.string().optional(),
   message: z.string().optional(),
   serviceName: z.string(),
@@ -29,18 +31,43 @@ export async function submitReservation(data: ReservationFormValues) {
     return { success: false, error: 'Invalid data.' };
   }
 
-  // This is a mock for sending an email inquiry. In a real app,
-  // this would use a transactional email service.
-  console.log('--- New Reservation Inquiry ---');
-  console.log('Service:', parsed.data.serviceName);
-  console.log('Name:', parsed.data.name);
-  console.log('Email:', parsed.data.email);
-  // ... etc
-  console.log('-----------------------------');
+  const { name, email, phone, message, serviceName, startDate, endDate } = parsed.data;
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  if (!process.env.RESEND_API_KEY || !process.env.BOOKING_EMAIL_TO) {
+    console.error('Resend API Key or recipient email is not set in .env file.');
+    return { success: false, error: 'Server is not configured to send emails.' };
+  }
 
-  return { success: true };
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  try {
+    const { data, error } = await resend.emails.send({
+      from: 'TriPlanner <onboarding@resend.dev>',
+      to: [process.env.BOOKING_EMAIL_TO],
+      subject: `New Booking Inquiry for ${serviceName}`,
+      html: `
+        <p>You have a new reservation inquiry:</p>
+        <ul>
+          <li><strong>Service:</strong> ${serviceName}</li>
+          <li><strong>Name:</strong> ${name}</li>
+          <li><strong>Email:</strong> ${email}</li>
+          ${phone ? `<li><strong>Phone:</strong> ${phone}</li>` : ''}
+          ${startDate && endDate ? `<li><strong>Dates:</strong> ${startDate} - ${endDate}</li>` : ''}
+          ${message ? `<li><strong>Message:</strong> ${message}</li>` : ''}
+        </ul>
+      `,
+    });
+
+    if (error) {
+      console.error('Resend error:', error);
+      return { success: false, error: 'Failed to send email.' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    return { success: false, error: 'An unexpected error occurred while sending the email.' };
+  }
 }
 
 // --- Settings Action ---

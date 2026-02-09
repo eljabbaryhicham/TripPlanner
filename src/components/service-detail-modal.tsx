@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -41,6 +42,7 @@ const ServiceDetailModal = ({
 }: ServiceDetailModalProps) => {
   const [startDate, setStartDate] = React.useState('');
   const [endDate, setEndDate] = React.useState('');
+  const [fullName, setFullName] = React.useState('');
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
   const firestore = useFirestore();
 
@@ -113,6 +115,7 @@ const ServiceDetailModal = ({
     if (!isOpen) {
       setStartDate('');
       setEndDate('');
+      setFullName('');
     }
   }, [isOpen]);
 
@@ -244,6 +247,16 @@ const ServiceDetailModal = ({
           <Separator />
 
           <div className="px-6 pt-6 pb-6">
+            <div className="space-y-4 mb-6">
+                <Label htmlFor="full-name" className="font-semibold">Your Full Name</Label>
+                <Input 
+                    id="full-name"
+                    placeholder="Enter your full name to proceed"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                />
+            </div>
             {(service.category === 'cars' || service.category === 'hotels') && (
               <div className="space-y-4 mb-6">
                 <Label>Reservation Dates</Label>
@@ -257,6 +270,7 @@ const ServiceDetailModal = ({
                             onChange={(e) => setStartDate(e.target.value)}
                             min={todayDate}
                             className="bg-secondary/50 text-foreground"
+                            disabled={!fullName}
                         />
                     </div>
                     <div className="grid gap-1.5">
@@ -268,6 +282,7 @@ const ServiceDetailModal = ({
                             onChange={(e) => setEndDate(e.target.value)}
                             min={startDate || todayDate}
                             className="bg-secondary/50 text-foreground"
+                            disabled={!fullName || !startDate}
                         />
                     </div>
                 </div>
@@ -277,6 +292,7 @@ const ServiceDetailModal = ({
               service={service}
               dates={dateForFlow}
               totalPrice={totalPrice}
+              fullName={fullName}
             />
           </div>
 
