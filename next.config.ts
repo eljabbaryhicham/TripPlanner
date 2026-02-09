@@ -28,6 +28,12 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'messages-prod.27c852f3500f38c1e7786e2c9ff9e48f.r2.cloudflarestorage.com',
+        port: '',
+        pathname: '/**',
+      },
     ],
   },
 };
