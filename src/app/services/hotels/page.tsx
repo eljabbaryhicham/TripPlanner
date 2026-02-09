@@ -14,6 +14,10 @@ export default function HotelsPage() {
   const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
   const { data: hotelServices, isLoading } = useCollection(hotelsRef);
 
+  const activeHotelServices = React.useMemo(() => {
+    return hotelServices?.filter(service => service.isActive !== false) ?? [];
+  }, [hotelServices]);
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -36,7 +40,7 @@ export default function HotelsPage() {
                   <Skeleton className="h-96" />
                </div>
             ) : (
-              <ServiceList services={hotelServices || []} />
+              <ServiceList services={activeHotelServices} />
             )}
           </div>
         </section>

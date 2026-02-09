@@ -32,7 +32,9 @@ export default function Home() {
   }, [carRentals, hotels, transports]);
 
   const isLoading = carsLoading || hotelsLoading || transportsLoading;
-  const bestOffers = services.filter((service) => service.isBestOffer);
+  
+  const activeServices = services.filter(service => service.isActive !== false);
+  const bestOffers = activeServices.filter((service) => service.isBestOffer);
 
   return (
     <div className="h-screen snap-y snap-mandatory overflow-y-scroll scroll-smooth">

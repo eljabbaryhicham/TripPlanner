@@ -121,6 +121,7 @@ export default function ServiceManagement({ services }: { services: Service[] })
                                 <TableHead>Name</TableHead>
                                 <TableHead>Category</TableHead>
                                 <TableHead>Price</TableHead>
+                                <TableHead>Status</TableHead>
                                 <TableHead>Best Offer</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
@@ -132,6 +133,9 @@ export default function ServiceManagement({ services }: { services: Service[] })
                                         <TableCell className="font-medium">{service.name}</TableCell>
                                         <TableCell className="capitalize">{service.category}</TableCell>
                                         <TableCell>${service.price} / {service.priceUnit}</TableCell>
+                                        <TableCell>
+                                            {service.isActive === false ? <Badge variant="secondary">Inactive</Badge> : <Badge variant="default">Active</Badge>}
+                                        </TableCell>
                                         <TableCell>
                                             {service.isBestOffer ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
                                         </TableCell>
@@ -155,7 +159,7 @@ export default function ServiceManagement({ services }: { services: Service[] })
                                 ))
                             ) : (
                                 <TableRow>
-                                    <TableCell colSpan={5} className="h-24 text-center">
+                                    <TableCell colSpan={6} className="h-24 text-center">
                                         No services found.
                                         <p className="text-sm text-muted-foreground mt-1">
                                             You can add a new service or go to the 'Settings' tab to seed the database with sample data.

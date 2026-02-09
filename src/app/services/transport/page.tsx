@@ -14,7 +14,11 @@ export default function TransportPage() {
   const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
   const { data: services, isLoading } = useCollection(transportsRef);
 
-  const service: Service | undefined = services?.[0] as Service | undefined;
+  const activeServices = React.useMemo(() => {
+    return services?.filter(service => service.isActive !== false);
+  }, [services]);
+
+  const service: Service | undefined = activeServices?.[0] as Service | undefined;
 
   if (isLoading) {
      return (

@@ -30,6 +30,10 @@
         "location": {
           "type": "string",
           "description": "Location where the car rental service is available."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the service is currently active and available for booking."
         }
       },
       "required": [
@@ -71,6 +75,10 @@
         "location": {
           "type": "string",
           "description": "Location of the hotel or hostel."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the service is currently active and available for booking."
         }
       },
       "required": [
@@ -116,6 +124,10 @@
         "destination": {
           "type": "string",
           "description": "Destination location of the transport service."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the service is currently active and available for booking."
         }
       },
       "required": [

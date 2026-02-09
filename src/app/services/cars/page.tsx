@@ -14,6 +14,10 @@ export default function CarsPage() {
   const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
   const { data: carServices, isLoading } = useCollection(carRentalsRef);
 
+  const activeCarServices = React.useMemo(() => {
+    return carServices?.filter(service => service.isActive !== false) ?? [];
+  }, [carServices]);
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -36,7 +40,7 @@ export default function CarsPage() {
                   <Skeleton className="h-96" />
                </div>
             ) : (
-              <ServiceList services={carServices || []} />
+              <ServiceList services={activeCarServices} />
             )}
           </div>
         </section>

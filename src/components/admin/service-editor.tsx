@@ -40,6 +40,7 @@ const serviceSchema = z.object({
     priceUnit: z.enum(['day', 'night', 'trip']),
     location: z.string().min(1, 'Location is required'),
     isBestOffer: z.boolean().default(false),
+    isActive: z.boolean().default(true),
     details: z.record(z.string()),
     additionalMedia: z.array(additionalMediaSchema)
 });
@@ -85,6 +86,7 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
     const [price, setPrice] = React.useState<number | string>('');
     const [priceUnit, setPriceUnit] = React.useState<'day' | 'night' | 'trip'>('day');
     const [isBestOffer, setIsBestOffer] = React.useState(false);
+    const [isActive, setIsActive] = React.useState(true);
     const [details, setDetails] = React.useState<Detail[]>([]);
     const [additionalMedia, setAdditionalMedia] = React.useState<Media[]>([]);
 
@@ -113,6 +115,7 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
             setPrice(service?.price ?? '');
             setPriceUnit(service?.priceUnit || (service?.category === 'hotels' ? 'night' : service?.category === 'transport' ? 'trip' : 'day'));
             setIsBestOffer(service?.isBestOffer || false);
+            setIsActive(service?.isActive ?? true);
             
             const initialDetails = service?.details
                 ? Object.entries(service.details).map(([key, value], i) => ({ id: Date.now() + i, key, value }))
@@ -196,6 +199,7 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
             priceUnit,
             location,
             isBestOffer,
+            isActive,
             details: detailsObject,
             additionalMedia: mediaArray,
         };
@@ -373,6 +377,10 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
                             <div className="flex items-center space-x-2 pt-2">
                                 <Switch id="isBestOffer" checked={isBestOffer} onCheckedChange={setIsBestOffer} />
                                 <Label htmlFor="isBestOffer">Mark as Best Offer</Label>
+                            </div>
+                             <div className="flex items-center space-x-2 pt-2">
+                                <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
+                                <Label htmlFor="isActive">Service is Active</Label>
                             </div>
                         </div>
                     </ScrollArea>

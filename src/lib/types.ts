@@ -12,6 +12,7 @@ export interface Service {
   description: string;
   imageUrl: string;
   isBestOffer?: boolean;
+  isActive?: boolean;
   category: ServiceCategory;
   price: number;
   priceUnit: 'day' | 'night' | 'trip';
