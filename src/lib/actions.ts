@@ -45,27 +45,31 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
 
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
+    
+    // --- Prepare email content ---
+    const detailsHtml = [
+        { label: 'Service', value: serviceName },
+        { label: 'Name', value: name },
+        { label: 'Email', value: email },
+        { label: 'Phone', value: phone },
+        { label: 'Dates', value: (startDate && endDate) ? `${startDate} - ${endDate}` : null },
+        { label: 'Origin', value: origin },
+        { label: 'Destination', value: destination },
+        { label: 'Estimated Price', value: totalPrice ? `$${totalPrice.toFixed(2)}` : null },
+        { label: 'Message', value: message },
+    ]
+    .filter(item => item.value) // Filter out items with null/undefined/empty string values
+    .map(item => `<li><strong>${item.label}:</strong> <span>${item.value}</span></li>`)
+    .join('');
+
 
     // --- Prepare and send email to Admin ---
     const adminTemplateFile = await fs.readFile(emailTemplateFilePath, 'utf-8');
     const { template: adminTemplate } = JSON.parse(adminTemplateFile);
     
-    let adminHtmlBody = adminTemplate;
-    const replacements: Record<string, string> = {
-        '{{serviceName}}': serviceName,
-        '{{name}}': name,
-        '{{email}}': email,
-        '{{phone}}': phone || 'N/A',
-        '{{message}}': message || 'N/A',
-        '{{dates}}': (startDate && endDate) ? `${startDate} - ${endDate}` : 'N/A',
-        '{{origin}}': origin || 'N/A',
-        '{{destination}}': destination || 'N/A',
-        '{{totalPrice}}': totalPrice ? `$${totalPrice.toFixed(2)}` : 'N/A',
-    };
-    
-    for (const [key, value] of Object.entries(replacements)) {
-        adminHtmlBody = adminHtmlBody.replace(new RegExp(key, 'g'), value);
-    }
+    let adminHtmlBody = adminTemplate.replace('{{detailsList}}', detailsHtml);
+    adminHtmlBody = adminHtmlBody.replace(new RegExp('{{serviceName}}', 'g'), serviceName);
+    adminHtmlBody = adminHtmlBody.replace(new RegExp('{{email}}', 'g'), email);
 
     const { error: adminError } = await resend.emails.send({
       from: 'TriPlanner <onboarding@resend.dev>',
@@ -84,11 +88,10 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     const clientTemplateFile = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
     const { template: clientTemplate } = JSON.parse(clientTemplateFile);
     
-    let clientHtmlBody = clientTemplate;
-    for (const [key, value] of Object.entries(replacements)) {
-        clientHtmlBody = clientHtmlBody.replace(new RegExp(key, 'g'), value);
-    }
-
+    let clientHtmlBody = clientTemplate.replace('{{detailsList}}', detailsHtml);
+    clientHtmlBody = clientHtmlBody.replace(new RegExp('{{name}}', 'g'), name);
+    clientHtmlBody = clientHtmlBody.replace(new RegExp('{{serviceName}}', 'g'), serviceName);
+    
     const { error: clientError } = await resend.emails.send({
         from: 'TriPlanner <onboarding@resend.dev>',
         to: [email],
