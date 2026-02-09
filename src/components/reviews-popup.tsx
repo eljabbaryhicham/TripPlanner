@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc, serverTimestamp, orderBy } from 'firebase/firestore';
+import { collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -11,7 +11,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Star, Loader2, Send } from 'lucide-react';
+import { Star, Loader2, Send, Mountain } from 'lucide-react';
 import { Separator } from './ui/separator';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -131,15 +131,15 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Reviews for {serviceName}</DialogTitle>
-          <DialogDescription className="flex items-center gap-2">
+          <DialogDescription asChild>
             {sortedReviews && sortedReviews.length > 0 ? (
-                <>
+                <span className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="flex items-center text-amber-400">
                         <Star className="h-4 w-4 mr-1 fill-current" />
                         <span>{averageRating.toFixed(1)}</span>
                     </span>
-                    <span className="text-muted-foreground">({sortedReviews.length} {sortedReviews.length === 1 ? 'review' : 'reviews'})</span>
-                </>
+                    <span>({sortedReviews.length} {sortedReviews.length === 1 ? 'review' : 'reviews'})</span>
+                </span>
             ) : (
                 <span>No reviews yet. Be the first!</span>
             )}
@@ -156,7 +156,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
             {isLoading && (
               <div className="space-y-6">
                 {[...Array(2)].map((_, i) => (
-                  <div className="flex items-start space-x-4" key={i}>
+                  <div className="flex items-start space-x-4 pt-6" key={i}>
                     <Skeleton className="h-10 w-10 rounded-full" />
                     <div className="flex-1 space-y-2">
                         <Skeleton className="h-4 w-1/4" />
@@ -169,33 +169,36 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
             )}
 
             {!isLoading && sortedReviews && sortedReviews.length > 0 && (
-                sortedReviews.map((review) => (
-                    <div key={review.id}>
-                    <div className="flex items-start space-x-4">
-                        <Avatar>
-                        <AvatarImage src={review.authorImage ?? `https://picsum.photos/seed/avatar${review.userId}/40/40`} alt={review.authorName} />
-                        <AvatarFallback>{review.authorName.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                            <p className="font-semibold">{review.authorName}</p>
-                            <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                            <div className="flex items-center text-amber-400">
-                                {[...Array(5)].map((_, i) => (
-                                    <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'fill-current' : 'stroke-current'}`} />
-                                ))}
-                            </div>
-                            </div>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                            {review.createdAt ? new Date(review.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
-                        </p>
-                        <p className="mt-2 text-sm text-foreground/80">{review.comment}</p>
-                        </div>
+                sortedReviews.map((review, index) => (
+                  <React.Fragment key={review.id}>
+                    {index > 0 && <Separator className="my-6" />}
+                    <div className="pt-6">
+                      <div className="flex items-start space-x-4">
+                          <Avatar>
+                              <AvatarImage src={review.authorImage || ''} alt={review.authorName} />
+                              <AvatarFallback>
+                                  {review.authorImage ? review.authorName.charAt(0) : <Mountain className="h-5 w-5" />}
+                              </AvatarFallback>
+                          </Avatar>
+                          <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                              <p className="font-semibold">{review.authorName}</p>
+                              <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                              <div className="flex items-center text-amber-400">
+                                  {[...Array(5)].map((_, i) => (
+                                      <Star key={i} className={`h-4 w-4 ${i < review.rating ? 'fill-current' : 'stroke-current'}`} />
+                                  ))}
+                              </div>
+                              </div>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                              {review.createdAt ? new Date(review.createdAt.seconds * 1000).toLocaleDateString() : 'Just now'}
+                          </p>
+                          <p className="mt-2 text-sm text-foreground/80">{review.comment}</p>
+                          </div>
+                      </div>
                     </div>
-                    {/* Add a separator between reviews */}
-                    <Separator className="mt-6" />
-                    </div>
+                  </React.Fragment>
                 ))
             )}
 
