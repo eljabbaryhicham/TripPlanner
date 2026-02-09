@@ -23,6 +23,7 @@ export default function AdminPage() {
     const [isAdmin, setIsAdmin] = React.useState(false);
     const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
     const [settings, setSettings] = React.useState({ whatsappNumber: '' });
+    const [debugInfo, setDebugInfo] = React.useState<string | null>(null);
 
     // Auth check
     React.useEffect(() => {
@@ -38,12 +39,15 @@ export default function AdminPage() {
                 try {
                     const adminDocRef = doc(firestore, 'roles_admin', user.uid);
                     const adminDocSnap = await getDoc(adminDocRef);
-                    setIsAdmin(adminDocSnap.exists());
-                } catch (error) {
-                    // This is an expected error for non-admins. We'll log it for debugging
-                    // but show the "Access Denied" UI instead of a global error.
-                    console.error("Admin role check failed:", error);
+                    const docExists = adminDocSnap.exists();
+                    setIsAdmin(docExists);
+                     if (!docExists) {
+                        setDebugInfo(`Your UID is: ${user.uid}. The application checked for an admin role document at 'roles_admin/${user.uid}' but did not find it. Please ensure the document exists and the ID is an exact match.`);
+                    }
+                } catch (error: any) {
                     setIsAdmin(false);
+                    setDebugInfo(`An error occurred while checking for admin role: ${error.message}. Your UID is: ${user.uid}. This is likely a security rules issue that needs to be resolved.`);
+                    console.error("Admin role check failed:", error);
                 } finally {
                     setIsCheckingAdmin(false);
                 }
@@ -112,8 +116,18 @@ export default function AdminPage() {
                         <CardTitle>Access Denied</CardTitle>
                         <CardDescription>You do not have permission to view this page. Please contact an administrator if you believe this is an error.</CardDescription>
                     </CardHeader>
-                    <CardContent>
+                    <CardContent className="space-y-4">
                         <Button onClick={() => router.push('/login')}>Return to Login</Button>
+                        {user && debugInfo && (
+                            <Card className="mt-4 text-left text-sm bg-secondary">
+                                <CardHeader>
+                                    <CardTitle className="text-base">Debugging Information</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="font-mono bg-background p-2 rounded text-xs">{debugInfo}</p>
+                                </CardContent>
+                            </Card>
+                        )}
                     </CardContent>
                 </Card>
             </div>
