@@ -112,7 +112,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
 
   const sortedReviews = React.useMemo(() => {
     if (!reviews) return [];
-    return reviews.sort((a, b) => {
+    return [...reviews].sort((a, b) => {
       const timeA = a.createdAt?.seconds ?? 0;
       const timeB = b.createdAt?.seconds ?? 0;
       return timeB - timeA;
@@ -134,10 +134,10 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
           <DialogDescription className="flex items-center gap-2">
             {sortedReviews && sortedReviews.length > 0 ? (
                 <>
-                    <div className="flex items-center text-amber-400">
+                    <span className="flex items-center text-amber-400">
                         <Star className="h-4 w-4 mr-1 fill-current" />
                         <span>{averageRating.toFixed(1)}</span>
-                    </div>
+                    </span>
                     <span className="text-muted-foreground">({sortedReviews.length} {sortedReviews.length === 1 ? 'review' : 'reviews'})</span>
                 </>
             ) : (
