@@ -12,6 +12,8 @@ import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
 import SettingsManagement from '@/components/admin/settings-management';
 import { useToast } from '@/hooks/use-toast';
+import { ServiceEditor, type ServiceEditorHandles } from '@/components/admin/service-editor';
+import type { Service } from '@/lib/types';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -24,6 +26,8 @@ export default function AdminPage() {
     const [whatsappNumber, setWhatsappNumber] = React.useState('');
     const [settingsLoading, setSettingsLoading] = React.useState(true);
     
+    const editorRef = React.useRef<ServiceEditorHandles>(null);
+
     // Auth check
     React.useEffect(() => {
         if (!isUserLoading && !user) {
@@ -113,6 +117,14 @@ export default function AdminPage() {
             toast({ variant: 'destructive', title: 'Grant Access Failed', description: 'A permission error occurred. Please check security rules.' });
         }
     };
+
+    const handleAddService = () => {
+        editorRef.current?.add();
+    };
+
+    const handleEditService = (service: Service) => {
+        editorRef.current?.edit(service);
+    };
     
     const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || settingsLoading;
 
@@ -166,8 +178,13 @@ export default function AdminPage() {
             </header>
             <main className="p-4 sm:px-6 sm:py-0 space-y-6">
                 <SettingsManagement currentWhatsappNumber={whatsappNumber} />
-                <ServiceManagement services={services} />
+                <ServiceManagement 
+                    services={services} 
+                    onAdd={handleAddService} 
+                    onEdit={handleEditService} 
+                />
             </main>
+            <ServiceEditor ref={editorRef} />
         </div>
     );
 }
