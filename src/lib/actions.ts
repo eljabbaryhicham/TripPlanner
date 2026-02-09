@@ -109,6 +109,60 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
   }
 }
 
+// --- Contact Form Action ---
+const contactFormSchema = z.object({
+  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }),
+  mobile: z.string().optional(),
+  message: z.string().min(10, { message: 'Message must be at least 10 characters.' }),
+});
+
+type ContactFormValues = z.infer<typeof contactFormSchema>;
+
+export async function submitContactForm(data: ContactFormValues): Promise<{ success: boolean; error?: string | null; }> {
+  const parsed = contactFormSchema.safeParse(data);
+
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid data.' };
+  }
+  
+  if (!process.env.RESEND_API_KEY || !process.env.BOOKING_EMAIL_TO) {
+    console.error('Resend API Key or recipient email is not set in .env file.');
+    return { success: false, error: 'Server is not configured to send emails.' };
+  }
+  
+  const { name, email, mobile, message } = parsed.data;
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { error } = await resend.emails.send({
+      from: 'TriPlanner Contact <onboarding@resend.dev>',
+      to: [process.env.BOOKING_EMAIL_TO],
+      subject: `New Message from ${name}`,
+      reply_to: email,
+      html: `<p>You have a new contact form submission:</p>
+             <ul>
+               <li><strong>Name:</strong> ${name}</li>
+               <li><strong>Email:</strong> ${email}</li>
+               <li><strong>Mobile:</strong> ${mobile || 'N/A'}</li>
+             </ul>
+             <p><strong>Message:</strong></p>
+             <p>${message}</p>`,
+    });
+
+    if (error) {
+      console.error('Resend error:', error);
+      return { success: false, error: 'Failed to send email.' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    return { success: false, error: 'An unexpected error occurred.' };
+  }
+}
+
+
 // --- Settings Action ---
 
 const settingsSchema = z.object({

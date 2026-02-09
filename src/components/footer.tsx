@@ -11,6 +11,9 @@ const Footer = () => {
           <Link href="/faq" className="text-sm text-foreground/80 hover:text-primary transition-colors">
             F.A.Q.
           </Link>
+          <Link href="/contact" className="text-sm text-foreground/80 hover:text-primary transition-colors">
+            Contact
+          </Link>
         </div>
         <p className="text-center text-sm text-foreground/60">
           © {new Date().getFullYear()} TriPlanner. All rights reserved.
