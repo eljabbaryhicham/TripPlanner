@@ -93,49 +93,59 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
 
     const isEditing = !!service?.id;
 
+    // Effect for populating the form initially when the dialog opens
     React.useEffect(() => {
         if (isOpen) {
-            setName(service?.name || '');
-            setDescription(service?.description || '');
-            setImageUrl(service?.imageUrl || '');
-            setCategory(service?.category || 'cars');
-            setLocation(service?.location || '');
-            setPrice(service?.price ?? '');
-            setIsBestOffer(service?.isBestOffer || false);
-            setIsActive(service?.isActive ?? true);
-            
-            const initialDetails = service?.details
-                ? Object.entries(service.details).map(([key, value], i) => ({ id: Date.now() + i, key, value }))
-                : [];
-            setDetails(initialDetails);
-
-            if (!service?.id) { // New service defaults
-                const currentCategory = service?.category || category;
-                let defaultDetails: { key: string; value: string }[] = [];
-                switch (currentCategory) {
-                    case 'cars':
-                        defaultDetails = [ { key: 'Seats', value: '' }, { key: 'Transmission', value: 'Automatic' }, { key: 'Fuel Policy', value: 'Full to full' }, ];
-                        break;
-                    case 'hotels':
-                        defaultDetails = [ { key: 'Amenities', value: '' }, { key: 'Room Type', value: '' }, ];
-                        break;
-                    case 'transport':
-                         defaultDetails = [ { key: 'Service', value: 'Personal meet & greet' }, { key: 'Includes', value: '' }, { key: 'Vehicle', value: 'Comfortable Sedan' }, ];
-                        break;
-                    case 'explore':
-                        defaultDetails = [ { key: 'Duration', value: '' }, { key: 'Destinations', value: '' }, { key: 'Group Size', value: '' }, { key: 'Trip Type', value: 'Group Tour' }, ];
-                        break;
-                }
-                setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
+            if (service) { // Editing an existing service
+                setName(service.name);
+                setDescription(service.description);
+                setImageUrl(service.imageUrl);
+                setCategory(service.category);
+                setLocation(service.location);
+                setPrice(service.price);
+                setIsBestOffer(service.isBestOffer || false);
+                setIsActive(service.isActive ?? true);
+                setDetails(service.details ? Object.entries(service.details).map(([key, value], i) => ({ id: Date.now() + i, key, value })) : []);
+                setAdditionalMedia(service.additionalMedia ? service.additionalMedia.map((m, i) => ({ ...m, id: Date.now() + i })) : []);
+            } else { // Creating a new service, reset to defaults
+                setName('');
+                setDescription('');
+                setImageUrl('');
+                setCategory('cars'); // Start with 'cars' as the default
+                setLocation('');
+                setPrice('');
+                setIsBestOffer(false);
+                setIsActive(true);
+                // Set default details for the initial 'cars' category
+                setDetails([ { key: 'Seats', value: '' }, { key: 'Transmission', value: 'Automatic' }, { key: 'Fuel Policy', value: 'Full to full' } ].map(d => ({ ...d, id: Date.now() + Math.random() })));
+                setAdditionalMedia([]);
             }
-
-            setAdditionalMedia(
-                service?.additionalMedia
-                    ? service.additionalMedia.map((m, i) => ({ ...m, id: Date.now() + i }))
-                    : []
-            );
         }
-    }, [service, isOpen, category]);
+    }, [service, isOpen]);
+
+    // Effect to update default details when category changes FOR A NEW service
+    React.useEffect(() => {
+        // Only run this logic for new services and when the dialog is open.
+        if (!isEditing && isOpen) {
+            let defaultDetails: { key: string; value: string }[] = [];
+            switch (category) {
+                case 'cars':
+                    defaultDetails = [ { key: 'Seats', value: '' }, { key: 'Transmission', value: 'Automatic' }, { key: 'Fuel Policy', value: 'Full to full' } ];
+                    break;
+                case 'hotels':
+                    defaultDetails = [ { key: 'Amenities', value: '' }, { key: 'Room Type', value: '' } ];
+                    break;
+                case 'transport':
+                     defaultDetails = [ { key: 'Service', value: 'Personal meet & greet' }, { key: 'Includes', value: '' }, { key: 'Vehicle', value: 'Comfortable Sedan' } ];
+                    break;
+                case 'explore':
+                    defaultDetails = [ { key: 'Duration', value: '' }, { key: 'Destinations', value: '' }, { key: 'Group Size', value: '' }, { key: 'Trip Type', value: 'Group Tour' } ];
+                    break;
+            }
+            // Replace the details section with the new defaults
+            setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
+        }
+    }, [category, isEditing, isOpen]);
 
 
     // Handlers for dynamic fields
