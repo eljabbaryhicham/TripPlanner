@@ -49,6 +49,20 @@ const serviceSchema = z.object({
 type Detail = { id: number; key: string; value: string };
 type Media = { id: number; imageUrl: string; imageHint: string; description: string };
 
+const detailOptions = {
+    cars: {
+        'Transmission': ['Automatic', 'Manual'],
+        'Fuel Policy': ['Full to full', 'Full to empty', 'Pay for what you use'],
+    },
+    hotels: {
+        'Room Type': ['Standard Queen', 'Deluxe King', 'Twin Room', 'Suite', 'Dormitory Bed'],
+    },
+    transport: {
+        'Service': ['Personal meet & greet', 'Shuttle Service', 'Private Transfer'],
+        'Vehicle': ['Comfortable Sedan', 'Minivan', 'Luxury Car', 'Shuttle Bus'],
+    }
+};
+
 export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
     const { toast } = useToast();
     const firestore = useFirestore();
@@ -274,13 +288,28 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                             <div className="space-y-2 rounded-md border p-4">
                                 <Label>Service Details</Label>
                                 <div className="space-y-2">
-                                    {details.map((detail, index) => (
+                                    {details.map((detail, index) => {
+                                        const options = (detailOptions[category] as Record<string, string[] | undefined>)?.[detail.key];
+                                        return (
                                         <div key={detail.id} className="flex items-center gap-2">
                                             <Input placeholder="Key (e.g., Seats)" value={detail.key} onChange={e => handleDetailChange(index, 'key', e.target.value)} />
-                                            <Input placeholder="Value (e.g., 4)" value={detail.value} onChange={e => handleDetailChange(index, 'value', e.target.value)} />
+                                            {options ? (
+                                                <Select value={detail.value} onValueChange={(value) => handleDetailChange(index, 'value', value)}>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select a value" />
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        {options.map(option => (
+                                                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                            ) : (
+                                                <Input placeholder="Value (e.g., 4)" value={detail.value} onChange={e => handleDetailChange(index, 'value', e.target.value)} />
+                                            )}
                                             <Button type="button" variant="ghost" size="icon" onClick={() => removeDetail(detail.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                                 <Button type="button" variant="outline" size="sm" onClick={addDetail}><PlusCircle className="mr-2 h-4 w-4" />Add Detail</Button>
                             </div>

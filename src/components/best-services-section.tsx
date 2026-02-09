@@ -49,7 +49,7 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
                 <ServiceList
                   services={bestOffers.filter(
                     (service) => service.category === 'cars'
-                  )}
+                  ).slice(0, 3)}
                 />
                 <div className="text-center">
                   <Button asChild variant="outline">
@@ -66,7 +66,7 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
                 <ServiceList
                   services={bestOffers.filter(
                     (service) => service.category === 'hotels'
-                  )}
+                  ).slice(0, 3)}
                 />
                 <div className="text-center">
                   <Button asChild variant="outline">
@@ -83,7 +83,7 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
                 <ServiceList
                   services={bestOffers.filter(
                     (service) => service.category === 'transport'
-                  )}
+                  ).slice(0, 3)}
                 />
                 <div className="text-center">
                   <Button asChild variant="outline">
