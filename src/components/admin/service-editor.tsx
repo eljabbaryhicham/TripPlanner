@@ -19,6 +19,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
+import { MOROCCAN_CITIES } from '@/lib/constants';
 
 interface ServiceEditorProps {
     isOpen: boolean;
@@ -289,9 +290,22 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
+                                 <div className="space-y-2">
                                     <Label htmlFor="location">Location</Label>
-                                    <Input id="location" value={location} onChange={e => setLocation(e.target.value)} required />
+                                    {category === 'hotels' ? (
+                                        <Select value={location} onValueChange={setLocation}>
+                                            <SelectTrigger id="location">
+                                                <SelectValue placeholder="Select a city" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {MOROCCAN_CITIES.map(city => (
+                                                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    ) : (
+                                        <Input id="location" value={location} onChange={e => setLocation(e.target.value)} required />
+                                    )}
                                 </div>
                             </div>
                             <div className="space-y-2">

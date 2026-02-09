@@ -23,11 +23,46 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Label } from './ui/label';
 import { Input } from './ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { MOROCCAN_CITIES, AIRPORTS } from '@/lib/constants';
+
+const getTransportPrice = (from: string, to: string): number | null => {
+    // Simple pricing logic based on a few routes. This should be expanded in a real app.
+    if (!from || !to) return null;
+
+    const fromCity = from.split(' ')[0];
+
+    // Trips within the same city
+    if (fromCity === to) return 50;
+
+    // Specific popular routes
+    if (from.includes('Casablanca') && to === 'Rabat') return 80;
+    if (from.includes('Casablanca') && to === 'Marrakech') return 150;
+    if (from.includes('Marrakech') && to === 'Casablanca') return 150;
+    if (from.includes('Marrakech') && to === 'Agadir') return 180;
+    if (from.includes('Rabat') && to === 'Casablanca') return 80;
+    if (from.includes('Rabat') && to === 'Fes') return 120;
+    if (from.includes('Agadir') && to === 'Marrakech') return 180;
+
+    // General tiered pricing as a fallback
+    if (from.includes('Casablanca')) return 250;
+    if (from.includes('Marrakech')) return 220;
+    if (from.includes('Rabat')) return 200;
+    if (from.includes('Agadir')) return 280;
+    
+    return 300; // Farthest distance default
+};
+
 
 export default function TransportPageContent({ service }: { service: Service }) {
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
   const [fullName, setFullName] = React.useState('');
   const firestore = useFirestore();
+  
+  const [fromAirport, setFromAirport] = React.useState('');
+  const [toCity, setToCity] = React.useState('');
+  
+  const calculatedPrice = React.useMemo(() => getTransportPrice(fromAirport, toCity), [fromAirport, toCity]);
 
   const reviewsQuery = useMemoFirebase(
     () => service ? query(collection(firestore, 'reviews'), where('serviceId', '==', service.id)) : null,
@@ -113,38 +148,65 @@ export default function TransportPageContent({ service }: { service: Service }) 
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-6">
                     <div>
-                    <h3 className="font-semibold mb-3">Details</h3>
-                    <div className="space-y-2 text-sm">
-                        {Object.entries(service.details)
-                          .filter(([key]) => key.toLowerCase() !== 'rating')
-                          .map(([key, value]) => (
-                          <div key={key} className="flex justify-between items-center">
-                              <span className="text-foreground/80">{key}:</span>
-                              <span className="font-medium">{value}</span>
-                          </div>
-                        ))}
-                         <div className="flex justify-between items-center">
-                            <span className="text-foreground/80">Reviews:</span>
-                            <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
-                                Show Reviews
-                            </Button>
+                        <h3 className="font-semibold mb-3">Details</h3>
+                        <div className="space-y-2 text-sm">
+                            {Object.entries(service.details)
+                            .filter(([key]) => key.toLowerCase() !== 'rating')
+                            .map(([key, value]) => (
+                            <div key={key} className="flex justify-between items-center">
+                                <span className="text-foreground/80">{key}:</span>
+                                <span className="font-medium">{value}</span>
+                            </div>
+                            ))}
+                            <div className="flex justify-between items-center">
+                                <span className="text-foreground/80">Reviews:</span>
+                                <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
+                                    Show Reviews
+                                </Button>
+                            </div>
                         </div>
-                    </div>
                     </div>
                     <div>
-                    <h3 className="font-semibold mb-3">Location & Pricing</h3>
-                    <div className="space-y-2 text-sm">
-                        <div className="flex justify-between">
-                        <span className="text-foreground/80">Location:</span>
-                        <span className="font-medium">{service.location}</span>
+                        <h3 className="font-semibold mb-3">Calculate Your Trip Price</h3>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="from-airport">From</Label>
+                                <Select value={fromAirport} onValueChange={setFromAirport}>
+                                    <SelectTrigger id="from-airport">
+                                        <SelectValue placeholder="Select an airport" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {AIRPORTS.map(airport => (
+                                            <SelectItem key={airport} value={airport}>{airport}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="to-city">To</Label>
+                                <Select value={toCity} onValueChange={setToCity} disabled={!fromAirport}>
+                                    <SelectTrigger id="to-city">
+                                        <SelectValue placeholder="Select a destination" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {MOROCCAN_CITIES.map(city => (
+                                            <SelectItem key={city} value={city}>{city}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Separator className="my-4" />
+                            <div className="flex justify-between items-baseline">
+                                <span className="text-foreground/80">Estimated Price:</span>
+                                {calculatedPrice !== null ? (
+                                    <Badge variant="secondary" className="text-lg">
+                                        ${calculatedPrice} / trip
+                                    </Badge>
+                                ) : (
+                                    <span className="text-sm text-muted-foreground">Select route to see price</span>
+                                )}
+                            </div>
                         </div>
-                        <div className="flex justify-between items-baseline">
-                        <span className="text-foreground/80">Price:</span>
-                        <Badge variant="secondary" className="text-lg">
-                            ${service.price} / {service.priceUnit}
-                        </Badge>
-                        </div>
-                    </div>
                     </div>
                 </div>
 
@@ -162,8 +224,10 @@ export default function TransportPageContent({ service }: { service: Service }) 
                 <ReservationFlow
                     service={service}
                     dates={undefined}
-                    totalPrice={null}
+                    totalPrice={calculatedPrice}
                     fullName={fullName}
+                    origin={fromAirport}
+                    destination={toCity}
                 />
               </div>
             </div>

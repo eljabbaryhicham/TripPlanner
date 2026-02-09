@@ -20,9 +20,11 @@ const reservationSchema = z.object({
   message: z.string().optional(),
   serviceName: z.string(),
   serviceId: z.string(),
-  price: z.coerce.number(),
+  totalPrice: z.number().nullable(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  origin: z.string().optional(),
+  destination: z.string().optional(),
 });
 
 type ReservationFormValues = z.infer<typeof reservationSchema>;
@@ -34,7 +36,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     return { success: false, error: 'Invalid data.', warning: null };
   }
 
-  const { name, email, phone, message, serviceName, startDate, endDate } = parsed.data;
+  const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
 
   if (!process.env.RESEND_API_KEY || !process.env.BOOKING_EMAIL_TO) {
     console.error('Resend API Key or recipient email is not set in .env file.');
@@ -56,6 +58,9 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         '{{phone}}': phone || 'N/A',
         '{{message}}': message || 'N/A',
         '{{dates}}': (startDate && endDate) ? `${startDate} - ${endDate}` : 'N/A',
+        '{{origin}}': origin || 'N/A',
+        '{{destination}}': destination || 'N/A',
+        '{{totalPrice}}': totalPrice ? `$${totalPrice.toFixed(2)}` : 'N/A',
     };
     
     for (const [key, value] of Object.entries(replacements)) {

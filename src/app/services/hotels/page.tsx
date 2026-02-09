@@ -8,15 +8,31 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { BedDouble } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MOROCCAN_CITIES } from '@/lib/constants';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function HotelsPage() {
   const firestore = useFirestore();
   const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
   const { data: hotelServices, isLoading } = useCollection(hotelsRef);
+  const [selectedCity, setSelectedCity] = React.useState('all');
 
   const activeHotelServices = React.useMemo(() => {
     return hotelServices?.filter(service => service.isActive !== false) ?? [];
   }, [hotelServices]);
+  
+  const filteredHotels = React.useMemo(() => {
+    if (selectedCity === 'all') {
+      return activeHotelServices;
+    }
+    return activeHotelServices.filter(hotel => hotel.location === selectedCity);
+  }, [activeHotelServices, selectedCity]);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -33,6 +49,23 @@ export default function HotelsPage() {
                 Discover your home away from home.
               </p>
             </div>
+            
+            <div className="mb-8 flex justify-center">
+              <Select value={selectedCity} onValueChange={setSelectedCity}>
+                <SelectTrigger className="w-full max-w-xs">
+                  <SelectValue placeholder="Filter by city" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Cities</SelectItem>
+                  {MOROCCAN_CITIES.map(city => (
+                    <SelectItem key={city} value={city}>
+                      {city}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
              {isLoading ? (
                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   <Skeleton className="h-96" />
@@ -40,7 +73,7 @@ export default function HotelsPage() {
                   <Skeleton className="h-96" />
                </div>
             ) : (
-              <ServiceList services={activeHotelServices} />
+              <ServiceList services={filteredHotels} />
             )}
           </div>
         </section>

@@ -115,15 +115,11 @@
         },
         "price": {
           "type": "number",
-          "description": "Price for the transport service."
+          "description": "Base price for the transport service."
         },
-        "origin": {
+        "location": {
           "type": "string",
-          "description": "Origin location of the transport service."
-        },
-        "destination": {
-          "type": "string",
-          "description": "Destination location of the transport service."
+          "description": "General service area, e.g., 'Morocco Wide'."
         },
         "isActive": {
           "type": "boolean",
@@ -136,8 +132,7 @@
         "description",
         "imageUrl",
         "price",
-        "origin",
-        "destination"
+        "location"
       ]
     },
     "Reservation": {
@@ -179,6 +174,14 @@
           "type": "string",
           "description": "End date of the reservation.",
           "format": "date-time"
+        },
+        "origin": {
+          "type": "string",
+          "description": "Origin location for transport services."
+        },
+        "destination": {
+          "type": "string",
+          "description": "Destination location for transport services."
         },
         "price": {
           "type": "number",

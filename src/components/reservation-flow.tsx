@@ -26,13 +26,11 @@ import { useToast } from '@/hooks/use-toast';
 import { submitReservation } from '@/lib/actions';
 
 const reservationSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
   email: z.string().email({ message: 'Please enter a valid email address.' }),
   phone: z.string().optional(),
   message: z.string().optional(),
   serviceName: z.string(),
   serviceId: z.string(),
-  price: z.number(),
 });
 
 type ReservationFormValues = z.infer<typeof reservationSchema>;
@@ -48,6 +46,8 @@ interface ReservationFlowProps {
   dates: DateRange | undefined;
   totalPrice: number | null;
   fullName: string;
+  origin?: string;
+  destination?: string;
 }
 
 const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -64,7 +64,7 @@ const WhatsappIcon = (props: React.SVGProps<SVGSVGElement>) => (
 );
 
 
-const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFlowProps) => {
+const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destination }: ReservationFlowProps) => {
   const router = useRouter();
   const firestore = useFirestore();
   const { user, isUserLoading } = useUser();
@@ -76,7 +76,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
   const isDateRequired = service.category === 'cars' || service.category === 'hotels';
-  const isFlowDisabled = !fullName || (isDateRequired && !dates);
+  const isFlowDisabled = !fullName || (isDateRequired && !dates) || (service.category === 'transport' && !totalPrice);
 
     React.useEffect(() => {
         fetch('/api/settings')
@@ -92,27 +92,25 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
   const form = useForm<ReservationFormValues>({
     resolver: zodResolver(reservationSchema),
     defaultValues: {
-      name: fullName || '',
       email: '',
       phone: '',
       message: '',
       serviceName: service.name,
       serviceId: service.id,
-      price: service.price,
     },
   });
   
-  React.useEffect(() => {
-      form.setValue('name', fullName);
-  }, [fullName, form]);
-
   const { isSubmitting } = form.formState;
 
   const onContactSubmit = async (data: ReservationFormValues) => {
     const submissionData = {
       ...data,
+      name: fullName,
       startDate: dates?.from?.toLocaleDateString(),
       endDate: dates?.to?.toLocaleDateString(),
+      origin,
+      destination,
+      totalPrice,
     };
     const result = await submitReservation(submissionData);
     if (result.success) {
@@ -177,6 +175,8 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
         totalPrice: totalPrice ?? service.price,
         startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
         endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+        origin: origin || null,
+        destination: destination || null,
         paymentStatus: 'pending',
         createdAt: serverTimestamp(),
     };
@@ -208,8 +208,11 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
     if (dates?.from && dates?.to) {
       message += ` From: ${dates.from.toLocaleDateString()} To: ${dates.to.toLocaleDateString()}.`;
     }
+    if (origin && destination) {
+        message += ` From: ${origin} To: ${destination}.`;
+    }
     return encodeURIComponent(message);
-  }, [service, dates, fullName]);
+  }, [service, dates, fullName, origin, destination]);
 
 
   if (showInquiryConfirmation) {
@@ -237,8 +240,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
         <form onSubmit={form.handleSubmit(onContactSubmit)} className="space-y-4">
           <input type="hidden" {...form.register('serviceName')} />
           <input type="hidden" {...form.register('serviceId')} />
-          <input type="hidden" {...form.register('price')} />
-          <input type="hidden" {...form.register('name')} />
           
           <FormField
             control={form.control}
@@ -313,7 +314,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
             ) : (
                 <CreditCard className="mr-2 h-5 w-5" />
             )}
-            {isUserLoading ? 'Initializing...' : isFlowDisabled ? 'Please provide name & dates' : 'Checkout Now'}
+            {isUserLoading ? 'Initializing...' : isFlowDisabled ? 'Please provide all details' : 'Checkout Now'}
         </Button>
         <div className="relative">
             <div className="absolute inset-0 flex items-center">
