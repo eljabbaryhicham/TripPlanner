@@ -154,6 +154,10 @@
           "type": "string",
           "description": "Reference to User. (Relationship: User 1:N Reservation)"
         },
+        "customerName": {
+          "type": "string",
+          "description": "Full name of the customer making the reservation."
+        },
         "serviceType": {
           "type": "string",
           "description": "Type of service reserved (e.g., 'CarRental', 'Hotel', 'Transport')."
@@ -161,6 +165,10 @@
         "serviceId": {
           "type": "string",
           "description": "ID of the specific service being reserved (e.g., CarRental.id)."
+        },
+        "serviceName": {
+          "type": "string",
+          "description": "Name of the service being reserved."
         },
         "startDate": {
           "type": "string",
@@ -172,11 +180,32 @@
           "description": "End date of the reservation.",
           "format": "date-time"
         },
+        "price": {
+          "type": "number",
+          "description": "Base price of the service per unit."
+        },
+        "priceUnit": {
+          "type": "string",
+          "enum": [
+            "day",
+            "night",
+            "trip"
+          ],
+          "description": "The unit for the price (day, night, or trip)."
+        },
         "totalPrice": {
           "type": "number",
           "description": "Total price of the reservation."
         },
-        "reservationDate": {
+        "paymentStatus": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "completed"
+          ],
+          "description": "The payment status of the reservation."
+        },
+        "createdAt": {
           "type": "string",
           "description": "Date when the reservation was created.",
           "format": "date-time"
@@ -185,12 +214,15 @@
       "required": [
         "id",
         "userId",
+        "customerName",
         "serviceType",
         "serviceId",
-        "startDate",
-        "endDate",
+        "serviceName",
+        "price",
+        "priceUnit",
         "totalPrice",
-        "reservationDate"
+        "paymentStatus",
+        "createdAt"
       ]
     },
     "User": {

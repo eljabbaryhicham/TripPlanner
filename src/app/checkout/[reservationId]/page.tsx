@@ -16,11 +16,14 @@ import CheckoutFormWrapper from '@/components/checkout-form';
 import { Button } from '@/components/ui/button';
 
 type Reservation = {
+    customerName: string;
     serviceName: string;
     totalPrice: number;
     priceUnit: string;
     createdAt: { seconds: number; nanoseconds: number };
     paymentStatus: string;
+    startDate?: { seconds: number; nanoseconds: number };
+    endDate?: { seconds: number; nanoseconds: number };
 };
 
 const CheckoutPage = () => {
@@ -46,6 +49,15 @@ const CheckoutPage = () => {
         });
     }, [reservation]);
 
+    const formattedPeriod = useMemo(() => {
+        if (!reservation?.startDate || !reservation?.endDate) return '';
+        const from = new Date(reservation.startDate.seconds * 1000);
+        const to = new Date(reservation.endDate.seconds * 1000);
+        const fromString = from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const toString = to.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        return `${fromString} - ${toString}`;
+    }, [reservation]);
+
     const isLoading = isReservationLoading || isUserLoading;
 
     return (
@@ -64,9 +76,12 @@ const CheckoutPage = () => {
                             <div className="space-y-4">
                                 <h3 className="font-semibold">Reservation Summary</h3>
                                 {isLoading ? (
-                                    <div className="space-y-2">
-                                        <Skeleton className="h-6 w-3/4" />
-                                        <Skeleton className="h-4 w-1/2" />
+                                    <div className="p-4 rounded-md border bg-background space-y-4">
+                                        <Skeleton className="h-5 w-1/4" />
+                                        <Skeleton className="h-6 w-1/2" />
+                                        <Separator/>
+                                        <Skeleton className="h-16 w-full" />
+                                        <Skeleton className="h-6 w-1/3" />
                                     </div>
                                 ) : error ? (
                                     <Alert variant="destructive">
@@ -77,16 +92,30 @@ const CheckoutPage = () => {
                                         </AlertDescription>
                                     </Alert>
                                 ) : reservation ? (
-                                    <div className="p-4 rounded-md border bg-background">
-                                        <div className="flex justify-between items-center">
-                                            <p className="font-medium">{reservation.serviceName}</p>
-                                            <p className="font-semibold text-lg">
-                                                ${reservation.totalPrice.toFixed(2)}
-                                                <span className="text-sm text-muted-foreground">/{reservation.priceUnit}</span>
-                                            </p>
+                                    <div className="p-4 rounded-md border bg-background space-y-4">
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Billed to</p>
+                                            <p className="font-medium">{reservation.customerName}</p>
                                         </div>
-                                        <p className="text-sm text-muted-foreground">Reserved on: {formattedDate}</p>
-                                        <p className="text-sm font-medium mt-2 capitalize">
+                                        <Separator />
+                                        <div className="flex justify-between items-start">
+                                            <div>
+                                                <p className="font-medium">{reservation.serviceName}</p>
+                                                <p className="text-sm text-muted-foreground">Reserved on: {formattedDate}</p>
+                                                {(reservation.startDate && reservation.endDate) &&
+                                                    <p className="text-sm text-muted-foreground">Dates: {formattedPeriod}</p>
+                                                }
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="font-semibold text-lg">
+                                                    ${reservation.totalPrice.toFixed(2)}
+                                                </p>
+                                                <p className="text-sm text-muted-foreground capitalize">
+                                                    / {reservation.priceUnit}
+                                                </p>
+                                            </div>
+                                        </div>
+                                         <p className="text-sm font-medium capitalize pt-2">
                                             Payment Status: <span className={reservation.paymentStatus === 'completed' ? 'text-green-600' : 'text-orange-500'}>{reservation.paymentStatus}</span>
                                         </p>
                                     </div>

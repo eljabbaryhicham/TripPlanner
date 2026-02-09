@@ -168,6 +168,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
     
     const reservationPayload = {
         userId: user.uid,
+        customerName: fullName,
         serviceType: service.category,
         serviceId: service.id,
         serviceName: service.name,
