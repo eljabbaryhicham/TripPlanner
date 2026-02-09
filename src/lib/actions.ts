@@ -4,41 +4,12 @@ import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
+import { firestoreAdmin } from '@/firebase/admin';
+import placeholderData from './placeholder-images.json';
 import type { Service } from './types';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
-import { getApp, getApps, initializeApp } from 'firebase/app';
-import { firebaseConfig } from '@/firebase/config';
+
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
-
-// This function now fetches public service data from Firestore for Server Components.
-// It uses a server-side instance of the Firebase client.
-export async function getServices(): Promise<Service[]> {
-  try {
-    const firebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-    const firestore = getFirestore(firebaseApp);
-
-    const carRentalsCol = collection(firestore, 'carRentals');
-    const hotelsCol = collection(firestore, 'hotels');
-    const transportsCol = collection(firestore, 'transports');
-
-    const [carRentalsSnap, hotelsSnap, transportsSnap] = await Promise.all([
-      getDocs(carRentalsCol),
-      getDocs(hotelsCol),
-      getDocs(transportsCol),
-    ]);
-
-    const services: Service[] = [];
-    carRentalsSnap.forEach(doc => services.push({ ...doc.data(), category: 'cars' } as Service));
-    hotelsSnap.forEach(doc => services.push({ ...doc.data(), category: 'hotels' } as Service));
-    transportsSnap.forEach(doc => services.push({ ...doc.data(), category: 'transport' } as Service));
-
-    return services;
-  } catch (error) {
-    console.error("Failed to fetch services from Firestore:", error);
-    return [];
-  }
-}
 
 // --- Reservation Action ---
 const reservationSchema = z.object({
@@ -102,5 +73,42 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
     } catch (error) {
         console.error('Failed to update settings:', error);
         return { error: 'Could not save settings.', success: false };
+    }
+}
+
+
+// --- Database Seeding Action ---
+export async function seedDatabase() {
+    try {
+        const services: Service[] = placeholderData.services;
+        const batch = firestoreAdmin.batch();
+
+        for (const service of services) {
+            let collectionPath: string;
+            switch(service.category) {
+                case 'cars': collectionPath = 'carRentals'; break;
+                case 'hotels': collectionPath = 'hotels'; break;
+                case 'transport': collectionPath = 'transports'; break;
+                default:
+                    console.warn(`Unknown category: ${(service as any).category}`);
+                    continue;
+            }
+            const docRef = firestoreAdmin.collection(collectionPath).doc(service.id);
+            batch.set(docRef, service);
+        }
+
+        await batch.commit();
+
+        // Revalidate all paths where services are displayed
+        revalidatePath('/');
+        revalidatePath('/services/cars');
+        revalidatePath('/services/hotels');
+        revalidatePath('/services/transport');
+        revalidatePath('/admin');
+
+        return { success: true };
+    } catch (error: any) {
+        console.error('Failed to seed database:', error);
+        return { success: false, error: 'Could not seed the database. Check server logs for details.' };
     }
 }

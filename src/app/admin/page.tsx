@@ -13,6 +13,7 @@ import ServiceManagement from '@/components/admin/service-management';
 import SettingsManagement from '@/components/admin/settings-management';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
+import DatabaseSeeder from '@/components/admin/database-seeder';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -139,15 +140,18 @@ export default function AdminPage() {
                         <ServiceManagement services={services} />
                     </TabsContent>
                     <TabsContent value="settings">
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Application Settings</CardTitle>
-                                <CardDescription>Update general application settings.</CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <SettingsManagement currentWhatsappNumber={settings.whatsappNumber} />
-                            </CardContent>
-                        </Card>
+                        <div className="space-y-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Application Settings</CardTitle>
+                                    <CardDescription>Update general application settings.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <SettingsManagement currentWhatsappNumber={settings.whatsappNumber} />
+                                </CardContent>
+                            </Card>
+                            <DatabaseSeeder />
+                        </div>
                     </TabsContent>
                 </Tabs>
             </main>
