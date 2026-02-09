@@ -72,32 +72,48 @@ const detailKeySuggestions = {
 export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
     const { toast } = useToast();
     const firestore = useFirestore();
-    const isEditing = !!service;
+    const isEditing = !!service?.id;
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    // Form state
-    const [name, setName] = React.useState(service?.name || '');
-    const [description, setDescription] = React.useState(service?.description || '');
-    const [imageUrl, setImageUrl] = React.useState(service?.imageUrl || '');
-    const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport'>(service?.category || 'cars');
-    const [location, setLocation] = React.useState(service?.location || '');
-    const [price, setPrice] = React.useState<number | string>(service?.price ?? '');
-    const [priceUnit, setPriceUnit] = React.useState<'day' | 'night' | 'trip'>(service?.priceUnit || 'day');
-    const [isBestOffer, setIsBestOffer] = React.useState(service?.isBestOffer || false);
-    
-    const [details, setDetails] = React.useState<Detail[]>(
-        service?.details
-            ? Object.entries(service.details).map(([key, value], i) => ({ id: i, key, value }))
-            : []
-    );
-    const [additionalMedia, setAdditionalMedia] = React.useState<Media[]>(
-        service?.additionalMedia
-            ? service.additionalMedia.map((m, i) => ({ ...m, id: i }))
-            : []
-    );
-     // Set default details when category changes for a new service
+    // Form state - initialized to empty/default values
+    const [name, setName] = React.useState('');
+    const [description, setDescription] = React.useState('');
+    const [imageUrl, setImageUrl] = React.useState('');
+    const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport'>('cars');
+    const [location, setLocation] = React.useState('');
+    const [price, setPrice] = React.useState<number | string>('');
+    const [priceUnit, setPriceUnit] = React.useState<'day' | 'night' | 'trip'>('day');
+    const [isBestOffer, setIsBestOffer] = React.useState(false);
+    const [details, setDetails] = React.useState<Detail[]>([]);
+    const [additionalMedia, setAdditionalMedia] = React.useState<Media[]>([]);
+
+    // Effect to populate form state when the dialog is opened or the service changes
     React.useEffect(() => {
-        if (isEditing) return;
+        if (isOpen) {
+            setName(service?.name || '');
+            setDescription(service?.description || '');
+            setImageUrl(service?.imageUrl || '');
+            setCategory(service?.category || 'cars');
+            setLocation(service?.location || '');
+            setPrice(service?.price ?? '');
+            setPriceUnit(service?.priceUnit || 'day');
+            setIsBestOffer(service?.isBestOffer || false);
+            setDetails(
+                service?.details
+                    ? Object.entries(service.details).map(([key, value], i) => ({ id: Date.now() + i, key, value }))
+                    : []
+            );
+            setAdditionalMedia(
+                service?.additionalMedia
+                    ? service.additionalMedia.map((m, i) => ({ ...m, id: Date.now() + i }))
+                    : []
+            );
+        }
+    }, [service, isOpen]);
+
+    // Effect to set default details for a NEW service when the category changes
+    React.useEffect(() => {
+        if (isEditing || !isOpen) return;
 
         let defaultDetails: { key: string; value: string }[] = [];
         switch (category) {
@@ -124,7 +140,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
         }
         setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
 
-    }, [category, isEditing]);
+    }, [category, isEditing, isOpen]);
 
 
     // Handlers for dynamic fields
@@ -221,7 +237,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
+        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? 'Edit Service' : 'Add New Service'}</DialogTitle>
