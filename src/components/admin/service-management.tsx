@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
@@ -22,7 +22,8 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 function DeleteServiceMenuItem({ service }: { service: Service }) {
     const { toast } = useToast();
@@ -96,6 +97,62 @@ export default function ServiceManagement({
     onAdd: () => void,
     onEdit: (service: Service) => void,
 }) {
+    const carServices = services.filter(s => s.category === 'cars');
+    const hotelServices = services.filter(s => s.category === 'hotels');
+    const transportServices = services.filter(s => s.category === 'transport');
+
+    const renderTable = (servicesForCategory: Service[]) => (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Best Offer</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {servicesForCategory && servicesForCategory.length > 0 ? (
+                    servicesForCategory.map((service) => (
+                        <TableRow key={service.id}>
+                            <TableCell className="font-medium">{service.name}</TableCell>
+                            <TableCell>${service.price} / {service.priceUnit}</TableCell>
+                            <TableCell>
+                                {service.isActive === false ? <Badge variant="secondary">Inactive</Badge> : <Badge variant="default">Active</Badge>}
+                            </TableCell>
+                            <TableCell>
+                                {service.isBestOffer ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" className="h-8 w-8 p-0">
+                                            <span className="sr-only">Open menu</span>
+                                            <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => onEdit(service)}>
+                                            Edit
+                                        </DropdownMenuItem>
+                                        <DeleteServiceMenuItem service={service} />
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    ))
+                ) : (
+                    <TableRow>
+                        <TableCell colSpan={5} className="h-24 text-center">
+                            No services found.
+                        </TableCell>
+                    </TableRow>
+                )}
+            </TableBody>
+        </Table>
+    );
+
     return (
         <Card>
             <CardHeader>
@@ -111,57 +168,22 @@ export default function ServiceManagement({
                 </div>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Name</TableHead>
-                            <TableHead>Category</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Status</TableHead>
-                            <TableHead>Best Offer</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {services && services.length > 0 ? (
-                            services.map((service) => (
-                                <TableRow key={service.id}>
-                                    <TableCell className="font-medium">{service.name}</TableCell>
-                                    <TableCell className="capitalize">{service.category}</TableCell>
-                                    <TableCell>${service.price} / {service.priceUnit}</TableCell>
-                                    <TableCell>
-                                        {service.isActive === false ? <Badge variant="secondary">Inactive</Badge> : <Badge variant="default">Active</Badge>}
-                                    </TableCell>
-                                    <TableCell>
-                                        {service.isBestOffer ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
-                                    </TableCell>
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" className="h-8 w-8 p-0">
-                                                    <span className="sr-only">Open menu</span>
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => onEdit(service)}>
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DeleteServiceMenuItem service={service} />
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))
-                        ) : (
-                            <TableRow>
-                                <TableCell colSpan={6} className="h-24 text-center">
-                                    No services found.
-                                </TableCell>
-                            </TableRow>
-                        )}
-                    </TableBody>
-                </Table>
+                <Tabs defaultValue="cars" className="w-full">
+                    <TabsList className="grid w-full grid-cols-3">
+                        <TabsTrigger value="cars"><Car className="mr-2 h-4 w-4" />Cars</TabsTrigger>
+                        <TabsTrigger value="hotels"><BedDouble className="mr-2 h-4 w-4" />Hotels</TabsTrigger>
+                        <TabsTrigger value="transport"><Briefcase className="mr-2 h-4 w-4" />Transport</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="cars" className="mt-4">
+                        {renderTable(carServices)}
+                    </TabsContent>
+                    <TabsContent value="hotels" className="mt-4">
+                        {renderTable(hotelServices)}
+                    </TabsContent>
+                    <TabsContent value="transport" className="mt-4">
+                        {renderTable(transportServices)}
+                    </TabsContent>
+                </Tabs>
             </CardContent>
         </Card>
     );
