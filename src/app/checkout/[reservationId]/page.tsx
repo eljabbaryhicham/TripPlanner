@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMemo } from 'react';
 import { doc } from 'firebase/firestore';
-import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
+import { useDoc, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -27,13 +27,14 @@ const CheckoutPage = () => {
     const { reservationId } = useParams();
     const router = useRouter();
     const firestore = useFirestore();
+    const { user, isUserLoading } = useUser();
 
     const reservationRef = useMemoFirebase(() => {
-        if (!firestore || !reservationId) return null;
-        return doc(firestore, 'reservations', reservationId as string);
-    }, [firestore, reservationId]);
+        if (!firestore || !user || !reservationId) return null;
+        return doc(firestore, 'users', user.uid, 'reservations', reservationId as string);
+    }, [firestore, user, reservationId]);
 
-    const { data: reservation, isLoading, error } = useDoc<Reservation>(reservationRef);
+    const { data: reservation, isLoading: isReservationLoading, error } = useDoc<Reservation>(reservationRef);
 
     const formattedDate = useMemo(() => {
         if (!reservation?.createdAt) return '';
@@ -45,6 +46,7 @@ const CheckoutPage = () => {
         });
     }, [reservation]);
 
+    const isLoading = isReservationLoading || isUserLoading;
 
     return (
         <div className="flex min-h-screen flex-col bg-muted/40">
@@ -89,7 +91,7 @@ const CheckoutPage = () => {
                                         </p>
                                     </div>
                                 ) : (
-                                     <p>No reservation found.</p>
+                                     <p>No reservation found. It may belong to another user or has been deleted.</p>
                                 )}
                             </div>
 

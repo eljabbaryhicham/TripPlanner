@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser } from '@/firebase';
+import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 import type { Service } from '@/lib/types';
@@ -153,31 +153,36 @@ const ReservationFlow = ({ service, dates, totalPrice }: ReservationFlowProps) =
         return;
     }
     
-    try {
-        const reservationsCol = collection(firestore, 'reservations');
-        
-        const reservationPayload = {
-            userId: user.uid,
-            serviceType: service.category,
-            serviceId: service.id,
-            serviceName: service.name,
-            price: service.price,
-            priceUnit: service.priceUnit,
-            totalPrice: totalPrice ?? service.price,
-            startDate: dates?.from ? Timestamp.fromDate(dates.from) : new Date(),
-            endDate: dates?.to ? Timestamp.fromDate(dates.to) : new Date(),
-            paymentStatus: 'pending',
-            createdAt: serverTimestamp(),
-        };
+    const reservationPayload = {
+        userId: user.uid,
+        serviceType: service.category,
+        serviceId: service.id,
+        serviceName: service.name,
+        price: service.price,
+        priceUnit: service.priceUnit,
+        totalPrice: totalPrice ?? service.price,
+        startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+        endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+        paymentStatus: 'pending',
+        createdAt: serverTimestamp(),
+    };
 
+    try {
+        const reservationsCol = collection(firestore, 'users', user.uid, 'reservations');
         const docRef = await addDoc(reservationsCol, reservationPayload);
         router.push(`/checkout/${docRef.id}`);
     } catch (error: any) {
-        console.error('Failed to create reservation:', error);
+        const permissionError = new FirestorePermissionError({
+          path: `users/${user.uid}/reservations`,
+          operation: 'create',
+          requestResourceData: reservationPayload,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+
         toast({
             variant: 'destructive',
             title: 'Reservation Failed',
-            description: error.message || 'Could not create your reservation. Please try again.',
+            description: 'Could not create your reservation. You may not have permissions.',
         });
     } finally {
         setIsCheckingOut(false);
