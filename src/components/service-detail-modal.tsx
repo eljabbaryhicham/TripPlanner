@@ -152,6 +152,9 @@ const ServiceDetailModal = ({
               <DialogDescription className="text-base">
                 {service.description}
               </DialogDescription>
+              <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
+                Show Reviews
+              </Button>
             </div>
             
             {(service.category === 'cars' || service.category === 'hotels') && (
@@ -200,16 +203,7 @@ const ServiceDetailModal = ({
                   {Object.entries(service.details).map(([key, value]) => (
                     <div key={key} className="flex justify-between items-center">
                       <span className="text-foreground/80">{key}:</span>
-                      {key === 'Rating' ? (
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{value}</span>
-                          <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
-                            Show Reviews
-                          </Button>
-                        </div>
-                      ) : (
-                        <span className="font-medium">{value}</span>
-                      )}
+                      <span className="font-medium">{value}</span>
                     </div>
                   ))}
                 </div>
@@ -257,6 +251,7 @@ const ServiceDetailModal = ({
         <ReviewsPopup
           isOpen={reviewsOpen}
           onClose={() => setReviewsOpen(false)}
+          serviceId={service.id}
           serviceName={service.name}
         />
       )}

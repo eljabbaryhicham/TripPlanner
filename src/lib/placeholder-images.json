@@ -64,7 +64,6 @@
       "priceUnit": "night",
       "location": "Seaside",
       "details": {
-        "Rating": "★★★★★",
         "Amenities": "Pool, Spa, Free WiFi",
         "Room Type": "Deluxe King"
       },
@@ -81,7 +80,6 @@
       "priceUnit": "night",
       "location": "Old Town",
       "details": {
-        "Rating": "★★★★☆",
         "Amenities": "Shared Kitchen, Lockers, WiFi",
         "Room Type": "8-Bed Dorm"
       },
@@ -98,7 +96,6 @@
       "priceUnit": "night",
       "location": "Financial District",
       "details": {
-        "Rating": "★★★★☆",
         "Amenities": "Gym, Conference Rooms, Restaurant",
         "Room Type": "Standard Queen"
       },
@@ -116,7 +113,6 @@
       "priceUnit": "trip",
       "location": "Airport Arrivals",
       "details": {
-        "Rating": "★★★★★",
         "Service": "Personal meet & greet",
         "Includes": "City orientation, Private car",
         "Vehicle": "Comfortable Sedan"

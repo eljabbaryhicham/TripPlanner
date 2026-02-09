@@ -278,6 +278,57 @@
         "suggestionReason",
         "suggestionDate"
       ]
+    },
+    "Review": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Review",
+      "type": "object",
+      "description": "Represents a user review for a service.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the review."
+        },
+        "userId": {
+          "type": "string",
+          "description": "ID of the user who wrote the review."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "ID of the service being reviewed."
+        },
+        "rating": {
+          "type": "number",
+          "description": "Rating from 1 to 5."
+        },
+        "comment": {
+          "type": "string",
+          "description": "The user's review comment."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Date when the review was created."
+        },
+        "authorName": {
+          "type": "string",
+          "description": "Display name of the author."
+        },
+        "authorImage": {
+          "type": "string",
+          "description": "Profile image URL of the author.",
+          "format": "uri"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "serviceId",
+        "rating",
+        "comment",
+        "createdAt",
+        "authorName"
+      ]
     }
   },
   "auth": {
@@ -407,8 +458,24 @@
             }
           ]
         }
+      },
+      {
+        "path": "/reviews/{reviewId}",
+        "definition": {
+          "entityName": "Review",
+          "schema": {
+            "$ref": "#/backend/entities/Review"
+          },
+          "description": "Stores all reviews for all services. Publicly readable.",
+          "params": [
+            {
+              "name": "reviewId",
+              "description": "The unique identifier for the review."
+            }
+          ]
+        }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. User data is stored under `/users/{userId}` ensuring path-based ownership. Reservations made by each user are stored in a subcollection `/users/{userId}/reservations/{reservationId}`. Service Suggestions are similarly organized under `/users/{userId}/serviceSuggestions/{serviceSuggestionId}`, ensuring the suggestions are linked to the correct user.\n\nThe `hotels`, `carRentals`, and `transports` collections store the data for each of those service types.  Admin users are managed via existence checks in the `/roles_admin/{adminId}` collection.\n\nThis structure achieves Authorization Independence by avoiding hierarchical authorization dependencies. All authorization rules rely on `request.auth.uid` and the document paths. Denormalization is not required in this schema because user-owned data is stored in hierarchical paths. This approach ensures proper QAPs, as listing operations are secure based on path-based ownership.\n\nBy using this schema and appropriate security rules, we can prevent filter-based security and ensure that all listing operations are inherently secure."
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. User data is stored under `/users/{userId}` ensuring path-based ownership. Reservations made by each user are stored in a subcollection `/users/{userId}/reservations/{reservationId}`. Service Suggestions are similarly organized under `/users/{userId}/serviceSuggestions/{serviceSuggestionId}`, ensuring the suggestions are linked to the correct user.\n\nThe `hotels`, `carRentals`, and `transports` collections store the data for each of those service types.  Admin users are managed via existence checks in the `/roles_admin/{adminId}` collection. A top-level `reviews` collection is added to store user reviews for all services; this allows for easy querying by service and is secured to allow creation only by authenticated users for themselves.\n\nThis structure achieves Authorization Independence by avoiding hierarchical authorization dependencies. All authorization rules rely on `request.auth.uid` and the document paths. Denormalization is not required in this schema because user-owned data is stored in hierarchical paths. This approach ensures proper QAPs, as listing operations are secure based on path-based ownership.\n\nBy using this schema and appropriate security rules, we can prevent filter-based security and ensure that all listing operations are inherently secure."
   }
 }

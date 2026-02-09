@@ -23,3 +23,14 @@ export interface Service {
   };
   additionalMedia?: AdditionalMedia[];
 }
+
+export interface Review {
+  id: string;
+  userId: string;
+  serviceId: string;
+  rating: number;
+  comment: string;
+  createdAt: any; // Firestore Timestamp
+  authorName: string;
+  authorImage?: string | null;
+}

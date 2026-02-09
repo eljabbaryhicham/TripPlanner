@@ -11,6 +11,7 @@
  * - Private user data is nested under `/users/{userId}`, leveraging Firestore's path hierarchy for
  *   inherent ownership-based security. This includes subcollections for `reservations` and `serviceSuggestions`.
  * - Public service data is stored in top-level collections: `/hotels`, `/carRentals`, and `/transports`.
+ * - User-generated reviews are stored in a top-level `/reviews` collection, which is publicly readable.
  * - Administrator roles are managed by checking for the existence of a user's UID in the `/roles_admin` collection.
  *
  * Key Security Decisions:
@@ -45,15 +46,6 @@ service cloud.firestore {
      */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
-    }
-
-    /**
-     * A stricter version of isOwner used for update/delete operations.
-     * It ensures the document exists before allowing the operation to proceed.
-     * @param userId The user ID to check against the request's auth UID.
-     */
-    function isExistingOwner(userId) {
-      return isOwner(userId) && resource != null;
     }
 
     /**
@@ -97,8 +89,8 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId);
     }
 
     /**
@@ -112,8 +104,8 @@ service cloud.firestore {
       allow get: if isOwner(userId);
       allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isExistingOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(userId);
+      allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId;
+      allow delete: if isOwner(userId);
     }
 
     // ------------------------------------------------------------------------
@@ -167,6 +159,28 @@ service cloud.firestore {
       allow update: if isAdmin();
       allow delete: if isAdmin();
     }
+    
+    // ------------------------------------------------------------------------
+    // Review Data Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Controls access to service reviews.
+     * @path /reviews/{reviewId}
+     * @allow Any user can read reviews.
+     * @allow A signed-in user can create a review, validating their ownership and rating value.
+     * @deny A user cannot update or delete a review that is not theirs, unless they are an admin.
+     * @principle Public Read, Owner-Only Write. Protects integrity of user-generated content.
+     */
+    match /reviews/{reviewId} {
+      allow get: if true;
+      allow list: if true;
+      allow create: if isSignedIn()
+                    && request.resource.data.userId == request.auth.uid
+                    && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
+      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+    }
 
     // ------------------------------------------------------------------------
     // Admin Role Management Rules
@@ -182,7 +196,7 @@ service cloud.firestore {
      */
     match /roles_admin/{adminId} {
       // A user can read a role document only if the document ID matches their own UID.
-      allow get: if isOwner(adminId);
+      allow get: if isOwner(adminId) || isAdmin();
       allow list: if isAdmin();
       allow create: if false;
       allow update: if false;
