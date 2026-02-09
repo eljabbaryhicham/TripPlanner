@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Save, PlusCircle, Trash2 } from 'lucide-react';
-import { ScrollArea } from '../ui/scroll-area';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -19,6 +19,7 @@ import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useImperativeHandle, forwardRef } from 'react';
+import { Separator } from '@/components/ui/separator';
 
 export interface ServiceEditorHandles {
     edit: (service: Service) => void;
@@ -266,6 +267,27 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
                 <form onSubmit={handleSubmit}>
                     <ScrollArea className="h-[60vh] p-1">
                         <div className="space-y-4 p-4">
+                             <div className="space-y-4 rounded-lg border p-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="isActive" className="font-semibold">Service Status</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Inactive services will not be visible to customers.
+                                        </p>
+                                    </div>
+                                    <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
+                                </div>
+                                <Separator />
+                                <div className="flex items-center justify-between">
+                                    <div className="space-y-0.5">
+                                        <Label htmlFor="isBestOffer" className="font-semibold">Best Offer</Label>
+                                        <p className="text-sm text-muted-foreground">
+                                            Mark this service to feature it on the homepage.
+                                        </p>
+                                    </div>
+                                    <Switch id="isBestOffer" checked={isBestOffer} onCheckedChange={setIsBestOffer} />
+                                </div>
+                            </div>
                             <div className="space-y-2">
                                 <Label htmlFor="name">Name</Label>
                                 <Input id="name" value={name} onChange={e => setName(e.target.value)} required />
@@ -372,15 +394,6 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
                                     ))}
                                 </div>
                                 <Button type="button" variant="outline" size="sm" className="mt-2" onClick={addMedia}><PlusCircle className="mr-2 h-4 w-4" />Add Media</Button>
-                            </div>
-                            
-                            <div className="flex items-center space-x-2 pt-2">
-                                <Switch id="isBestOffer" checked={isBestOffer} onCheckedChange={setIsBestOffer} />
-                                <Label htmlFor="isBestOffer">Mark as Best Offer</Label>
-                            </div>
-                             <div className="flex items-center space-x-2 pt-2">
-                                <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
-                                <Label htmlFor="isActive">Service is Active</Label>
                             </div>
                         </div>
                     </ScrollArea>
