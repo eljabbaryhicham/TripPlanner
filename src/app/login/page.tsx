@@ -31,7 +31,8 @@ export default function LoginPage() {
       }
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-      router.push('/admin');
+      // Force a full page reload to ensure auth state is propagated everywhere.
+      window.location.assign('/admin');
     } catch (err: any) {
       let errorMessage = 'An unknown error occurred.';
       switch (err.code) {
