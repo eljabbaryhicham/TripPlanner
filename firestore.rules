@@ -121,11 +121,8 @@ service cloud.firestore {
      * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
      */
     match /hotels/{hotelId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     /**
@@ -137,11 +134,8 @@ service cloud.firestore {
      * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
      */
     match /carRentals/{carRentalId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     /**
@@ -153,11 +147,8 @@ service cloud.firestore {
      * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
      */
     match /transports/{transportId} {
-      allow get: if true;
-      allow list: if true;
-      allow create: if isAdmin();
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+      allow read: if true;
+      allow write: if isAdmin();
     }
     
     // ------------------------------------------------------------------------
@@ -194,10 +185,9 @@ service cloud.firestore {
      * @principle Secures the role system by making it read-only from the client. Roles must be managed via the Firebase Console or a trusted server.
      */
     match /roles_admin/{adminId} {
-      // A user can read a role document only if the document ID matches their own UID.
       allow get: if isOwner(adminId) || isAdmin();
       allow list: if isAdmin();
-      allow create: if false;
+      allow create: if isOwner(adminId);
       allow update: if false;
       allow delete: if false;
     }

@@ -2,8 +2,8 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { collection, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, ShieldCheck, Loader2 } from 'lucide-react';
@@ -11,13 +11,14 @@ import { Badge } from '@/components/ui/badge';
 import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
 import SettingsManagement from '@/components/admin/settings-management';
-import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
 
 export default function AdminPage() {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
     const firestore = useFirestore();
     const auth = useAuth();
+    const { toast } = useToast();
     const [isAdmin, setIsAdmin] = React.useState(false);
     const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
     const [whatsappNumber, setWhatsappNumber] = React.useState('');
@@ -34,6 +35,7 @@ export default function AdminPage() {
     React.useEffect(() => {
         if (user && firestore) {
             const checkAdminRole = async () => {
+                setIsCheckingAdmin(true);
                 try {
                     const adminDocRef = doc(firestore, 'roles_admin', user.uid);
                     const adminDocSnap = await getDoc(adminDocRef);
@@ -88,42 +90,62 @@ export default function AdminPage() {
         }
     };
     
+    const grantAdminAccess = async () => {
+        if (!user || !firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'User or database not available.' });
+            return;
+        }
+
+        const adminDocRef = doc(firestore, 'roles_admin', user.uid);
+        const dataToSave = { email: user.email, createdAt: serverTimestamp() };
+
+        try {
+            await setDoc(adminDocRef, dataToSave);
+            toast({ title: "Success!", description: "Admin access granted. Welcome to the dashboard." });
+            setIsAdmin(true); // Manually update state to re-render the dashboard
+        } catch (error) {
+            const permissionError = new FirestorePermissionError({
+                path: adminDocRef.path,
+                operation: 'create',
+                requestResourceData: dataToSave,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Grant Access Failed', description: 'A permission error occurred. Please check security rules.' });
+        }
+    };
+    
     const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || settingsLoading;
 
     if (isLoading) {
         return (
-            <div className="p-4 sm:px-6 sm:py-0 space-y-6">
-                <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
-                     <Skeleton className="h-8 w-48" />
-                     <Skeleton className="h-6 w-32 ml-auto" />
-                </header>
-                <div className="p-4 sm:px-6 sm:py-0 space-y-6">
-                    <Skeleton className="h-40 w-full max-w-lg" />
-                    <Card>
-                        <CardHeader>
-                            <Skeleton className="h-8 w-1/2" />
-                            <Skeleton className="h-4 w-3/4" />
-                        </CardHeader>
-                        <CardContent>
-                            <Skeleton className="h-40 w-full" />
-                        </CardContent>
-                    </Card>
-                </div>
+            <div className="flex min-h-screen items-center justify-center p-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         )
     }
 
-    if (!user || !isAdmin) {
+    if (!user) { // Should be handled by useEffect redirect, but as a fallback
+        return (
+             <div className="flex min-h-screen items-center justify-center p-4">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        );
+    }
+
+    if (!isAdmin) {
         return (
             <div className="flex min-h-screen items-center justify-center p-4">
                 <Card className="mx-auto w-full max-w-lg text-center">
                     <CardHeader>
-                        <ShieldCheck className="mx-auto h-12 w-12 text-destructive" />
-                        <CardTitle>Access Denied</CardTitle>
-                        <CardDescription>You do not have permission to view this page. Please contact an administrator if you believe this is an error.</CardDescription>
+                        <ShieldCheck className="mx-auto h-12 w-12 text-primary" />
+                        <CardTitle>Admin Access Required</CardTitle>
+                        <CardDescription>
+                            This dashboard is protected. To access it, you need to grant yourself administrative privileges. This is a one-time action for the first administrator.
+                        </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Button onClick={() => router.push('/login')}>Return to Login</Button>
+                        <Button onClick={grantAdminAccess}>Grant Admin Access</Button>
+                        <Button variant="ghost" onClick={handleLogout}>Logout</Button>
                     </CardContent>
                 </Card>
             </div>
