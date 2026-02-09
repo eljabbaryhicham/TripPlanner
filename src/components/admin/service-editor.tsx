@@ -37,7 +37,7 @@ const serviceSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     description: z.string().min(1, 'Description is required'),
     imageUrl: z.string().url('Image URL must be a valid URL'),
-    category: z.enum(['cars', 'hotels', 'transport']),
+    category: z.enum(['cars', 'hotels', 'transport', 'explore']),
     price: z.coerce.number().min(0, 'Price must be non-negative'),
     priceUnit: z.enum(['day', 'night', 'trip']),
     location: z.string().min(1, 'Location is required'),
@@ -61,13 +61,17 @@ const detailOptions = {
     transport: {
         'Service': ['Personal meet & greet', 'Shuttle Service', 'Private Transfer'],
         'Vehicle': ['Comfortable Sedan', 'Minivan', 'Luxury Car', 'Shuttle Bus'],
+    },
+    explore: {
+        'Trip Type': ['Group Tour', 'Private Tour'],
     }
 };
 
 const detailKeySuggestions = {
     cars: ['Seats', 'Transmission', 'Fuel Policy'],
     hotels: ['Amenities', 'Room Type'],
-    transport: ['Service', 'Includes', 'Vehicle']
+    transport: ['Service', 'Includes', 'Vehicle'],
+    explore: ['Duration', 'Destinations', 'Group Size', 'Trip Type']
 };
 
 export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) => {
@@ -79,7 +83,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
     const [name, setName] = React.useState('');
     const [description, setDescription] = React.useState('');
     const [imageUrl, setImageUrl] = React.useState('');
-    const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport'>('cars');
+    const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport' | 'explore'>('cars');
     const [location, setLocation] = React.useState('');
     const [price, setPrice] = React.useState<number | string>('');
     const [isBestOffer, setIsBestOffer] = React.useState(false);
@@ -106,7 +110,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
             setDetails(initialDetails);
 
             if (!service?.id) { // New service defaults
-                const currentCategory = service?.category || 'cars';
+                const currentCategory = service?.category || category;
                 let defaultDetails: { key: string; value: string }[] = [];
                 switch (currentCategory) {
                     case 'cars':
@@ -118,6 +122,9 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                     case 'transport':
                          defaultDetails = [ { key: 'Service', value: 'Personal meet & greet' }, { key: 'Includes', value: '' }, { key: 'Vehicle', value: 'Comfortable Sedan' }, ];
                         break;
+                    case 'explore':
+                        defaultDetails = [ { key: 'Duration', value: '' }, { key: 'Destinations', value: '' }, { key: 'Group Size', value: '' }, { key: 'Trip Type', value: 'Group Tour' }, ];
+                        break;
                 }
                 setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
             }
@@ -128,7 +135,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                     : []
             );
         }
-    }, [service, isOpen]);
+    }, [service, isOpen, category]);
 
 
     // Handlers for dynamic fields
@@ -164,6 +171,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
             case 'cars': priceUnit = 'day'; break;
             case 'hotels': priceUnit = 'night'; break;
             case 'transport': priceUnit = 'trip'; break;
+            case 'explore': priceUnit = 'trip'; break;
         }
 
         const dataToValidate = {
@@ -203,6 +211,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
             case 'cars': collectionPath = 'carRentals'; break;
             case 'hotels': collectionPath = 'hotels'; break;
             case 'transport': collectionPath = 'transports'; break;
+            case 'explore': collectionPath = 'exploreTrips'; break;
             default:
                 toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
                 setIsSubmitting(false);
@@ -279,7 +288,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Category</Label>
-                                    <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport') => setCategory(v)} disabled={isEditing}>
+                                    <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport' | 'explore') => setCategory(v)} disabled={isEditing}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select a category" />
                                         </SelectTrigger>
@@ -287,6 +296,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                                             <SelectItem value="cars">Cars</SelectItem>
                                             <SelectItem value="hotels">Hotels</SelectItem>
                                             <SelectItem value="transport">Transport</SelectItem>
+                                            <SelectItem value="explore">Explore</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

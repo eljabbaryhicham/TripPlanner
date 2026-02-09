@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase, Compass } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
@@ -41,6 +41,7 @@ function DeleteServiceMenuItem({ service }: { service: Service }) {
             case 'cars': collectionPath = 'carRentals'; break;
             case 'hotels': collectionPath = 'hotels'; break;
             case 'transport': collectionPath = 'transports'; break;
+            case 'explore': collectionPath = 'exploreTrips'; break;
             default:
                 toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
                 return;
@@ -100,6 +101,7 @@ export default function ServiceManagement({
     const carServices = services.filter(s => s.category === 'cars');
     const hotelServices = services.filter(s => s.category === 'hotels');
     const transportServices = services.filter(s => s.category === 'transport');
+    const exploreServices = services.filter(s => s.category === 'explore');
 
     const renderTable = (servicesForCategory: Service[]) => (
         <Table>
@@ -169,10 +171,11 @@ export default function ServiceManagement({
             </CardHeader>
             <CardContent>
                 <Tabs defaultValue="cars" className="w-full">
-                    <TabsList className="grid w-full grid-cols-3">
+                    <TabsList className="grid w-full grid-cols-4">
                         <TabsTrigger value="cars"><Car className="mr-2 h-4 w-4" />Cars</TabsTrigger>
                         <TabsTrigger value="hotels"><BedDouble className="mr-2 h-4 w-4" />Hotels</TabsTrigger>
                         <TabsTrigger value="transport"><Briefcase className="mr-2 h-4 w-4" />Transport</TabsTrigger>
+                        <TabsTrigger value="explore"><Compass className="mr-2 h-4 w-4" />Explore</TabsTrigger>
                     </TabsList>
                     <TabsContent value="cars" className="mt-4">
                         {renderTable(carServices)}
@@ -182,6 +185,9 @@ export default function ServiceManagement({
                     </TabsContent>
                     <TabsContent value="transport" className="mt-4">
                         {renderTable(transportServices)}
+                    </TabsContent>
+                    <TabsContent value="explore" className="mt-4">
+                        {renderTable(exploreServices)}
                     </TabsContent>
                 </Tabs>
             </CardContent>

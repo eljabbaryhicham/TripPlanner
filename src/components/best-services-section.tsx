@@ -7,6 +7,7 @@ import {
   BedDouble,
   Briefcase,
   ArrowRight,
+  Compass,
 } from 'lucide-react';
 import type { Service } from '@/lib/types';
 import ServiceList from '@/components/service-list';
@@ -26,7 +27,7 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
             Best Service Offers
           </h2>
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-4 mb-8">
+            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-5 mb-8">
               <TabsTrigger value="all">All</TabsTrigger>
               <TabsTrigger value="cars">
                 <Car className="w-4 h-4 mr-2" />
@@ -39,6 +40,10 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
               <TabsTrigger value="transport">
                 <Briefcase className="w-4 h-4 mr-2" />
                 Pickup
+              </TabsTrigger>
+              <TabsTrigger value="explore">
+                <Compass className="w-4 h-4 mr-2" />
+                Explore
               </TabsTrigger>
             </TabsList>
             <TabsContent value="all">
@@ -89,6 +94,23 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
                   <Button asChild variant="outline">
                     <Link href="/services/transport">
                       View Details & Book
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+              </div>
+            </TabsContent>
+            <TabsContent value="explore">
+              <div className="space-y-8">
+                <ServiceList
+                  services={bestOffers.filter(
+                    (service) => service.category === 'explore'
+                  ).slice(0, 3)}
+                />
+                <div className="text-center">
+                  <Button asChild variant="outline">
+                    <Link href="/services/explore">
+                      Show More Trips
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </Link>
                   </Button>

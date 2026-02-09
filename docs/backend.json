@@ -135,6 +135,64 @@
         "location"
       ]
     },
+    "ExploreTrip": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExploreTrip",
+      "type": "object",
+      "description": "Represents an organized group trip to explore Moroccan cities.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the trip."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the trip package."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed itinerary and description of the trip."
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL of a feature image for the trip.",
+          "format": "uri"
+        },
+        "price": {
+          "type": "number",
+          "description": "Total price per person for the trip."
+        },
+        "duration": {
+          "type": "string",
+          "description": "Duration of the trip, e.g., '7 Days / 6 Nights'."
+        },
+        "destinations": {
+          "type": "string",
+          "description": "Comma-separated list of cities visited."
+        },
+        "groupSize": {
+          "type": "string",
+          "description": "Maximum group size, e.g., 'Up to 12 people'."
+        },
+        "isActive": {
+          "type": "boolean",
+          "description": "Indicates if the trip is currently available for booking."
+        },
+        "isBestOffer": {
+          "type": "boolean",
+          "description": "Indicates if the service should be featured on the homepage."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "description",
+        "imageUrl",
+        "price",
+        "duration",
+        "destinations"
+      ]
+    },
     "Reservation": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Reservation",
@@ -155,7 +213,7 @@
         },
         "serviceType": {
           "type": "string",
-          "description": "Type of service reserved (e.g., 'CarRental', 'Hotel', 'Transport')."
+          "description": "Type of service reserved (e.g., 'CarRental', 'Hotel', 'Transport', 'Explore')."
         },
         "serviceId": {
           "type": "string",
@@ -498,6 +556,22 @@
         }
       },
       {
+        "path": "/exploreTrips/{tripId}",
+        "definition": {
+          "entityName": "ExploreTrip",
+          "schema": {
+            "$ref": "#/backend/entities/ExploreTrip"
+          },
+          "description": "Stores organized group trip data.",
+          "params": [
+            {
+              "name": "tripId",
+              "description": "The unique identifier for the explore trip."
+            }
+          ]
+        }
+      },
+      {
         "path": "/roles_admin/{adminId}",
         "definition": {
           "entityName": "AdminUser",
@@ -530,6 +604,6 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. User data is stored under `/users/{userId}` ensuring path-based ownership. Reservations made by each user are stored in a subcollection `/users/{userId}/reservations/{reservationId}`. Service Suggestions are similarly organized under `/users/{userId}/serviceSuggestions/{serviceSuggestionId}`, ensuring the suggestions are linked to the correct user.\n\nThe `hotels`, `carRentals`, and `transports` collections store the data for each of those service types.  Admin users are managed via the `/roles_admin/{adminId}` collection, which now stores a `role` field for fine-grained access control (admin vs. superadmin). A top-level `reviews` collection is added to store user reviews for all services; this allows for easy querying by service and is secured to allow creation only by authenticated users for themselves.\n\nThis structure achieves Authorization Independence by avoiding hierarchical authorization dependencies. All authorization rules rely on `request.auth.uid` and the document paths. Denormalization is not required in this schema because user-owned data is stored in hierarchical paths. This approach ensures proper QAPs, as listing operations are secure based on path-based ownership.\n\nBy using this schema and appropriate security rules, we can prevent filter-based security and ensure that all listing operations are inherently secure."
+    "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. User data is stored under `/users/{userId}` ensuring path-based ownership. Reservations made by each user are stored in a subcollection `/users/{userId}/reservations/{reservationId}`. Service Suggestions are similarly organized under `/users/{userId}/serviceSuggestions/{serviceSuggestionId}`, ensuring the suggestions are linked to the correct user.\n\nThe `hotels`, `carRentals`, `transports`, and `exploreTrips` collections store the data for each of those service types. Admin users are managed via the `/roles_admin/{adminId}` collection, which now stores a `role` field for fine-grained access control (admin vs. superadmin). A top-level `reviews` collection is added to store user reviews for all services; this allows for easy querying by service and is secured to allow creation only by authenticated users for themselves.\n\nThis structure achieves Authorization Independence by avoiding hierarchical authorization dependencies. All authorization rules rely on `request.auth.uid` and the document paths. Denormalization is not required in this schema because user-owned data is stored in hierarchical paths. This approach ensures proper QAPs, as listing operations are secure based on path-based ownership.\n\nBy using this schema and appropriate security rules, we can prevent filter-based security and ensure that all listing operations are inherently secure."
   }
 }

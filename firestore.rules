@@ -10,7 +10,7 @@
  * Data Structure:
  * - Private user data is nested under `/users/{userId}`, leveraging Firestore's path hierarchy for
  *   inherent ownership-based security. This includes subcollections for `reservations` and `serviceSuggestions`.
- * - Public service data is stored in top-level collections: `/hotels`, `/carRentals`, and `/transports`.
+ * - Public service data is stored in top-level collections: `/hotels`, `/carRentals`, `/transports`, and `/exploreTrips`.
  * - User-generated reviews are stored in a top-level `/reviews` collection, which is publicly readable.
  * - Administrator roles are managed in the `/roles_admin` collection, which contains a `role` field ('admin' or 'superadmin').
  *
@@ -156,6 +156,19 @@ service cloud.firestore {
      * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
      */
     match /transports/{transportId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    /**
+     * @description Controls access to public explore trip listings.
+     * @path /exploreTrips/{tripId}
+     * @allow Any user, including anonymous ones, can (get) or (list) explore trip data.
+     * @allow An admin user can (create) a new explore trip document.
+     * @deny A non-admin signed-in user cannot (update) or (delete) explore trip data.
+     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
+     */
+    match /exploreTrips/{tripId} {
       allow read: if true;
       allow write: if isAdmin();
     }

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BedDouble, Car, Briefcase, Mountain } from 'lucide-react';
+import { BedDouble, Car, Briefcase, Mountain, Compass } from 'lucide-react';
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -69,6 +69,9 @@ const Header = () => {
         </NavLink>
         <NavLink href="/services/transport" label="Pickup">
           <Briefcase className="h-7 w-7 text-foreground" />
+        </NavLink>
+        <NavLink href="/services/explore" label="Explore">
+          <Compass className="h-7 w-7 text-foreground" />
         </NavLink>
       </nav>
     </div>

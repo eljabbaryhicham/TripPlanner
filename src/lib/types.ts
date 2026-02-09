@@ -1,5 +1,5 @@
 
-export type ServiceCategory = 'cars' | 'hotels' | 'transport';
+export type ServiceCategory = 'cars' | 'hotels' | 'transport' | 'explore';
 
 export interface AdditionalMedia {
   imageUrl: string;
