@@ -10,6 +10,7 @@ import { firestoreAdmin, authAdmin } from '@/firebase/admin';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
+const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
 
 // --- Reservation Action ---
 const reservationSchema = z.object({
@@ -41,10 +42,13 @@ export async function submitReservation(data: ReservationFormValues) {
   }
 
   try {
-    const templateFile = await fs.readFile(emailTemplateFilePath, 'utf-8');
-    const { template } = JSON.parse(templateFile);
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    // --- Prepare and send email to Admin ---
+    const adminTemplateFile = await fs.readFile(emailTemplateFilePath, 'utf-8');
+    const { template: adminTemplate } = JSON.parse(adminTemplateFile);
     
-    let htmlBody = template;
+    let adminHtmlBody = adminTemplate;
     const replacements: Record<string, string> = {
         '{{serviceName}}': serviceName,
         '{{name}}': name,
@@ -55,26 +59,48 @@ export async function submitReservation(data: ReservationFormValues) {
     };
     
     for (const [key, value] of Object.entries(replacements)) {
-        htmlBody = htmlBody.replace(new RegExp(key, 'g'), value);
+        adminHtmlBody = adminHtmlBody.replace(new RegExp(key, 'g'), value);
     }
 
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { data: resendData, error } = await resend.emails.send({
+    const { error: adminError } = await resend.emails.send({
       from: 'TriPlanner <onboarding@resend.dev>',
       to: [process.env.BOOKING_EMAIL_TO],
       subject: `New Booking Inquiry for ${serviceName}`,
-      html: htmlBody,
+      html: adminHtmlBody,
+      reply_to: email,
     });
 
-    if (error) {
-      console.error('Resend error:', error);
-      return { success: false, error: 'Failed to send email.' };
+    if (adminError) {
+      console.error('Resend error (to admin):', adminError);
+      return { success: false, error: 'Failed to send admin notification email.' };
+    }
+
+    // --- Prepare and send confirmation email to Client ---
+    const clientTemplateFile = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
+    const { template: clientTemplate } = JSON.parse(clientTemplateFile);
+    
+    let clientHtmlBody = clientTemplate;
+    for (const [key, value] of Object.entries(replacements)) {
+        clientHtmlBody = clientHtmlBody.replace(new RegExp(key, 'g'), value);
+    }
+
+    const { error: clientError } = await resend.emails.send({
+        from: 'TriPlanner <onboarding@resend.dev>',
+        to: [email],
+        subject: `Your Booking Inquiry for ${serviceName}`,
+        html: clientHtmlBody,
+    });
+    
+    if (clientError) {
+        console.error('Resend error (to client):', clientError);
+        // Even if client email fails, we consider it a success if admin email was sent.
+        // We can add more robust logging/handling here if needed.
     }
 
     return { success: true };
   } catch (error) {
-    console.error('Failed to send email:', error);
-    return { success: false, error: 'An unexpected error occurred while sending the email.' };
+    console.error('Failed to send email(s):', error);
+    return { success: false, error: 'An unexpected error occurred while sending the email(s).' };
   }
 }
 
@@ -127,6 +153,24 @@ export async function updateEmailTemplate(prevState: any, formData: FormData) {
     } catch (error) {
         console.error('Failed to update email template:', error);
         return { error: 'Could not save email template.', success: false };
+    }
+}
+
+// --- Client Email Template Action ---
+export async function updateClientEmailTemplate(prevState: any, formData: FormData) {
+    const parsed = emailTemplateSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) {
+        return { error: parsed.error.errors[0].message, success: false };
+    }
+    
+    try {
+        const newTemplate = JSON.stringify({ template: parsed.data.template }, null, 2);
+        await fs.writeFile(clientEmailTemplateFilePath, newTemplate, 'utf-8');
+        revalidatePath('/admin');
+        return { error: null, success: true };
+    } catch (error) {
+        console.error('Failed to update client email template:', error);
+        return { error: 'Could not save client email template.', success: false };
     }
 }
 

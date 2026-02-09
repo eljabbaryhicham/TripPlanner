@@ -16,6 +16,7 @@ import { ServiceEditor } from '@/components/admin/service-editor';
 import type { Service } from '@/lib/types';
 import AdminManagement from '@/components/admin/admin-management';
 import EmailTemplateEditor from '@/components/admin/email-template-editor';
+import ClientEmailTemplateEditor from '@/components/admin/client-email-template-editor';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -30,6 +31,7 @@ export default function AdminPage() {
 
     const [whatsappNumber, setWhatsappNumber] = React.useState('');
     const [emailTemplate, setEmailTemplate] = React.useState('');
+    const [clientEmailTemplate, setClientEmailTemplate] = React.useState('');
     const [settingsLoading, setSettingsLoading] = React.useState(true);
     
     const [editorOpen, setEditorOpen] = React.useState(false);
@@ -64,13 +66,17 @@ export default function AdminPage() {
         setSettingsLoading(true);
         Promise.all([
             fetch('/api/settings').then(res => res.json()),
-            fetch('/api/email-template').then(res => res.json())
-        ]).then(([settingsData, templateData]) => {
+            fetch('/api/email-template').then(res => res.json()),
+            fetch('/api/client-email-template').then(res => res.json())
+        ]).then(([settingsData, templateData, clientTemplateData]) => {
             if (settingsData.whatsappNumber) {
                 setWhatsappNumber(settingsData.whatsappNumber);
             }
             if (templateData.template) {
                 setEmailTemplate(templateData.template);
+            }
+            if (clientTemplateData.template) {
+                setClientEmailTemplate(clientTemplateData.template);
             }
         }).catch(console.error)
           .finally(() => setSettingsLoading(false));
@@ -199,6 +205,7 @@ export default function AdminPage() {
                 />
                 <SettingsManagement currentWhatsappNumber={whatsappNumber} />
                 <EmailTemplateEditor currentTemplate={emailTemplate} />
+                <ClientEmailTemplateEditor currentTemplate={clientEmailTemplate} />
                 {isSuperAdmin && admins && adminProfile && (
                     <AdminManagement admins={admins} currentUser={adminProfile} />
                 )}

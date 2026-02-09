@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { updateEmailTemplate } from '@/lib/actions';
+import { updateClientEmailTemplate } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Save } from 'lucide-react';
@@ -20,14 +20,14 @@ function SubmitButton() {
     );
 }
 
-export default function EmailTemplateEditor({ currentTemplate }: { currentTemplate: string }) {
+export default function ClientEmailTemplateEditor({ currentTemplate }: { currentTemplate: string }) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(updateEmailTemplate, { error: null, success: false });
+    const [state, formAction] = React.useActionState(updateClientEmailTemplate, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {
-            toast({ title: 'Template Updated', description: 'The email template has been saved.' });
+            toast({ title: 'Template Updated', description: 'The client confirmation email template has been saved.' });
             router.refresh();
         }
         if (state.error) {
@@ -38,9 +38,9 @@ export default function EmailTemplateEditor({ currentTemplate }: { currentTempla
     return (
         <Card>
             <CardHeader>
-                <CardTitle>Admin Notification Email Template</CardTitle>
+                <CardTitle>Client Confirmation Email Template</CardTitle>
                 <CardDescription>
-                    Customize the HTML for the booking inquiry email sent to the admin. Use placeholders like {"{{name}}"}, {"{{email}}"}, {"{{serviceName}}"}, etc.
+                    Customize the HTML for the confirmation email sent to clients. Use placeholders like {"{{name}}"}, {"{{serviceName}}"}, etc.
                 </CardDescription>
             </CardHeader>
             <CardContent>
