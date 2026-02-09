@@ -53,7 +53,7 @@ const settingsSchema = z.object({
     whatsappNumber: z.string().min(1, { message: 'WhatsApp number cannot be empty.' }),
 });
 
-export async function updateWhatsappNumber(prevState: { error: string | null, success: boolean }, formData: FormData) {
+export async function updateWhatsappNumber(prevState: any, formData: FormData) {
     const parsed = settingsSchema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
@@ -63,11 +63,14 @@ export async function updateWhatsappNumber(prevState: { error: string | null, su
     const { whatsappNumber } = parsed.data;
     
     try {
-        const newSettings = JSON.stringify({ whatsappNumber }, null, 2);
+        // NOTE: In a real multi-server environment, this should be a centralized config service.
+        // For this demo, writing to the filesystem is acceptable.
+        const currentConfigRaw = await fs.readFile(settingsFilePath, 'utf-8').catch(() => '{}');
+        const currentConfig = JSON.parse(currentConfigRaw);
+        const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber }, null, 2);
         await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
         
-        revalidatePath('/admin');
-        revalidatePath('/api/settings');
+        revalidatePath('/admin'); // Revalidates the admin page to show new number
         
         return { error: null, success: true };
     } catch (error) {
@@ -106,7 +109,7 @@ export async function seedDatabase() {
         revalidatePath('/services/transport');
         revalidatePath('/admin');
 
-        return { success: true };
+        return { success: true, error: null };
     } catch (error: any) {
         console.error('Failed to seed database:', error);
         return { success: false, error: 'Could not seed the database. Check server logs for details.' };

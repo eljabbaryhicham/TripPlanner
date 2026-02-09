@@ -26,6 +26,9 @@ export default function LoginPage() {
     setError(null);
 
     try {
+      if (!auth) {
+        throw new Error('Firebase Auth is not initialized.');
+      }
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
       router.push('/admin');
