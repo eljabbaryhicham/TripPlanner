@@ -4,10 +4,6 @@ import { z } from 'zod';
 import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
-import { firestoreAdmin } from '@/firebase/admin';
-import placeholderData from './placeholder-images.json';
-import type { Service } from './types';
-
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 
@@ -76,42 +72,5 @@ export async function updateWhatsappNumber(prevState: any, formData: FormData) {
     } catch (error) {
         console.error('Failed to update settings:', error);
         return { error: 'Could not save settings.', success: false };
-    }
-}
-
-
-// --- Database Seeding Action ---
-export async function seedDatabase() {
-    try {
-        const services: Service[] = placeholderData.services;
-        const batch = firestoreAdmin.batch();
-
-        for (const service of services) {
-            let collectionPath: string;
-            switch(service.category) {
-                case 'cars': collectionPath = 'carRentals'; break;
-                case 'hotels': collectionPath = 'hotels'; break;
-                case 'transport': collectionPath = 'transports'; break;
-                default:
-                    console.warn(`Unknown category: ${(service as any).category}`);
-                    continue;
-            }
-            const docRef = firestoreAdmin.collection(collectionPath).doc(service.id);
-            batch.set(docRef, service);
-        }
-
-        await batch.commit();
-
-        // Revalidate all paths where services are displayed
-        revalidatePath('/');
-        revalidatePath('/services/cars');
-        revalidatePath('/services/hotels');
-        revalidatePath('/services/transport');
-        revalidatePath('/admin');
-
-        return { success: true, error: null };
-    } catch (error: any) {
-        console.error('Failed to seed database:', error);
-        return { success: false, error: 'Could not seed the database. Check server logs for details.' };
     }
 }

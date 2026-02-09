@@ -6,14 +6,11 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from '
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, Settings, Star, ShieldCheck, Database } from 'lucide-react';
+import { LogOut, ShieldCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
-import SettingsManagement from '@/components/admin/settings-management';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
-import DatabaseSeeder from '@/components/admin/database-seeder';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -22,9 +19,7 @@ export default function AdminPage() {
     const auth = useAuth();
     const [isAdmin, setIsAdmin] = React.useState(false);
     const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
-    const [settings, setSettings] = React.useState({ whatsappNumber: '' });
-    const [activeTab, setActiveTab] = React.useState('services');
-
+    
     // Auth check
     React.useEffect(() => {
         if (!isUserLoading && !user) {
@@ -53,11 +48,6 @@ export default function AdminPage() {
         }
     }, [user, firestore, isUserLoading]);
 
-    // Settings fetch
-    React.useEffect(() => {
-        fetch('/api/settings').then(res => res.json()).then(setSettings).catch(console.error);
-    }, []);
-
     // Data fetching for services from all collections
     const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
     const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
@@ -83,7 +73,6 @@ export default function AdminPage() {
     };
     
     const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading;
-    const isDatabaseEmpty = !isLoading && services.length === 0;
 
     if (isLoading) {
         return (
@@ -133,53 +122,7 @@ export default function AdminPage() {
                 </div>
             </header>
             <main className="p-4 sm:px-6 sm:py-0">
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid w-full grid-cols-2 max-w-sm mb-6">
-                        <TabsTrigger value="services">
-                            <Star className="mr-2 h-4 w-4" />
-                            Services
-                        </TabsTrigger>
-                        <TabsTrigger value="settings">
-                            <Settings className="mr-2 h-4 w-4" />
-                            Settings
-                        </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="services">
-                         {isDatabaseEmpty ? (
-                            <Card className="text-center max-w-lg mx-auto">
-                                <CardHeader>
-                                    <Database className="mx-auto h-12 w-12 text-primary" />
-                                    <CardTitle>Your Database is Empty</CardTitle>
-                                    <CardDescription>
-                                        To see services on your website and in this dashboard, you need to populate your database with the initial sample data.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <Button onClick={() => setActiveTab('settings')}>
-                                        <Database className="mr-2 h-4 w-4" />
-                                        Go to Settings to Seed Database
-                                    </Button>
-                                </CardContent>
-                            </Card>
-                        ) : (
-                            <ServiceManagement services={services} />
-                        )}
-                    </TabsContent>
-                    <TabsContent value="settings">
-                        <div className="space-y-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Application Settings</CardTitle>
-                                    <CardDescription>Update general application settings.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <SettingsManagement currentWhatsappNumber={settings.whatsappNumber} />
-                                </CardContent>
-                            </Card>
-                            <DatabaseSeeder />
-                        </div>
-                    </TabsContent>
-                </Tabs>
+                <ServiceManagement services={services} />
             </main>
         </div>
     );
