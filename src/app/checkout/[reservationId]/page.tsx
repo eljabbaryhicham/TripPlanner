@@ -19,6 +19,7 @@ type Reservation = {
     customerName: string;
     serviceName: string;
     totalPrice: number;
+    price: number;
     priceUnit: string;
     createdAt: { seconds: number; nanoseconds: number };
     paymentStatus: string;
@@ -57,6 +58,34 @@ const CheckoutPage = () => {
         const toString = to.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         return `${fromString} - ${toString}`;
     }, [reservation]);
+
+    const { days } = useMemo(() => {
+        if (!reservation?.startDate || !reservation?.endDate || reservation.priceUnit === 'trip') {
+            return { days: null };
+        }
+
+        const from = new Date(reservation.startDate.seconds * 1000);
+        const to = new Date(reservation.endDate.seconds * 1000);
+
+        if (to <= from) return { days: null };
+
+        const timeDiff = to.getTime() - from.getTime();
+        const dayDifference = Math.round(timeDiff / (1000 * 3600 * 24));
+        
+        let dayCount;
+        if (reservation.priceUnit === 'night') {
+          dayCount = dayDifference > 0 ? dayDifference : 1;
+        } else { // for 'day' unit
+          dayCount = dayDifference + 1;
+        }
+
+        if (dayCount > 0) {
+            return { days: dayCount };
+        }
+
+        return { days: null };
+    }, [reservation]);
+
 
     const isLoading = isReservationLoading || isUserLoading;
 
@@ -106,13 +135,23 @@ const CheckoutPage = () => {
                                                     <p className="text-sm text-muted-foreground">Dates: {formattedPeriod}</p>
                                                 }
                                             </div>
-                                            <div className="text-right">
+                                             <div className="text-right">
                                                 <p className="font-semibold text-lg">
                                                     ${reservation.totalPrice.toFixed(2)}
                                                 </p>
-                                                <p className="text-sm text-muted-foreground capitalize">
-                                                    / {reservation.priceUnit}
-                                                </p>
+                                                {reservation.price && days ? (
+                                                    <p className="text-sm text-muted-foreground">
+                                                        (${reservation.price.toFixed(2)} / {reservation.priceUnit} for {days}{' '}
+                                                        {days === 1
+                                                            ? reservation.priceUnit
+                                                            : reservation.priceUnit + 's'}
+                                                        )
+                                                    </p>
+                                                ) : (
+                                                    <p className="text-sm text-muted-foreground capitalize">
+                                                        / {reservation.priceUnit}
+                                                    </p>
+                                                )}
                                             </div>
                                         </div>
                                          <p className="text-sm font-medium capitalize pt-2">
