@@ -35,10 +35,18 @@ export default function AdminPage() {
     React.useEffect(() => {
         if (user && firestore) {
             const checkAdminRole = async () => {
-                const adminDocRef = doc(firestore, 'roles_admin', user.uid);
-                const adminDocSnap = await getDoc(adminDocRef);
-                setIsAdmin(adminDocSnap.exists());
-                setIsCheckingAdmin(false);
+                try {
+                    const adminDocRef = doc(firestore, 'roles_admin', user.uid);
+                    const adminDocSnap = await getDoc(adminDocRef);
+                    setIsAdmin(adminDocSnap.exists());
+                } catch (error) {
+                    // This is an expected error for non-admins. We'll log it for debugging
+                    // but show the "Access Denied" UI instead of a global error.
+                    console.error("Admin role check failed:", error);
+                    setIsAdmin(false);
+                } finally {
+                    setIsCheckingAdmin(false);
+                }
             };
             checkAdminRole();
         } else if (!isUserLoading) {
