@@ -3,14 +3,16 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from '@/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, ShieldCheck } from 'lucide-react';
+import { LogOut, ShieldCheck, Loader2, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useToast } from '@/hooks/use-toast';
+import seedData from '@/lib/placeholder-images.json';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -19,6 +21,8 @@ export default function AdminPage() {
     const auth = useAuth();
     const [isAdmin, setIsAdmin] = React.useState(false);
     const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
+    const { toast } = useToast();
+    const [isSeeding, setIsSeeding] = React.useState(false);
     
     // Auth check
     React.useEffect(() => {
@@ -58,10 +62,10 @@ export default function AdminPage() {
     const { data: transports, isLoading: transportsLoading } = useCollection(transportsRef);
 
     const services = React.useMemo(() => {
-        const allServices = [];
-        if (carRentals) allServices.push(...carRentals.map(s => ({ ...s, category: 'cars' } as any)));
-        if (hotels) allServices.push(...hotels.map(s => ({ ...s, category: 'hotels' } as any)));
-        if (transports) allServices.push(...transports.map(s => ({ ...s, category: 'transport' } as any)));
+        const allServices: any[] = [];
+        if (carRentals) allServices.push(...carRentals.map(s => ({ ...s, category: 'cars' })));
+        if (hotels) allServices.push(...hotels.map(s => ({ ...s, category: 'hotels' })));
+        if (transports) allServices.push(...transports.map(s => ({ ...s, category: 'transport' })));
         return allServices;
     }, [carRentals, hotels, transports]);
 
@@ -69,6 +73,38 @@ export default function AdminPage() {
         if (auth) {
             await signOut(auth);
             router.push('/login');
+        }
+    };
+
+    const handleSeedDatabase = async () => {
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database connection not available.' });
+            return;
+        }
+        setIsSeeding(true);
+
+        const promises = seedData.services.map(service => {
+            let collectionPath: string;
+            switch ((service as any).category) {
+                case 'cars': collectionPath = 'carRentals'; break;
+                case 'hotels': collectionPath = 'hotels'; break;
+                case 'transport': collectionPath = 'transports'; break;
+                default:
+                    console.warn(`Unknown category for service ID ${service.id}. Skipping.`); 
+                    return null;
+            }
+            const docRef = doc(firestore, collectionPath, service.id);
+            return setDoc(docRef, service as any);
+        }).filter(Boolean);
+
+        try {
+            await Promise.all(promises as Promise<void>[]);
+            toast({ title: 'Database Seeded', description: 'Sample services have been added successfully.' });
+        } catch (error: any) {
+            console.error("Seeding failed:", error);
+            toast({ variant: 'destructive', title: 'Seeding Failed', description: 'You may not have permission to write to the database collections.' });
+        } finally {
+            setIsSeeding(false);
         }
     };
     
@@ -121,7 +157,21 @@ export default function AdminPage() {
                     </Button>
                 </div>
             </header>
-            <main className="p-4 sm:px-6 sm:py-0">
+            <main className="p-4 sm:px-6 sm:py-0 space-y-6">
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Database Management</CardTitle>
+                        <CardDescription>
+                            Your services are stored in Firestore. If your database is empty, you can add the initial sample services here.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <Button onClick={handleSeedDatabase} disabled={isSeeding}>
+                            {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Database className="mr-2 h-4 w-4" />}
+                            Seed Database with Sample Data
+                        </Button>
+                    </CardContent>
+                </Card>
                 <ServiceManagement services={services} />
             </main>
         </div>
