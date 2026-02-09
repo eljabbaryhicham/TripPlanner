@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
-import { ServiceEditor } from './service-editor';
+import { ServiceEditor, type ServiceEditorHandles } from './service-editor';
 import { useFirestore } from '@/firebase';
 import { doc, deleteDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
@@ -89,17 +89,14 @@ function DeleteServiceMenuItem({ service }: { service: Service }) {
 }
 
 export default function ServiceManagement({ services }: { services: Service[] }) {
-    const [editorOpen, setEditorOpen] = React.useState(false);
-    const [serviceToEdit, setServiceToEdit] = React.useState<Service | null>(null);
+    const editorRef = React.useRef<ServiceEditorHandles>(null);
 
     const handleEdit = (service: Service) => {
-        setServiceToEdit(service);
-        setEditorOpen(true);
+        editorRef.current?.edit(service);
     };
 
     const handleAdd = () => {
-        setServiceToEdit(null);
-        setEditorOpen(true);
+        editorRef.current?.add();
     };
 
     return (
@@ -170,11 +167,7 @@ export default function ServiceManagement({ services }: { services: Service[] })
                     </Table>
                 </CardContent>
             </Card>
-            <ServiceEditor
-                isOpen={editorOpen}
-                onOpenChange={setEditorOpen}
-                service={serviceToEdit}
-            />
+            <ServiceEditor ref={editorRef} />
         </>
     );
 }

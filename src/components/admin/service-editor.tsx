@@ -1,7 +1,6 @@
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import type { Service } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -19,12 +18,11 @@ import { doc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useImperativeHandle, forwardRef } from 'react';
 
-
-interface ServiceEditorProps {
-    isOpen: boolean;
-    onOpenChange: (isOpen: boolean) => void;
-    service: Service | null;
+export interface ServiceEditorHandles {
+    edit: (service: Service) => void;
+    add: () => void;
 }
 
 const additionalMediaSchema = z.object({
@@ -69,11 +67,14 @@ const detailKeySuggestions = {
     transport: ['Service', 'Includes', 'Vehicle']
 };
 
-export function ServiceEditor({ isOpen, onOpenChange, service }: ServiceEditorProps) {
+const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
     const { toast } = useToast();
     const firestore = useFirestore();
-    const isEditing = !!service?.id;
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    // Internal state for the dialog
+    const [isOpen, setIsOpen] = React.useState(false);
+    const [service, setService] = React.useState<Service | null>(null);
 
     // Form state - initialized to empty/default values
     const [name, setName] = React.useState('');
@@ -87,28 +88,41 @@ export function ServiceEditor({ isOpen, onOpenChange, service }: ServiceEditorPr
     const [details, setDetails] = React.useState<Detail[]>([]);
     const [additionalMedia, setAdditionalMedia] = React.useState<Media[]>([]);
 
+    const isEditing = !!service?.id;
+
+    // Expose methods to parent component via ref
+    useImperativeHandle(ref, () => ({
+        edit: (serviceToEdit: Service) => {
+            setService(serviceToEdit);
+            setIsOpen(true);
+        },
+        add: () => {
+            setService(null);
+            setIsOpen(true);
+        }
+    }));
+
     // Effect to populate form state when the dialog is opened or the service changes
     React.useEffect(() => {
         if (isOpen) {
-            const currentServiceIsEditing = !!service?.id;
             setName(service?.name || '');
             setDescription(service?.description || '');
             setImageUrl(service?.imageUrl || '');
             setCategory(service?.category || 'cars');
             setLocation(service?.location || '');
             setPrice(service?.price ?? '');
-            setPriceUnit(service?.priceUnit || 'day');
+            setPriceUnit(service?.priceUnit || (service?.category === 'hotels' ? 'night' : service?.category === 'transport' ? 'trip' : 'day'));
             setIsBestOffer(service?.isBestOffer || false);
             
             const initialDetails = service?.details
                 ? Object.entries(service.details).map(([key, value], i) => ({ id: Date.now() + i, key, value }))
                 : [];
-
             setDetails(initialDetails);
-            
-            if (!currentServiceIsEditing) {
-                 let defaultDetails: { key: string; value: string }[] = [];
-                switch (service?.category || 'cars') {
+
+            if (!service?.id) { // If it's a new service
+                const currentCategory = service?.category || 'cars';
+                let defaultDetails: { key: string; value: string }[] = [];
+                switch (currentCategory) {
                     case 'cars':
                         defaultDetails = [
                             { key: 'Seats', value: '' },
@@ -132,7 +146,6 @@ export function ServiceEditor({ isOpen, onOpenChange, service }: ServiceEditorPr
                 }
                 setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
             }
-
 
             setAdditionalMedia(
                 service?.additionalMedia
@@ -160,7 +173,7 @@ export function ServiceEditor({ isOpen, onOpenChange, service }: ServiceEditorPr
     const addMedia = () => setAdditionalMedia([...additionalMedia, { id: Date.now(), imageUrl: '', description: '' }]);
     const removeMedia = (id: number) => setAdditionalMedia(additionalMedia.filter(m => m.id !== id));
 
-    const handleClose = () => onOpenChange(false);
+    const handleClose = () => setIsOpen(false);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -238,7 +251,7 @@ export function ServiceEditor({ isOpen, onOpenChange, service }: ServiceEditorPr
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? 'Edit Service' : 'Add New Service'}</DialogTitle>
@@ -374,4 +387,7 @@ export function ServiceEditor({ isOpen, onOpenChange, service }: ServiceEditorPr
             </DialogContent>
         </Dialog>
     );
-}
+});
+ServiceEditor.displayName = 'ServiceEditor';
+
+export { ServiceEditor };
