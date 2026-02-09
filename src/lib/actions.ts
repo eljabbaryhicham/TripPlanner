@@ -6,8 +6,10 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
+import { firestoreAdmin, authAdmin } from '@/firebase/admin';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
+const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
 
 // --- Reservation Action ---
 const reservationSchema = z.object({
@@ -38,24 +40,30 @@ export async function submitReservation(data: ReservationFormValues) {
     return { success: false, error: 'Server is not configured to send emails.' };
   }
 
-  const resend = new Resend(process.env.RESEND_API_KEY);
-
   try {
-    const { data, error } = await resend.emails.send({
+    const templateFile = await fs.readFile(emailTemplateFilePath, 'utf-8');
+    const { template } = JSON.parse(templateFile);
+    
+    let htmlBody = template;
+    const replacements: Record<string, string> = {
+        '{{serviceName}}': serviceName,
+        '{{name}}': name,
+        '{{email}}': email,
+        '{{phone}}': phone || 'N/A',
+        '{{message}}': message || 'N/A',
+        '{{dates}}': (startDate && endDate) ? `${startDate} - ${endDate}` : 'N/A',
+    };
+    
+    for (const [key, value] of Object.entries(replacements)) {
+        htmlBody = htmlBody.replace(new RegExp(key, 'g'), value);
+    }
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const { data: resendData, error } = await resend.emails.send({
       from: 'TriPlanner <onboarding@resend.dev>',
       to: [process.env.BOOKING_EMAIL_TO],
       subject: `New Booking Inquiry for ${serviceName}`,
-      html: `
-        <p>You have a new reservation inquiry:</p>
-        <ul>
-          <li><strong>Service:</strong> ${serviceName}</li>
-          <li><strong>Name:</strong> ${name}</li>
-          <li><strong>Email:</strong> ${email}</li>
-          ${phone ? `<li><strong>Phone:</strong> ${phone}</li>` : ''}
-          ${startDate && endDate ? `<li><strong>Dates:</strong> ${startDate} - ${endDate}</li>` : ''}
-          ${message ? `<li><strong>Message:</strong> ${message}</li>` : ''}
-        </ul>
-      `,
+      html: htmlBody,
     });
 
     if (error) {
@@ -86,18 +94,108 @@ export async function updateWhatsappNumber(prevState: any, formData: FormData) {
     const { whatsappNumber } = parsed.data;
     
     try {
-        // NOTE: In a real multi-server environment, this should be a centralized config service.
-        // For this demo, writing to the filesystem is acceptable.
         const currentConfigRaw = await fs.readFile(settingsFilePath, 'utf-8').catch(() => '{}');
         const currentConfig = JSON.parse(currentConfigRaw);
         const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber }, null, 2);
         await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
         
-        revalidatePath('/admin'); // Revalidates the admin page to show new number
+        revalidatePath('/admin');
         
         return { error: null, success: true };
     } catch (error) {
         console.error('Failed to update settings:', error);
         return { error: 'Could not save settings.', success: false };
+    }
+}
+
+// --- Email Template Action ---
+const emailTemplateSchema = z.object({
+    template: z.string().min(1, { message: 'Email template cannot be empty.' }),
+});
+
+export async function updateEmailTemplate(prevState: any, formData: FormData) {
+    const parsed = emailTemplateSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) {
+        return { error: parsed.error.errors[0].message, success: false };
+    }
+    
+    try {
+        const newTemplate = JSON.stringify({ template: parsed.data.template }, null, 2);
+        await fs.writeFile(emailTemplateFilePath, newTemplate, 'utf-8');
+        revalidatePath('/admin');
+        return { error: null, success: true };
+    } catch (error) {
+        console.error('Failed to update email template:', error);
+        return { error: 'Could not save email template.', success: false };
+    }
+}
+
+
+// --- Admin Management Actions ---
+// NOTE: These actions use the Firebase Admin SDK and should ideally be protected
+// by checking the caller's authentication status and role. In a typical Next.js
+// app, this would be done using a library like NextAuth.js or by validating an
+// ID token. For this environment, we rely on Firestore rules to protect the
+// /roles_admin collection, but the actions to create/delete Auth users are
+// not fully secure from being called by non-superadmins.
+
+const addAdminSchema = z.object({
+    login: z.string().email(),
+    password: z.string().min(6),
+});
+export async function addAdmin(prevState: any, formData: FormData) {
+    const parsed = addAdminSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) {
+        return { error: parsed.error.errors[0].message, success: false };
+    }
+    const { login, password } = parsed.data;
+
+    try {
+        const userRecord = await authAdmin.createUser({ email: login, password });
+        await firestoreAdmin.collection('roles_admin').doc(userRecord.uid).set({
+            email: login,
+            role: 'admin',
+            createdAt: new Date(),
+            id: userRecord.uid,
+        });
+        revalidatePath('/admin');
+        return { success: true, error: null };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+const removeAdminSchema = z.object({ id: z.string() });
+export async function removeAdmin(prevState: any, formData: FormData) {
+     const parsed = removeAdminSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) {
+        return { error: "Invalid ID", success: false };
+    }
+    const { id } = parsed.data;
+
+    try {
+        await authAdmin.deleteUser(id);
+        await firestoreAdmin.collection('roles_admin').doc(id).delete();
+        revalidatePath('/admin');
+        return { success: true, error: null };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+const setSuperAdminSchema = z.object({ id: z.string() });
+export async function setSuperAdmin(prevState: any, formData: FormData) {
+     const parsed = setSuperAdminSchema.safeParse(Object.fromEntries(formData));
+    if (!parsed.success) {
+        return { error: "Invalid ID", success: false };
+    }
+    const { id } = parsed.data;
+
+    try {
+        await firestoreAdmin.collection('roles_admin').doc(id).update({ role: 'superadmin' });
+        revalidatePath('/admin');
+        return { success: true, error: null };
+    } catch (error: any) {
+        return { success: false, error: error.message };
     }
 }

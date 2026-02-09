@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
 import { collection, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,8 @@ import SettingsManagement from '@/components/admin/settings-management';
 import { useToast } from '@/hooks/use-toast';
 import { ServiceEditor } from '@/components/admin/service-editor';
 import type { Service } from '@/lib/types';
+import AdminManagement from '@/components/admin/admin-management';
+import EmailTemplateEditor from '@/components/admin/email-template-editor';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -21,13 +23,20 @@ export default function AdminPage() {
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
+    
     const [isAdmin, setIsAdmin] = React.useState(false);
+    const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
     const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
+
     const [whatsappNumber, setWhatsappNumber] = React.useState('');
+    const [emailTemplate, setEmailTemplate] = React.useState('');
     const [settingsLoading, setSettingsLoading] = React.useState(true);
     
     const [editorOpen, setEditorOpen] = React.useState(false);
     const [serviceToEdit, setServiceToEdit] = React.useState<Service | null>(null);
+
+    const adminProfileRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'roles_admin', user.uid) : null, [user, firestore]);
+    const { data: adminProfile, isLoading: isAdminProfileLoading } = useDoc(adminProfileRef);
 
     // Auth check
     React.useEffect(() => {
@@ -38,47 +47,45 @@ export default function AdminPage() {
 
     // Admin role check
     React.useEffect(() => {
-        if (user && firestore) {
-            const checkAdminRole = async () => {
-                setIsCheckingAdmin(true);
-                try {
-                    const adminDocRef = doc(firestore, 'roles_admin', user.uid);
-                    const adminDocSnap = await getDoc(adminDocRef);
-                    setIsAdmin(adminDocSnap.exists());
-                } catch (error: any) {
-                    console.error("Admin role check failed:", error);
-                    setIsAdmin(false);
-                } finally {
-                    setIsCheckingAdmin(false);
-                }
-            };
-            checkAdminRole();
-        } else if (!isUserLoading) {
-            setIsCheckingAdmin(false);
+      setIsCheckingAdmin(isAdminProfileLoading);
+      if (adminProfile) {
+        setIsAdmin(true);
+        if (adminProfile.role === 'superadmin') {
+          setIsSuperAdmin(true);
         }
-    }, [user, firestore, isUserLoading]);
+      } else if (!isAdminProfileLoading) {
+        setIsAdmin(false);
+        setIsSuperAdmin(false);
+      }
+    }, [adminProfile, isAdminProfileLoading]);
 
     // Fetch settings
     React.useEffect(() => {
-        fetch('/api/settings')
-            .then(res => res.json())
-            .then(data => {
-                if (data.whatsappNumber) {
-                    setWhatsappNumber(data.whatsappNumber);
-                }
-            })
-            .catch(console.error)
-            .finally(() => setSettingsLoading(false));
+        setSettingsLoading(true);
+        Promise.all([
+            fetch('/api/settings').then(res => res.json()),
+            fetch('/api/email-template').then(res => res.json())
+        ]).then(([settingsData, templateData]) => {
+            if (settingsData.whatsappNumber) {
+                setWhatsappNumber(settingsData.whatsappNumber);
+            }
+            if (templateData.template) {
+                setEmailTemplate(templateData.template);
+            }
+        }).catch(console.error)
+          .finally(() => setSettingsLoading(false));
     }, []);
 
     // Data fetching for services from all collections
     const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
     const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
     const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
+    const adminsRef = useMemoFirebase(() => firestore ? collection(firestore, 'roles_admin') : null, [firestore]);
 
     const { data: carRentals, isLoading: carsLoading } = useCollection(carRentalsRef);
     const { data: hotels, isLoading: hotelsLoading } = useCollection(hotelsRef);
     const { data: transports, isLoading: transportsLoading } = useCollection(transportsRef);
+    const { data: admins, isLoading: adminsLoading } = useCollection(adminsRef);
 
     const services = React.useMemo(() => {
         const allServices: any[] = [];
@@ -102,12 +109,13 @@ export default function AdminPage() {
         }
 
         const adminDocRef = doc(firestore, 'roles_admin', user.uid);
-        const dataToSave = { email: user.email, createdAt: serverTimestamp() };
+        // Self-signup always results in 'admin' role. Promotion to 'superadmin' must be done by an existing superadmin.
+        const dataToSave = { email: user.email, createdAt: serverTimestamp(), role: 'admin' };
 
         try {
             await setDoc(adminDocRef, dataToSave);
-            toast({ title: "Success!", description: "Admin access granted. Welcome to the dashboard." });
-            setIsAdmin(true); // Manually update state to re-render the dashboard
+            toast({ title: "Success!", description: "Admin access granted. Welcome to the dashboard. To manage users, ask a superadmin to promote your account." });
+            setIsAdmin(true); 
         } catch (error) {
             const permissionError = new FirestorePermissionError({
                 path: adminDocRef.path,
@@ -129,7 +137,7 @@ export default function AdminPage() {
         setEditorOpen(true);
     };
     
-    const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || settingsLoading;
+    const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || adminsLoading || settingsLoading;
 
     if (isLoading) {
         return (
@@ -171,7 +179,11 @@ export default function AdminPage() {
         <div className="min-h-screen bg-muted/40">
             <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6 py-4">
                 <h1 className="text-2xl font-headline">Admin Dashboard</h1>
-                {user && <Badge variant="secondary" className="hidden sm:inline-flex">Logged in as {user.email}</Badge>}
+                 {user && (
+                    <Badge variant="secondary" className="hidden sm:inline-flex">
+                        {user.email} {isSuperAdmin && <span className="ml-1.5 font-bold">(Super Admin)</span>}
+                    </Badge>
+                )}
                 <div className="ml-auto">
                     <Button variant="outline" size="sm" onClick={handleLogout}>
                         <LogOut className="mr-2 h-4 w-4" />
@@ -180,12 +192,16 @@ export default function AdminPage() {
                 </div>
             </header>
             <main className="p-4 sm:px-6 sm:py-0 space-y-6">
-                <SettingsManagement currentWhatsappNumber={whatsappNumber} />
                 <ServiceManagement 
                     services={services} 
                     onAdd={handleAddService} 
                     onEdit={handleEditService} 
                 />
+                <SettingsManagement currentWhatsappNumber={whatsappNumber} />
+                <EmailTemplateEditor currentTemplate={emailTemplate} />
+                {isSuperAdmin && admins && adminProfile && (
+                    <AdminManagement admins={admins} currentUser={adminProfile} />
+                )}
             </main>
             <ServiceEditor
                 isOpen={editorOpen}

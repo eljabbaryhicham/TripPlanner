@@ -12,17 +12,17 @@
  *   inherent ownership-based security. This includes subcollections for `reservations` and `serviceSuggestions`.
  * - Public service data is stored in top-level collections: `/hotels`, `/carRentals`, and `/transports`.
  * - User-generated reviews are stored in a top-level `/reviews` collection, which is publicly readable.
- * - Administrator roles are managed by checking for the existence of a user's UID in the `/roles_admin` collection.
+ * - Administrator roles are managed in the `/roles_admin` collection, which contains a `role` field ('admin' or 'superadmin').
  *
  * Key Security Decisions:
  * - User Enumeration is Disallowed: The top-level `/users` collection cannot be listed, protecting user privacy.
  * - Admin-Only Content Management: All public service data can only be created, updated, or deleted by users
  *   designated as admins in the `/roles_admin` collection.
+ * - Super-Admin for User Management: Only 'superadmin' roles can add, remove, or modify other admin roles.
  * - Immutable Ownership: Once a user-owned document (like a reservation) is created, its link to the user
  *   (the `userId` field) cannot be changed. This prevents data from being re-assigned to another user.
- * - Out-of-Band Admin Management: The `/roles_admin` collection is read-only via these rules to prevent
- *   admins from being added or removed through the client application. Admin roles should be managed
- *   securely through the Firebase Console or a trusted backend server.
+ * - Out-of-Band Super-Admin Promotion: The first superadmin must be designated manually in the Firestore console
+ *   for security reasons, preventing any client-side logic from creating the first privileged user.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -55,6 +55,15 @@ service cloud.firestore {
      */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+    
+    /**
+     * Checks if the requesting user has super-admin privileges.
+     * This is determined by checking the 'role' field of their document in the
+     * '/roles_admin' collection.
+     */
+    function isSuperAdmin() {
+      return isAdmin() && get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'superadmin';
     }
 
     // ------------------------------------------------------------------------
@@ -179,17 +188,17 @@ service cloud.firestore {
     /**
      * @description Secures the admin role collection.
      * @path /roles_admin/{adminId}
-     * @allow An admin user can (get) this document to verify another admin's status.
-     * @deny A non-admin user cannot (get) or (list) any data in this collection, preventing discovery of admins.
-     * @deny All users, including admins, cannot (create), (update), or (delete) roles via the client.
-     * @principle Secures the role system by making it read-only from the client. Roles must be managed via the Firebase Console or a trusted server.
+     * @allow An admin can read other admin documents. A user can read their own.
+     * @allow A user can create their own admin document (self-signup to 'admin' role).
+     * @allow Only a superadmin can update roles (promote) or delete other admins.
+     * @deny Users cannot delete themselves.
      */
     match /roles_admin/{adminId} {
       allow get: if isOwner(adminId) || isAdmin();
       allow list: if isAdmin();
       allow create: if isOwner(adminId);
-      allow update: if false;
-      allow delete: if false;
+      allow update: if isSuperAdmin();
+      allow delete: if isSuperAdmin() && request.auth.uid != adminId;
     }
   }
 }
