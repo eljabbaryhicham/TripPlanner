@@ -23,7 +23,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 interface ServiceEditorProps {
     isOpen: boolean;
-    onClose: () => void;
+    onOpenChange: (isOpen: boolean) => void;
     service: Service | null;
 }
 
@@ -69,7 +69,7 @@ const detailKeySuggestions = {
     transport: ['Service', 'Includes', 'Vehicle']
 };
 
-export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
+export function ServiceEditor({ isOpen, onOpenChange, service }: ServiceEditorProps) {
     const { toast } = useToast();
     const firestore = useFirestore();
     const isEditing = !!service?.id;
@@ -90,6 +90,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
     // Effect to populate form state when the dialog is opened or the service changes
     React.useEffect(() => {
         if (isOpen) {
+            const currentServiceIsEditing = !!service?.id;
             setName(service?.name || '');
             setDescription(service?.description || '');
             setImageUrl(service?.imageUrl || '');
@@ -98,11 +99,41 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
             setPrice(service?.price ?? '');
             setPriceUnit(service?.priceUnit || 'day');
             setIsBestOffer(service?.isBestOffer || false);
-            setDetails(
-                service?.details
-                    ? Object.entries(service.details).map(([key, value], i) => ({ id: Date.now() + i, key, value }))
-                    : []
-            );
+            
+            const initialDetails = service?.details
+                ? Object.entries(service.details).map(([key, value], i) => ({ id: Date.now() + i, key, value }))
+                : [];
+
+            setDetails(initialDetails);
+            
+            if (!currentServiceIsEditing) {
+                 let defaultDetails: { key: string; value: string }[] = [];
+                switch (service?.category || 'cars') {
+                    case 'cars':
+                        defaultDetails = [
+                            { key: 'Seats', value: '' },
+                            { key: 'Transmission', value: 'Automatic' },
+                            { key: 'Fuel Policy', value: 'Full to full' },
+                        ];
+                        break;
+                    case 'hotels':
+                        defaultDetails = [
+                            { key: 'Amenities', value: '' },
+                            { key: 'Room Type', value: '' },
+                        ];
+                        break;
+                    case 'transport':
+                         defaultDetails = [
+                            { key: 'Service', value: 'Personal meet & greet' },
+                            { key: 'Includes', value: '' },
+                            { key: 'Vehicle', value: 'Comfortable Sedan' },
+                        ];
+                        break;
+                }
+                setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
+            }
+
+
             setAdditionalMedia(
                 service?.additionalMedia
                     ? service.additionalMedia.map((m, i) => ({ ...m, id: Date.now() + i }))
@@ -110,37 +141,6 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
             );
         }
     }, [service, isOpen]);
-
-    // Effect to set default details for a NEW service when the category changes
-    React.useEffect(() => {
-        if (isEditing || !isOpen) return;
-
-        let defaultDetails: { key: string; value: string }[] = [];
-        switch (category) {
-            case 'cars':
-                defaultDetails = [
-                    { key: 'Seats', value: '' },
-                    { key: 'Transmission', value: 'Automatic' },
-                    { key: 'Fuel Policy', value: 'Full to full' },
-                ];
-                break;
-            case 'hotels':
-                defaultDetails = [
-                    { key: 'Amenities', value: '' },
-                    { key: 'Room Type', value: '' },
-                ];
-                break;
-            case 'transport':
-                 defaultDetails = [
-                    { key: 'Service', value: 'Personal meet & greet' },
-                    { key: 'Includes', value: '' },
-                    { key: 'Vehicle', value: 'Comfortable Sedan' },
-                ];
-                break;
-        }
-        setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
-
-    }, [category, isEditing, isOpen]);
 
 
     // Handlers for dynamic fields
@@ -160,6 +160,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
     const addMedia = () => setAdditionalMedia([...additionalMedia, { id: Date.now(), imageUrl: '', description: '' }]);
     const removeMedia = (id: number) => setAdditionalMedia(additionalMedia.filter(m => m.id !== id));
 
+    const handleClose = () => onOpenChange(false);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -220,7 +221,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
         setDoc(docRef, dataToSave, { merge: true })
             .then(() => {
                 toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
-                onClose();
+                handleClose();
             })
             .catch((error) => {
                 const permissionError = new FirestorePermissionError({
@@ -237,7 +238,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? 'Edit Service' : 'Add New Service'}</DialogTitle>
@@ -363,7 +364,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                         </div>
                     </ScrollArea>
                     <DialogFooter className="mt-4">
-                        <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+                        <Button variant="outline" type="button" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             {isEditing ? 'Save Changes' : 'Create Service'}

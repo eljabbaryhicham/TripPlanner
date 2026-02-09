@@ -102,10 +102,6 @@ export default function ServiceManagement({ services }: { services: Service[] })
         setEditorOpen(true);
     };
 
-    const handleCloseEditor = () => {
-        setEditorOpen(false);
-    }
-
     return (
         <>
             <Card>
@@ -176,7 +172,7 @@ export default function ServiceManagement({ services }: { services: Service[] })
             </Card>
             <ServiceEditor
                 isOpen={editorOpen}
-                onClose={handleCloseEditor}
+                onOpenChange={setEditorOpen}
                 service={serviceToEdit}
             />
         </>
