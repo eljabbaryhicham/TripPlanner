@@ -104,17 +104,26 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
   const { user } = useUser();
 
   const reviewsQuery = useMemoFirebase(
-    () => firestore ? query(collection(firestore, 'reviews'), where('serviceId', '==', serviceId), orderBy('createdAt', 'desc')) : null,
+    () => firestore ? query(collection(firestore, 'reviews'), where('serviceId', '==', serviceId)) : null,
     [firestore, serviceId]
   );
   
   const { data: reviews, isLoading } = useCollection<Review>(reviewsQuery);
+
+  const sortedReviews = React.useMemo(() => {
+    if (!reviews) return [];
+    return reviews.sort((a, b) => {
+      const timeA = a.createdAt?.seconds ?? 0;
+      const timeB = b.createdAt?.seconds ?? 0;
+      return timeB - timeA;
+    });
+  }, [reviews]);
   
   const averageRating = React.useMemo(() => {
-    if (!reviews || reviews.length === 0) return 0;
-    const total = reviews.reduce((acc, review) => acc + review.rating, 0);
-    return total / reviews.length;
-  }, [reviews]);
+    if (!sortedReviews || sortedReviews.length === 0) return 0;
+    const total = sortedReviews.reduce((acc, review) => acc + review.rating, 0);
+    return total / sortedReviews.length;
+  }, [sortedReviews]);
 
 
   return (
@@ -123,13 +132,13 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Reviews for {serviceName}</DialogTitle>
           <DialogDescription className="flex items-center gap-2">
-            {reviews && reviews.length > 0 ? (
+            {sortedReviews && sortedReviews.length > 0 ? (
                 <>
                     <div className="flex items-center text-amber-400">
                         <Star className="h-4 w-4 mr-1 fill-current" />
                         <span>{averageRating.toFixed(1)}</span>
                     </div>
-                    <span className="text-muted-foreground">({reviews.length} {reviews.length === 1 ? 'review' : 'reviews'})</span>
+                    <span className="text-muted-foreground">({sortedReviews.length} {sortedReviews.length === 1 ? 'review' : 'reviews'})</span>
                 </>
             ) : (
                 <span>No reviews yet. Be the first!</span>
@@ -159,8 +168,8 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
               </div>
             )}
 
-            {!isLoading && reviews && reviews.length > 0 && (
-                reviews.map((review) => (
+            {!isLoading && sortedReviews && sortedReviews.length > 0 && (
+                sortedReviews.map((review) => (
                     <div key={review.id}>
                     <div className="flex items-start space-x-4">
                         <Avatar>
@@ -190,7 +199,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
                 ))
             )}
 
-            {!isLoading && (!reviews || reviews.length === 0) && (
+            {!isLoading && (!sortedReviews || sortedReviews.length === 0) && (
                 <div className="text-center py-8">
                     <p className="text-muted-foreground">No reviews have been submitted for this service yet.</p>
                 </div>
