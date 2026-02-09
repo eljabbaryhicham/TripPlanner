@@ -194,11 +194,13 @@ const ServiceDetailModal = ({
               <div>
                 <h3 className="font-semibold mb-3">Details</h3>
                 <div className="space-y-2 text-sm">
-                  {Object.entries(service.details).map(([key, value]) => (
-                    <div key={key} className="flex justify-between items-center">
-                      <span className="text-foreground/80">{key}:</span>
-                      <span className="font-medium">{value}</span>
-                    </div>
+                  {Object.entries(service.details)
+                    .filter(([key]) => key.toLowerCase() !== 'rating')
+                    .map(([key, value]) => (
+                      <div key={key} className="flex justify-between items-center">
+                        <span className="text-foreground/80">{key}:</span>
+                        <span className="font-medium">{value}</span>
+                      </div>
                   ))}
                 </div>
               </div>

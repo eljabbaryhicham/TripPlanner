@@ -4,7 +4,7 @@
 import * as React from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
-import type { Service } from '@/lib/types';
+import type { Review, Service } from '@/lib/types';
 import Image from 'next/image';
 import {
   Carousel,
@@ -19,9 +19,29 @@ import { Button } from '@/components/ui/button';
 import ReservationFlow from '@/components/reservation-flow';
 import ReviewsPopup from '@/components/reviews-popup';
 import { Star } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 export default function TransportPageContent({ service }: { service: Service }) {
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
+  const firestore = useFirestore();
+
+  const reviewsQuery = useMemoFirebase(
+    () => service ? query(collection(firestore, 'reviews'), where('serviceId', '==', service.id)) : null,
+    [firestore, service]
+  );
+  
+  const { data: reviews, isLoading: reviewsLoading } = useCollection<Review>(reviewsQuery);
+  
+  const { averageRating, totalReviews } = React.useMemo(() => {
+    if (!reviews || reviews.length === 0) return { averageRating: 0, totalReviews: 0 };
+    const total = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return {
+        averageRating: total / reviews.length,
+        totalReviews: reviews.length
+    };
+  }, [reviews]);
+
 
   return (
     <>
@@ -63,16 +83,27 @@ export default function TransportPageContent({ service }: { service: Service }) 
 
               <div className="p-6">
                 <div className="pt-6 text-center md:text-left">
-                  <h1 className="text-3xl font-headline mb-2 flex items-center">
-                    {service.name}
-                    {service.isBestOffer && (
-                        <Badge variant="default" className="ml-4 bg-accent text-accent-foreground">
-                            <Star className="w-3 h-3 mr-1.5" />
-                            Best Offer
-                        </Badge>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                    <h1 className="text-3xl font-headline mb-2 flex items-center">
+                        {service.name}
+                        {service.isBestOffer && (
+                            <Badge variant="default" className="ml-4 bg-accent text-accent-foreground">
+                                <Star className="w-3 h-3 mr-1.5" />
+                                Best Offer
+                            </Badge>
+                        )}
+                    </h1>
+                     {totalReviews > 0 && (
+                        <div className="flex items-center justify-center sm:justify-start gap-2 text-sm text-muted-foreground">
+                            <span className="flex items-center text-amber-400">
+                                <Star className="h-4 w-4 mr-1 fill-current" />
+                                <span>{averageRating.toFixed(1)}</span>
+                            </span>
+                            <span>({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})</span>
+                        </div>
                     )}
-                  </h1>
-                  <p className="text-base text-muted-foreground">
+                  </div>
+                  <p className="text-base text-muted-foreground mt-2">
                     {service.description}
                   </p>
                 </div>
@@ -81,11 +112,13 @@ export default function TransportPageContent({ service }: { service: Service }) 
                     <div>
                     <h3 className="font-semibold mb-3">Details</h3>
                     <div className="space-y-2 text-sm">
-                        {Object.entries(service.details).map(([key, value]) => (
-                        <div key={key} className="flex justify-between items-center">
-                            <span className="text-foreground/80">{key}:</span>
-                            <span className="font-medium">{value}</span>
-                        </div>
+                        {Object.entries(service.details)
+                          .filter(([key]) => key.toLowerCase() !== 'rating')
+                          .map(([key, value]) => (
+                          <div key={key} className="flex justify-between items-center">
+                              <span className="text-foreground/80">{key}:</span>
+                              <span className="font-medium">{value}</span>
+                          </div>
                         ))}
                          <div className="flex justify-between items-center">
                             <span className="text-foreground/80">Reviews:</span>
@@ -129,6 +162,9 @@ export default function TransportPageContent({ service }: { service: Service }) 
         onClose={() => setReviewsOpen(false)}
         serviceId={service.id}
         serviceName={service.name}
+        reviews={reviews}
+        averageRating={averageRating}
+        isLoading={reviewsLoading}
       />
     </>
   );
