@@ -86,11 +86,13 @@ export default function AdminPage() {
     const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
     const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
     const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
+    const exploreTripsRef = useMemoFirebase(() => firestore ? collection(firestore, 'exploreTrips') : null, [firestore]);
     const adminsRef = useMemoFirebase(() => firestore ? collection(firestore, 'roles_admin') : null, [firestore]);
 
     const { data: carRentals, isLoading: carsLoading } = useCollection(carRentalsRef);
     const { data: hotels, isLoading: hotelsLoading } = useCollection(hotelsRef);
     const { data: transports, isLoading: transportsLoading } = useCollection(transportsRef);
+    const { data: exploreTrips, isLoading: exploreLoading } = useCollection(exploreTripsRef);
     const { data: admins, isLoading: adminsLoading } = useCollection(adminsRef);
 
     const services = React.useMemo(() => {
@@ -98,8 +100,9 @@ export default function AdminPage() {
         if (carRentals) allServices.push(...carRentals.map(s => ({ ...s, category: 'cars' })));
         if (hotels) allServices.push(...hotels.map(s => ({ ...s, category: 'hotels' })));
         if (transports) allServices.push(...transports.map(s => ({ ...s, category: 'transport' })));
+        if (exploreTrips) allServices.push(...exploreTrips.map(s => ({ ...s, category: 'explore' })));
         return allServices;
-    }, [carRentals, hotels, transports]);
+    }, [carRentals, hotels, transports, exploreTrips]);
 
     const handleLogout = async () => {
         if (auth) {
@@ -143,7 +146,7 @@ export default function AdminPage() {
         setEditorOpen(true);
     };
     
-    const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || adminsLoading || settingsLoading;
+    const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || exploreLoading || adminsLoading || settingsLoading;
 
     if (isLoading) {
         return (

@@ -83,7 +83,7 @@ const ServiceDetailModal = ({
 
         let dayCount;
         if (service.priceUnit === 'night') {
-          dayCount = dayDifference;
+          dayCount = dayDifference > 0 ? dayDifference : 1;
         } else { // for 'day' unit
           dayCount = dayDifference + 1;
         }
@@ -94,6 +94,10 @@ const ServiceDetailModal = ({
       } catch (e) {
         return { days: null, totalPrice: null };
       }
+    }
+    // If dates are not provided (e.g. for a trip), but the price is per trip, then total price is service price.
+    if (service?.priceUnit === 'trip') {
+      return { days: null, totalPrice: service.price };
     }
     return { days: null, totalPrice: null };
   }, [startDate, endDate, service]);
