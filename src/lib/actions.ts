@@ -27,18 +27,18 @@ const reservationSchema = z.object({
 
 type ReservationFormValues = z.infer<typeof reservationSchema>;
 
-export async function submitReservation(data: ReservationFormValues) {
+export async function submitReservation(data: ReservationFormValues): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
   const parsed = reservationSchema.safeParse(data);
 
   if (!parsed.success) {
-    return { success: false, error: 'Invalid data.' };
+    return { success: false, error: 'Invalid data.', warning: null };
   }
 
   const { name, email, phone, message, serviceName, startDate, endDate } = parsed.data;
 
   if (!process.env.RESEND_API_KEY || !process.env.BOOKING_EMAIL_TO) {
     console.error('Resend API Key or recipient email is not set in .env file.');
-    return { success: false, error: 'Server is not configured to send emails.' };
+    return { success: false, error: 'Server is not configured to send emails.', warning: null };
   }
 
   try {
@@ -72,7 +72,7 @@ export async function submitReservation(data: ReservationFormValues) {
 
     if (adminError) {
       console.error('Resend error (to admin):', adminError);
-      return { success: false, error: 'Failed to send admin notification email.' };
+      return { success: false, error: 'Failed to send admin notification email.', warning: null };
     }
 
     // --- Prepare and send confirmation email to Client ---
@@ -93,14 +93,19 @@ export async function submitReservation(data: ReservationFormValues) {
     
     if (clientError) {
         console.error('Resend error (to client):', clientError);
-        // Even if client email fails, we consider it a success if admin email was sent.
-        // We can add more robust logging/handling here if needed.
+        // The admin email was sent, but client confirmation failed.
+        // Return success with a warning to inform the user.
+        return { 
+            success: true, 
+            error: null,
+            warning: "Your inquiry was sent to our team, but the confirmation email could not be sent to you. Please double-check the email address you provided."
+        };
     }
 
-    return { success: true };
+    return { success: true, error: null, warning: null };
   } catch (error) {
     console.error('Failed to send email(s):', error);
-    return { success: false, error: 'An unexpected error occurred while sending the email(s).' };
+    return { success: false, error: 'An unexpected error occurred while sending the email(s).', warning: null };
   }
 }
 

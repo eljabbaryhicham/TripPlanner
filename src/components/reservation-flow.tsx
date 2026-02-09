@@ -116,11 +116,19 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
     };
     const result = await submitReservation(submissionData);
     if (result.success) {
-      toast({
-        title: 'Message Sent!',
-        description:
-          "We've received your message and will get back to you shortly (Within 1-3 Hours). thanks",
-      });
+      if (result.warning) {
+        toast({
+          title: "Inquiry Sent (with a note)",
+          description: result.warning,
+          duration: 8000,
+        });
+      } else {
+        toast({
+          title: 'Message Sent!',
+          description:
+            "We've received your message and will get back to you shortly (Within 1-3 Hours). thanks",
+        });
+      }
       form.reset();
       setShowInquiryConfirmation(true);
       setReservationType(null);
