@@ -59,7 +59,7 @@ const ServiceCard = ({
             </span>
           </div>
         </div>
-        <Button asChild variant="default" className="w-full mt-4 h-14 text-lg font-bold">
+        <Button asChild variant="default" className="w-full mt-4">
             <Link href={`${pathname}?${slugify(service.name)}`} scroll={false}>
               Book
             </Link>

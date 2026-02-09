@@ -21,9 +21,12 @@ import ReviewsPopup from '@/components/reviews-popup';
 import { Star } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
 
 export default function TransportPageContent({ service }: { service: Service }) {
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
+  const [fullName, setFullName] = React.useState('');
   const firestore = useFirestore();
 
   const reviewsQuery = useMemoFirebase(
@@ -50,7 +53,7 @@ export default function TransportPageContent({ service }: { service: Service }) 
         <main className="flex-1 py-16 md:py-24">
           <div className="container mx-auto px-4 max-w-4xl">
             <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-              <div className="relative -mx-0 -mt-0 rounded-t-lg overflow-hidden">
+              <div className="relative -mx-0 -mt-0 rounded-t-lg overflow-hidden p-4 bg-muted/40">
                  <Carousel>
                     <CarouselContent>
                       <CarouselItem>
@@ -59,7 +62,7 @@ export default function TransportPageContent({ service }: { service: Service }) 
                             src={service.imageUrl}
                             alt={service.description}
                             fill
-                            className="object-cover"
+                            className="object-cover rounded-md"
                           />
                         </div>
                       </CarouselItem>
@@ -70,7 +73,7 @@ export default function TransportPageContent({ service }: { service: Service }) 
                                 src={media.imageUrl}
                                 alt={media.description}
                                 fill
-                                className="object-cover"
+                                className="object-cover rounded-md"
                             />
                             </div>
                         </CarouselItem>
@@ -146,10 +149,21 @@ export default function TransportPageContent({ service }: { service: Service }) 
                 </div>
 
                 <Separator className="my-4" />
+                <div className="space-y-4 mb-6">
+                    <Label htmlFor="full-name" className="font-semibold">Your Full Name</Label>
+                    <Input 
+                        id="full-name"
+                        placeholder="Enter your full name to proceed"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        required
+                    />
+                </div>
                 <ReservationFlow
                     service={service}
                     dates={undefined}
                     totalPrice={null}
+                    fullName={fullName}
                 />
               </div>
             </div>

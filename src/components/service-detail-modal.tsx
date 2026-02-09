@@ -133,7 +133,7 @@ const ServiceDetailModal = ({
       >
         <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <div className="relative -mx-6 -mt-6 rounded-t-lg overflow-hidden">
+            <div className="relative -mx-6 -mt-6 rounded-t-lg overflow-hidden p-4 bg-muted/40">
               <Carousel>
                 <CarouselContent>
                   <CarouselItem>
@@ -142,7 +142,7 @@ const ServiceDetailModal = ({
                         src={service.imageUrl}
                         alt={service.description}
                         fill
-                        className="object-cover"
+                        className="object-cover rounded-md"
                       />
                     </div>
                   </CarouselItem>
@@ -153,7 +153,7 @@ const ServiceDetailModal = ({
                             src={media.imageUrl}
                             alt={media.description}
                             fill
-                            className="object-cover"
+                            className="object-cover rounded-md"
                         />
                         </div>
                     </CarouselItem>

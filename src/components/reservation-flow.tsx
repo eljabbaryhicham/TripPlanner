@@ -229,34 +229,21 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
           <input type="hidden" {...form.register('serviceName')} />
           <input type="hidden" {...form.register('serviceId')} />
           <input type="hidden" {...form.register('price')} />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} readOnly className="bg-muted/50"/>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email Address</FormLabel>
-                  <FormControl>
-                    <Input placeholder="you@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
+          <input type="hidden" {...form.register('name')} />
+          
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email Address</FormLabel>
+                <FormControl>
+                  <Input placeholder="you@example.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           <FormField
             control={form.control}
             name="phone"
@@ -329,6 +316,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName }: ReservationFl
                 </span>
             </div>
         </div>
+        <p className="text-center text-sm text-muted-foreground -mb-2">We will reply you in a few minutes.</p>
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button
                 className="w-full sm:flex-1"
