@@ -12,7 +12,7 @@ import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
 import SettingsManagement from '@/components/admin/settings-management';
 import { useToast } from '@/hooks/use-toast';
-import { ServiceEditor, type ServiceEditorHandles } from '@/components/admin/service-editor';
+import { ServiceEditor } from '@/components/admin/service-editor';
 import type { Service } from '@/lib/types';
 
 export default function AdminPage() {
@@ -26,7 +26,8 @@ export default function AdminPage() {
     const [whatsappNumber, setWhatsappNumber] = React.useState('');
     const [settingsLoading, setSettingsLoading] = React.useState(true);
     
-    const editorRef = React.useRef<ServiceEditorHandles>(null);
+    const [editorOpen, setEditorOpen] = React.useState(false);
+    const [serviceToEdit, setServiceToEdit] = React.useState<Service | null>(null);
 
     // Auth check
     React.useEffect(() => {
@@ -119,11 +120,13 @@ export default function AdminPage() {
     };
 
     const handleAddService = () => {
-        editorRef.current?.add();
+        setServiceToEdit(null);
+        setEditorOpen(true);
     };
 
     const handleEditService = (service: Service) => {
-        editorRef.current?.edit(service);
+        setServiceToEdit(service);
+        setEditorOpen(true);
     };
     
     const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || settingsLoading;
@@ -184,7 +187,11 @@ export default function AdminPage() {
                     onEdit={handleEditService} 
                 />
             </main>
-            <ServiceEditor ref={editorRef} />
+            <ServiceEditor
+                isOpen={editorOpen}
+                onClose={() => setEditorOpen(false)}
+                service={serviceToEdit}
+            />
         </div>
     );
 }

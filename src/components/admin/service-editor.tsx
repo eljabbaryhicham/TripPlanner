@@ -18,12 +18,12 @@ import { doc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { useImperativeHandle, forwardRef } from 'react';
 import { Separator } from '@/components/ui/separator';
 
-export interface ServiceEditorHandles {
-    edit: (service: Service) => void;
-    add: () => void;
+interface ServiceEditorProps {
+    isOpen: boolean;
+    onClose: () => void;
+    service: Service | null;
 }
 
 const additionalMediaSchema = z.object({
@@ -69,23 +69,18 @@ const detailKeySuggestions = {
     transport: ['Service', 'Includes', 'Vehicle']
 };
 
-const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
+export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) => {
     const { toast } = useToast();
     const firestore = useFirestore();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    // Internal state for the dialog
-    const [isOpen, setIsOpen] = React.useState(false);
-    const [service, setService] = React.useState<Service | null>(null);
-
-    // Form state - initialized to empty/default values
+    // Form state
     const [name, setName] = React.useState('');
     const [description, setDescription] = React.useState('');
     const [imageUrl, setImageUrl] = React.useState('');
     const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport'>('cars');
     const [location, setLocation] = React.useState('');
     const [price, setPrice] = React.useState<number | string>('');
-    const [priceUnit, setPriceUnit] = React.useState<'day' | 'night' | 'trip'>('day');
     const [isBestOffer, setIsBestOffer] = React.useState(false);
     const [isActive, setIsActive] = React.useState(true);
     const [details, setDetails] = React.useState<Detail[]>([]);
@@ -93,19 +88,6 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
 
     const isEditing = !!service?.id;
 
-    // Expose methods to parent component via ref
-    useImperativeHandle(ref, () => ({
-        edit: (serviceToEdit: Service) => {
-            setService(serviceToEdit);
-            setIsOpen(true);
-        },
-        add: () => {
-            setService(null);
-            setIsOpen(true);
-        }
-    }));
-
-    // Effect to populate form state when the dialog is opened or the service changes
     React.useEffect(() => {
         if (isOpen) {
             setName(service?.name || '');
@@ -114,7 +96,6 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
             setCategory(service?.category || 'cars');
             setLocation(service?.location || '');
             setPrice(service?.price ?? '');
-            setPriceUnit(service?.priceUnit || (service?.category === 'hotels' ? 'night' : service?.category === 'transport' ? 'trip' : 'day'));
             setIsBestOffer(service?.isBestOffer || false);
             setIsActive(service?.isActive ?? true);
             
@@ -123,29 +104,18 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
                 : [];
             setDetails(initialDetails);
 
-            if (!service?.id) { // If it's a new service
+            if (!service?.id) { // New service defaults
                 const currentCategory = service?.category || 'cars';
                 let defaultDetails: { key: string; value: string }[] = [];
                 switch (currentCategory) {
                     case 'cars':
-                        defaultDetails = [
-                            { key: 'Seats', value: '' },
-                            { key: 'Transmission', value: 'Automatic' },
-                            { key: 'Fuel Policy', value: 'Full to full' },
-                        ];
+                        defaultDetails = [ { key: 'Seats', value: '' }, { key: 'Transmission', value: 'Automatic' }, { key: 'Fuel Policy', value: 'Full to full' }, ];
                         break;
                     case 'hotels':
-                        defaultDetails = [
-                            { key: 'Amenities', value: '' },
-                            { key: 'Room Type', value: '' },
-                        ];
+                        defaultDetails = [ { key: 'Amenities', value: '' }, { key: 'Room Type', value: '' }, ];
                         break;
                     case 'transport':
-                         defaultDetails = [
-                            { key: 'Service', value: 'Personal meet & greet' },
-                            { key: 'Includes', value: '' },
-                            { key: 'Vehicle', value: 'Comfortable Sedan' },
-                        ];
+                         defaultDetails = [ { key: 'Service', value: 'Personal meet & greet' }, { key: 'Includes', value: '' }, { key: 'Vehicle', value: 'Comfortable Sedan' }, ];
                         break;
                 }
                 setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
@@ -177,8 +147,6 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
     const addMedia = () => setAdditionalMedia([...additionalMedia, { id: Date.now(), imageUrl: '', description: '' }]);
     const removeMedia = (id: number) => setAdditionalMedia(additionalMedia.filter(m => m.id !== id));
 
-    const handleClose = () => setIsOpen(false);
-
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsSubmitting(true);
@@ -189,6 +157,13 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
         }, {} as Record<string, string>);
 
         const mediaArray = additionalMedia.map(({ imageUrl, description }) => ({ imageUrl, description }));
+        
+        let priceUnit: 'day' | 'night' | 'trip';
+        switch (category) {
+            case 'cars': priceUnit = 'day'; break;
+            case 'hotels': priceUnit = 'night'; break;
+            case 'transport': priceUnit = 'trip'; break;
+        }
 
         const dataToValidate = {
             id: service?.id,
@@ -239,7 +214,7 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
         setDoc(docRef, dataToSave, { merge: true })
             .then(() => {
                 toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
-                handleClose();
+                onClose();
             })
             .catch((error) => {
                 const permissionError = new FirestorePermissionError({
@@ -256,7 +231,7 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{isEditing ? 'Edit Service' : 'Add New Service'}</DialogTitle>
@@ -319,24 +294,9 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
                                     <Input id="location" value={location} onChange={e => setLocation(e.target.value)} required />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                               <div className="space-y-2">
-                                    <Label htmlFor="price">Price</Label>
-                                    <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label>Price Unit</Label>
-                                     <Select value={priceUnit} onValueChange={(v: 'day' | 'night' | 'trip') => setPriceUnit(v)}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a unit" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="day">per day</SelectItem>
-                                            <SelectItem value="night">per night</SelectItem>
-                                            <SelectItem value="trip">per trip</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="price">Price</Label>
+                                <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
                             </div>
                             
                             <div className="space-y-2 rounded-md border p-4">
@@ -398,7 +358,7 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
                         </div>
                     </ScrollArea>
                     <DialogFooter className="mt-4">
-                        <Button variant="outline" type="button" onClick={handleClose} disabled={isSubmitting}>Cancel</Button>
+                        <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
                         <Button type="submit" disabled={isSubmitting}>
                             {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
                             {isEditing ? 'Save Changes' : 'Create Service'}
@@ -408,7 +368,4 @@ const ServiceEditor = forwardRef<ServiceEditorHandles, {}>((props, ref) => {
             </DialogContent>
         </Dialog>
     );
-});
-ServiceEditor.displayName = 'ServiceEditor';
-
-export { ServiceEditor };
+};
