@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useUser, useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -49,7 +49,7 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
             rating,
             comment,
             createdAt: serverTimestamp(),
-            authorName: name.trim() || user.displayName || user.email || 'Client',
+            authorName: name.trim() || user.displayName || 'Client',
             authorImage: user.photoURL || null,
         };
 
@@ -78,16 +78,16 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
                     </button>
                 ))}
             </div>
+            <Input
+                placeholder="Your Name (Optional)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+            />
             <Textarea 
                 placeholder="Share your experience..." 
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 required
-            />
-            <Input
-                placeholder="Your Name (Optional)"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
             />
             <div className="flex justify-end">
                 <Button type="submit" disabled={isSubmitting}>
@@ -105,19 +105,14 @@ interface ReviewsPopupProps {
   onClose: () => void;
   serviceId: string;
   serviceName: string;
+  reviews: Review[] | null;
+  averageRating: number;
+  isLoading: boolean;
 }
 
-const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupProps) => {
-  const firestore = useFirestore();
+const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averageRating, isLoading }: ReviewsPopupProps) => {
   const { user } = useUser();
-
-  const reviewsQuery = useMemoFirebase(
-    () => firestore ? query(collection(firestore, 'reviews'), where('serviceId', '==', serviceId)) : null,
-    [firestore, serviceId]
-  );
   
-  const { data: reviews, isLoading } = useCollection<Review>(reviewsQuery);
-
   const sortedReviews = React.useMemo(() => {
     if (!reviews) return [];
     // Create a mutable copy before sorting
@@ -127,12 +122,6 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
       return timeB - timeA; // Sort descending
     });
   }, [reviews]);
-  
-  const averageRating = React.useMemo(() => {
-    if (!sortedReviews || sortedReviews.length === 0) return 0;
-    const total = sortedReviews.reduce((acc, review) => acc + review.rating, 0);
-    return total / sortedReviews.length;
-  }, [sortedReviews]);
 
 
   return (
@@ -141,7 +130,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Reviews for {serviceName}</DialogTitle>
           <DialogDescription asChild>
-            {sortedReviews && sortedReviews.length > 0 ? (
+             {sortedReviews && sortedReviews.length > 0 ? (
                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="flex items-center text-amber-400">
                         <Star className="h-4 w-4 mr-1 fill-current" />

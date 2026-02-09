@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dialog';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
-import type { Service } from '@/lib/types';
+import type { Service, Review } from '@/lib/types';
 import ReservationFlow from './reservation-flow';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -24,6 +24,9 @@ import {
 } from '@/components/ui/carousel';
 import { Button } from './ui/button';
 import ReviewsPopup from './reviews-popup';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { Star } from 'lucide-react';
 
 interface ServiceDetailModalProps {
   service: Service | null;
@@ -39,6 +42,23 @@ const ServiceDetailModal = ({
   const [startDate, setStartDate] = React.useState('');
   const [endDate, setEndDate] = React.useState('');
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
+  const firestore = useFirestore();
+
+  const reviewsQuery = useMemoFirebase(
+    () => service ? query(collection(firestore, 'reviews'), where('serviceId', '==', service.id)) : null,
+    [firestore, service]
+  );
+  
+  const { data: reviews, isLoading: reviewsLoading } = useCollection<Review>(reviewsQuery);
+  
+  const { averageRating, totalReviews } = React.useMemo(() => {
+    if (!reviews || reviews.length === 0) return { averageRating: 0, totalReviews: 0 };
+    const total = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return {
+        averageRating: total / reviews.length,
+        totalReviews: reviews.length
+    };
+  }, [reviews]);
 
   const todayDate = React.useMemo(() => {
     const d = new Date();
@@ -146,10 +166,21 @@ const ServiceDetailModal = ({
 
           <div className="px-6 pt-6">
             <div className="pb-6">
-              <DialogTitle className="text-3xl font-headline mb-2">
-                {service.name}
-              </DialogTitle>
-              <DialogDescription className="text-base">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
+                <DialogTitle className="text-3xl font-headline mb-2 sm:mb-0">
+                  {service.name}
+                </DialogTitle>
+                {totalReviews > 0 && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <span className="flex items-center text-amber-400">
+                            <Star className="h-4 w-4 mr-1 fill-current" />
+                            <span>{averageRating.toFixed(1)}</span>
+                        </span>
+                        <span>({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})</span>
+                    </div>
+                )}
+              </div>
+              <DialogDescription className="text-base mt-2">
                 {service.description}
               </DialogDescription>
               <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
@@ -157,10 +188,10 @@ const ServiceDetailModal = ({
               </Button>
             </div>
           </div>
-          
+
           <Separator />
           
-          <div className="px-6 pt-6 pb-6">
+           <div className="px-6 pt-6 pb-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
                 <h3 className="font-semibold mb-3">Details</h3>
@@ -257,6 +288,9 @@ const ServiceDetailModal = ({
           onClose={() => setReviewsOpen(false)}
           serviceId={service.id}
           serviceName={service.name}
+          reviews={reviews}
+          averageRating={averageRating}
+          isLoading={reviewsLoading}
         />
       )}
     </>

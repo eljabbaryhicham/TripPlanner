@@ -76,6 +76,37 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
             ? service.additionalMedia.map((m, i) => ({ ...m, id: i }))
             : []
     );
+     // Set default details when category changes for a new service
+    React.useEffect(() => {
+        if (isEditing) return;
+
+        let defaultDetails: { key: string; value: string }[] = [];
+        switch (category) {
+            case 'cars':
+                defaultDetails = [
+                    { key: 'Seats', value: '' },
+                    { key: 'Transmission', value: 'Automatic' },
+                    { key: 'Fuel Policy', value: 'Full to full' },
+                ];
+                break;
+            case 'hotels':
+                defaultDetails = [
+                    { key: 'Amenities', value: '' },
+                    { key: 'Room Type', value: '' },
+                ];
+                break;
+            case 'transport':
+                 defaultDetails = [
+                    { key: 'Service', value: 'Personal meet & greet' },
+                    { key: 'Includes', value: '' },
+                    { key: 'Vehicle', value: 'Comfortable Sedan' },
+                ];
+                break;
+        }
+        setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
+
+    }, [category, isEditing]);
+
 
     // Handlers for dynamic fields
     const handleDetailChange = (index: number, field: 'key' | 'value', value: string) => {
@@ -150,7 +181,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
         }
 
         const docRef = doc(firestore, collectionPath, docId);
-        const dataToSave = { ...serviceData, id: docId };
+        const dataToSave = { ...serviceData, id: docId, category: serviceCategory };
 
         setDoc(docRef, dataToSave, { merge: true })
             .then(() => {
@@ -204,7 +235,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Category</Label>
-                                    <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport') => setCategory(v)}>
+                                    <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport') => setCategory(v)} disabled={isEditing}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select a category" />
                                         </SelectTrigger>
