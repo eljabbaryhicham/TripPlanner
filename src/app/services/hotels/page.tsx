@@ -1,15 +1,18 @@
+'use client';
 
+import * as React from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import ServiceList from '@/components/service-list';
-import { getServices } from '@/lib/actions';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { BedDouble } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function HotelsPage() {
-  const allServices = await getServices();
-  const hotelServices = allServices.filter(
-    (service) => service.category === 'hotels'
-  );
+export default function HotelsPage() {
+  const firestore = useFirestore();
+  const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
+  const { data: hotelServices, isLoading } = useCollection(hotelsRef);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -26,7 +29,15 @@ export default async function HotelsPage() {
                 Discover your home away from home.
               </p>
             </div>
-            <ServiceList services={hotelServices} />
+             {isLoading ? (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <Skeleton className="h-96" />
+                  <Skeleton className="h-96" />
+                  <Skeleton className="h-96" />
+               </div>
+            ) : (
+              <ServiceList services={hotelServices || []} />
+            )}
           </div>
         </section>
       </main>

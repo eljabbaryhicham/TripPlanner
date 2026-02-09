@@ -1,13 +1,18 @@
+'use client';
 
+import * as React from 'react';
 import Header from '@/components/header';
 import Footer from '@/components/footer';
 import ServiceList from '@/components/service-list';
-import { getServices } from '@/lib/actions';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 import { Car } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function CarsPage() {
-  const allServices = await getServices();
-  const carServices = allServices.filter((service) => service.category === 'cars');
+export default function CarsPage() {
+  const firestore = useFirestore();
+  const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
+  const { data: carServices, isLoading } = useCollection(carRentalsRef);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -24,7 +29,15 @@ export default async function CarsPage() {
                 Find the perfect vehicle for your journey.
               </p>
             </div>
-            <ServiceList services={carServices} />
+            {isLoading ? (
+               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                  <Skeleton className="h-96" />
+                  <Skeleton className="h-96" />
+                  <Skeleton className="h-96" />
+               </div>
+            ) : (
+              <ServiceList services={carServices || []} />
+            )}
           </div>
         </section>
       </main>

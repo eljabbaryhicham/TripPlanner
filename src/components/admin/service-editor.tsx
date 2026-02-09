@@ -1,9 +1,7 @@
-
 'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { saveService } from '@/lib/actions';
 import type { Service } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -15,6 +13,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Save } from 'lucide-react';
 import { ScrollArea } from '../ui/scroll-area';
+import { z } from 'zod';
+import { useFirestore } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 interface ServiceEditorProps {
     isOpen: boolean;
@@ -22,38 +25,124 @@ interface ServiceEditorProps {
     service: Service | null;
 }
 
-function SubmitButton({ isEditing, pending }: { isEditing: boolean, pending: boolean }) {
-    return (
-        <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            {isEditing ? 'Save Changes' : 'Create Service'}
-        </Button>
-    );
-}
+const additionalMediaSchema = z.object({
+  imageUrl: z.string().url('Media item must have a valid URL.'),
+  imageHint: z.string().min(1, 'Media item must have an image hint.'),
+  description: z.string().min(1, 'Media item must have a description.'),
+});
+
+const serviceSchema = z.object({
+    id: z.string().optional(),
+    name: z.string().min(1, 'Name is required'),
+    description: z.string().min(1, 'Description is required'),
+    imageUrl: z.string().url('Image URL must be a valid URL'),
+    imageHint: z.string().min(1, 'Image hint is required'),
+    category: z.enum(['cars', 'hotels', 'transport']),
+    price: z.coerce.number().min(0, 'Price must be non-negative'),
+    priceUnit: z.enum(['day', 'night', 'trip']),
+    location: z.string().min(1, 'Location is required'),
+    isBestOffer: z.preprocess((val) => val === 'on' || val === true, z.boolean()).default(false),
+    details: z.string().transform((str, ctx) => {
+        try {
+            const parsed = JSON.parse(str);
+            if (typeof parsed !== 'object' || Array.isArray(parsed) || parsed === null) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Details must be a valid JSON object.' });
+                return z.NEVER;
+            }
+            for (const key in parsed) {
+                if (typeof parsed[key] !== 'string') {
+                     ctx.addIssue({ code: z.ZodIssueCode.custom, message: `In Details, the value for "${key}" must be a string.` });
+                     return z.NEVER;
+                }
+            }
+            return parsed;
+        } catch (e) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Details must be valid JSON.' });
+            return z.NEVER;
+        }
+    }),
+    additionalMedia: z.string().transform((str, ctx) => {
+        try {
+            if (!str || str.trim() === '') return []; // Allow empty string
+            const parsed = JSON.parse(str);
+            const arraySchema = z.array(additionalMediaSchema);
+            const result = arraySchema.safeParse(parsed);
+            if (!result.success) {
+                ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Additional Media is not a valid array of media objects. Check URLs and ensure all fields are present.' });
+                return z.NEVER;
+            }
+            return result.data;
+        } catch (e) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Additional Media must be a valid JSON array.' });
+            return z.NEVER;
+        }
+    })
+});
 
 export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) {
     const router = useRouter();
     const { toast } = useToast();
+    const firestore = useFirestore();
     const isEditing = !!service;
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    
+    const formRef = React.useRef<HTMLFormElement>(null);
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsSubmitting(true);
 
         const formData = new FormData(event.currentTarget);
-        const result = await saveService({ error: null, success: false }, formData);
+        const data = Object.fromEntries(formData);
+        const parsed = serviceSchema.safeParse(data);
 
-        setIsSubmitting(false);
+        if (!parsed.success) {
+            toast({ variant: 'destructive', title: 'Invalid Data', description: parsed.error.errors.map(e => e.message).join('\n') });
+            setIsSubmitting(false);
+            return;
+        }
+        
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database connection not available.' });
+            setIsSubmitting(false);
+            return;
+        }
 
-        if (result.success) {
-            toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
-            onClose();
-            router.refresh();
+        const { id, category, ...serviceData } = parsed.data;
+        const docId = id || `${category}-${Date.now()}`;
+        
+        let collectionPath: string;
+        switch(category) {
+            case 'cars': collectionPath = 'carRentals'; break;
+            case 'hotels': collectionPath = 'hotels'; break;
+            case 'transport': collectionPath = 'transports'; break;
+            default:
+                toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
+                setIsSubmitting(false);
+                return;
         }
-        if (result.error) {
-            toast({ variant: 'destructive', title: 'Error', description: result.error });
-        }
+
+        const docRef = doc(firestore, collectionPath, docId);
+        const dataToSave = { ...serviceData, id: docId };
+
+        setDoc(docRef, dataToSave, { merge: true })
+            .then(() => {
+                toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
+                onClose();
+                // No router.refresh needed because useCollection provides live data
+            })
+            .catch((error) => {
+                const permissionError = new FirestorePermissionError({
+                    path: docRef.path,
+                    operation: isEditing ? 'update' : 'create',
+                    requestResourceData: dataToSave,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: 'destructive', title: 'Save Failed', description: 'You may not have the required permissions to save this service.' });
+            })
+            .finally(() => {
+                setIsSubmitting(false);
+            });
     };
 
     return (
@@ -65,7 +154,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                         Fill in the details below. Click save when you're done.
                     </DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleSubmit}>
+                <form ref={formRef} onSubmit={handleSubmit}>
                     {isEditing && <input type="hidden" name="id" value={service.id} />}
                     <ScrollArea className="h-[60vh] p-1">
                         <div className="space-y-4 p-4">
@@ -143,7 +232,10 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                     </ScrollArea>
                     <DialogFooter className="mt-4">
                         <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-                        <SubmitButton isEditing={isEditing} pending={isSubmitting} />
+                        <Button type="submit" disabled={isSubmitting}>
+                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            {isEditing ? 'Save Changes' : 'Create Service'}
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

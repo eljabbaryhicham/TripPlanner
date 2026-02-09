@@ -1,31 +1,54 @@
-
 'use client';
 
 import * as React from 'react';
-import { useFormStatus } from 'react-dom';
-import { login } from '@/lib/actions';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '@/firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Mountain, LogIn, Loader2 } from 'lucide-react';
-
-function LoginButton() {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" className="w-full" disabled={pending}>
-      {pending ? (
-        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-      ) : (
-        <LogIn className="mr-2 h-4 w-4" />
-      )}
-      Sign In
-    </Button>
-  );
-}
+import { useToast } from '@/hooks/use-toast';
 
 export default function LoginPage() {
-  const [state, formAction] = React.useActionState(login, { error: null });
+  const router = useRouter();
+  const auth = useAuth();
+  const { toast } = useToast();
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
+      router.push('/admin');
+    } catch (err: any) {
+      let errorMessage = 'An unknown error occurred.';
+      switch (err.code) {
+        case 'auth/user-not-found':
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+          errorMessage = 'Invalid email or password.';
+          break;
+        case 'auth/invalid-email':
+          errorMessage = 'Please enter a valid email address.';
+          break;
+        default:
+          errorMessage = 'Failed to log in. Please try again later.';
+          break;
+      }
+      setError(errorMessage);
+      toast({ variant: 'destructive', title: 'Login Failed', description: errorMessage });
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
@@ -34,20 +57,21 @@ export default function LoginPage() {
           <Mountain className="mx-auto h-8 w-8 mb-2" />
           <CardTitle className="text-2xl font-headline">Admin Login</CardTitle>
           <CardDescription>
-            Enter your login and password to access the TriPlanner dashboard.
+            Enter your credentials to access the TriPlanner dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form action={formAction} className="space-y-4">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="login">Login</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
-                id="login"
-                name="login"
-                type="text"
-                placeholder="Enter your login"
+                id="email"
+                name="email"
+                type="email"
+                placeholder="admin@example.com"
                 required
-                defaultValue="eljabbaryhicham"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
             <div className="space-y-2">
@@ -57,13 +81,21 @@ export default function LoginPage() {
                 name="password"
                 type="password"
                 required
-                defaultValue="069338147"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
-            {state?.error && (
-              <p className="text-sm text-destructive">{state.error}</p>
+            {error && (
+              <p className="text-sm text-destructive">{error}</p>
             )}
-            <LoginButton />
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <LogIn className="mr-2 h-4 w-4" />
+              )}
+              Sign In
+            </Button>
           </form>
         </CardContent>
       </Card>

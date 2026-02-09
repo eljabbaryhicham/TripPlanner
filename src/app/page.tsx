@@ -1,15 +1,37 @@
+'use client';
 
+import * as React from 'react';
 import Link from 'next/link';
 import { ArrowDown } from 'lucide-react';
-import { getServices } from '@/lib/actions';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 import Header from '@/components/header';
 import AiSuggestions from '@/components/ai-suggestions';
 import { Button } from '@/components/ui/button';
 import BestServicesSection from '@/components/best-services-section';
+import { Skeleton } from '@/components/ui/skeleton';
 
-export default async function Home() {
-  const services = await getServices();
+export default function Home() {
+  const firestore = useFirestore();
+  
+  const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
+  const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
+  const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
+
+  const { data: carRentals, isLoading: carsLoading } = useCollection(carRentalsRef);
+  const { data: hotels, isLoading: hotelsLoading } = useCollection(hotelsRef);
+  const { data: transports, isLoading: transportsLoading } = useCollection(transportsRef);
+
+  const services = React.useMemo(() => {
+    const allServices: any[] = [];
+    if (carRentals) allServices.push(...carRentals.map(s => ({...s, category: 'cars'})));
+    if (hotels) allServices.push(...hotels.map(s => ({...s, category: 'hotels'})));
+    if (transports) allServices.push(...transports.map(s => ({...s, category: 'transport'})));
+    return allServices;
+  }, [carRentals, hotels, transports]);
+
+  const isLoading = carsLoading || hotelsLoading || transportsLoading;
   const bestOffers = services.filter((service) => service.isBestOffer);
 
   return (
@@ -50,8 +72,22 @@ export default async function Home() {
         </section>
 
         <AiSuggestions />
-
-        <BestServicesSection bestOffers={bestOffers} />
+        
+        {isLoading ? (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="container mx-auto px-4 space-y-8">
+                <Skeleton className="h-10 w-1/3 mx-auto" />
+                <Skeleton className="h-10 w-2/3 mx-auto" />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <Skeleton className="h-96" />
+                    <Skeleton className="h-96" />
+                    <Skeleton className="h-96" />
+                </div>
+            </div>
+          </div>
+        ) : (
+          <BestServicesSection bestOffers={bestOffers} />
+        )}
       </main>
     </div>
   );

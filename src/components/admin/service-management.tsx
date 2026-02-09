@@ -1,8 +1,6 @@
-
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,35 +8,83 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { deleteService } from '@/lib/actions';
 import { useToast } from '@/hooks/use-toast';
 import { ServiceEditor } from './service-editor';
+import { useFirestore } from '@/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
-function DeleteServiceForm({ serviceId }: { serviceId: string }) {
+function DeleteServiceMenuItem({ service }: { service: Service }) {
     const { toast } = useToast();
-    const router = useRouter();
-    const [state, formAction] = React.useActionState(deleteService, { error: null, success: false });
+    const firestore = useFirestore();
+    const [dialogOpen, setDialogOpen] = React.useState(false);
 
-    React.useEffect(() => {
-        if (state.success) {
-            toast({ title: 'Service Deleted', description: 'The service has been successfully removed.' });
-            router.refresh();
+    const handleDelete = () => {
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database connection not available.' });
+            return;
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
+
+        let collectionPath: string;
+        switch(service.category) {
+            case 'cars': collectionPath = 'carRentals'; break;
+            case 'hotels': collectionPath = 'hotels'; break;
+            case 'transport': collectionPath = 'transports'; break;
+            default:
+                toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
+                return;
         }
-    }, [state, toast, router]);
+
+        const docRef = doc(firestore, collectionPath, service.id);
+        deleteDoc(docRef)
+            .then(() => {
+                toast({ title: 'Service Deleted', description: 'The service has been successfully removed.' });
+            })
+            .catch(error => {
+                const permissionError = new FirestorePermissionError({
+                    path: docRef.path,
+                    operation: 'delete',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: 'destructive', title: 'Delete Failed', description: 'You may not have the required permissions.' });
+            });
+        
+        setDialogOpen(false);
+    };
 
     return (
-        <form action={formAction}>
-            <input type="hidden" name="id" value={serviceId} />
-            <button type="submit" className="w-full text-left">
-                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                    <Trash2 className="mr-2 h-4 w-4" />
-                    Delete
-                </DropdownMenuItem>
-            </button>
-        </form>
+        <>
+             <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the service
+                        "{service.name}".
+                    </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+            <DropdownMenuItem onSelect={(e) => {e.preventDefault(); setDialogOpen(true)}}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+            </DropdownMenuItem>
+        </>
     );
 }
 
@@ -68,7 +114,7 @@ export default function ServiceManagement({ services }: { services: Service[] })
                     <div className="flex items-center justify-between">
                         <div>
                             <CardTitle>Services Management</CardTitle>
-                            <CardDescription>Add, edit, or remove services.</CardDescription>
+                            <CardDescription>Add, edit, or remove services from Firestore.</CardDescription>
                         </div>
                         <Button onClick={handleAdd}>
                             <PlusCircle className="mr-2 h-4 w-4" />
@@ -108,7 +154,7 @@ export default function ServiceManagement({ services }: { services: Service[] })
                                                 <DropdownMenuItem onClick={() => handleEdit(service)}>
                                                     Edit
                                                 </DropdownMenuItem>
-                                                <DeleteServiceForm serviceId={service.id} />
+                                                <DeleteServiceMenuItem service={service} />
                                             </DropdownMenuContent>
                                         </DropdownMenu>
                                     </TableCell>
