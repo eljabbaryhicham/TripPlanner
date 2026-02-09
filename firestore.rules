@@ -173,8 +173,7 @@ service cloud.firestore {
      * @principle Public Read, Owner-Only Write. Protects integrity of user-generated content.
      */
     match /reviews/{reviewId} {
-      allow get: if true;
-      allow list: if true;
+      allow read: if true;
       allow create: if isSignedIn()
                     && request.resource.data.userId == request.auth.uid
                     && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
