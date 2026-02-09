@@ -5,7 +5,6 @@
       "name": "City Compact",
       "description": "A modern compact car in an urban setting.",
       "imageUrl": "https://images.unsplash.com/photo-1766602111000-96a7685d79f4?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb21wYWN0JTIwY2FyfGVufDB8fHx8MTc3MDM5NjIwNXww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "compact car",
       "isBestOffer": true,
       "category": "cars",
       "price": 45,
@@ -23,7 +22,6 @@
       "name": "Adventure SUV",
       "description": "A luxury SUV on a scenic road.",
       "imageUrl": "https://images.unsplash.com/photo-1747414632749-6c8b14ba30fd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxsdXh1cnklMjBzdXZ8ZW58MHx8fHwxNzcwMzg1MDA5fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "luxury suv",
       "category": "cars",
       "price": 80,
       "priceUnit": "day",
@@ -40,7 +38,6 @@
       "name": "Eco-Friendly Sedan",
       "description": "An electric sedan charging.",
       "imageUrl": "https://images.unsplash.com/photo-1607197109166-3ab4ee4b468f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8ZWxlY3RyaWMlMjBjYXJ8ZW58MHx8fHwxNzcwMzM5OTQzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "electric car",
       "category": "cars",
       "price": 60,
       "priceUnit": "day",
@@ -57,7 +54,6 @@
       "name": "The Grand View Hotel",
       "description": "A boutique hotel room with a beautiful view.",
       "imageUrl": "https://images.unsplash.com/photo-1611892440504-42a792e24d32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxob3RlbCUyMHJvb218ZW58MHx8fHwxNzcwMzY5MzEzfDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "hotel room",
       "isBestOffer": true,
       "category": "hotels",
       "price": 250,
@@ -74,7 +70,6 @@
       "name": "The Backpacker Nook",
       "description": "A cozy hostel common area.",
       "imageUrl": "https://picsum.photos/seed/hotel2/600/400",
-      "imageHint": "hostel common",
       "category": "hotels",
       "price": 40,
       "priceUnit": "night",
@@ -90,7 +85,6 @@
       "name": "Metropolis Business Inn",
       "description": "The luxurious lobby of a five-star hotel.",
       "imageUrl": "https://images.unsplash.com/photo-1692153142524-60285a93c249?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxob3RlbCUyMGxvYmJ5fGVufDB8fHx8MTc3MDM4ODM2Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "hotel lobby",
       "category": "hotels",
       "price": 150,
       "priceUnit": "night",
@@ -106,7 +100,6 @@
       "name": "Airport Pickup & Guide",
       "description": "A personal guide will meet you at the arrivals gate and a private car will take you to your destination, with a quick orientation of the city on the way.",
       "imageUrl": "https://images.unsplash.com/photo-1687986476040-82354f3c730e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxhaXJwb3J0JTIwZ3VpZGV8ZW58MHx8fHwxNzcwNDA1ODE4fDA&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "airport guide",
       "isBestOffer": true,
       "category": "transport",
       "price": 150,
@@ -120,13 +113,11 @@
       "additionalMedia": [
         {
           "description": "A comfortable sedan waiting outside an airport terminal.",
-          "imageUrl": "https://images.unsplash.com/photo-1736104761587-d9babea20923?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhaXJwb3J0JTIwY2FyfGVufDB8fHx8MTc3MDQwNTgxOHww&ixlib=rb-4.1.0&q=80&w=1080",
-          "imageHint": "airport car"
+          "imageUrl": "https://images.unsplash.com/photo-1736104761587-d9babea20923?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxhaXJwb3J0JTIwY2FyfGVufDB8fHx8MTc3MDQwNTgxOHww&ixlib=rb-4.1.0&q=80&w=1080"
         },
         {
           "description": "A detailed map of the city for tourists.",
-          "imageUrl": "https://images.unsplash.com/photo-1603466183710-70b84997a93f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwbWFwfGVufDB8fHx8MTc3MDMyNzM5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
-          "imageHint": "city map"
+          "imageUrl": "https://images.unsplash.com/photo-1603466183710-70b84997a93f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxjaXR5JTIwbWFwfGVufDB8fHx8MTc3MDMyNzM5Mnww&ixlib=rb-4.1.0&q=80&w=1080"
         }
       ]
     }

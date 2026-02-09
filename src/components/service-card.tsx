@@ -39,7 +39,6 @@ const ServiceCard = ({
             alt={service.description}
             fill
             className="object-cover"
-            data-ai-hint={service.imageHint}
           />
         </div>
       </CardHeader>

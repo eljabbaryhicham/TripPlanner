@@ -140,7 +140,6 @@ const ServiceDetailModal = ({
                         alt={service.description}
                         fill
                         className="object-cover"
-                        data-ai-hint={service.imageHint}
                       />
                     </div>
                   </CarouselItem>
@@ -152,7 +151,6 @@ const ServiceDetailModal = ({
                             alt={media.description}
                             fill
                             className="object-cover"
-                            data-ai-hint={media.imageHint}
                         />
                         </div>
                     </CarouselItem>

@@ -27,7 +27,6 @@ interface ServiceEditorProps {
 
 const additionalMediaSchema = z.object({
   imageUrl: z.string().url({ message: 'Media item must have a valid URL.' }),
-  imageHint: z.string().min(1, { message: 'Media item must have an image hint.' }),
   description: z.string().min(1, { message: 'Media item must have a description.' }),
 });
 
@@ -36,7 +35,6 @@ const serviceSchema = z.object({
     name: z.string().min(1, 'Name is required'),
     description: z.string().min(1, 'Description is required'),
     imageUrl: z.string().url('Image URL must be a valid URL'),
-    imageHint: z.string().min(1, 'Image hint is required'),
     category: z.enum(['cars', 'hotels', 'transport']),
     price: z.coerce.number().min(0, 'Price must be non-negative'),
     priceUnit: z.enum(['day', 'night', 'trip']),
@@ -47,7 +45,7 @@ const serviceSchema = z.object({
 });
 
 type Detail = { id: number; key: string; value: string };
-type Media = { id: number; imageUrl: string; imageHint: string; description: string };
+type Media = { id: number; imageUrl: string; description: string };
 
 const detailOptions = {
     cars: {
@@ -73,7 +71,6 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
     const [name, setName] = React.useState(service?.name || '');
     const [description, setDescription] = React.useState(service?.description || '');
     const [imageUrl, setImageUrl] = React.useState(service?.imageUrl || '');
-    const [imageHint, setImageHint] = React.useState(service?.imageHint || '');
     const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport'>(service?.category || 'cars');
     const [location, setLocation] = React.useState(service?.location || '');
     const [price, setPrice] = React.useState<number | string>(service?.price ?? '');
@@ -136,7 +133,7 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
         newMedia[index][field] = value;
         setAdditionalMedia(newMedia);
     };
-    const addMedia = () => setAdditionalMedia([...additionalMedia, { id: Date.now(), imageUrl: '', imageHint: '', description: '' }]);
+    const addMedia = () => setAdditionalMedia([...additionalMedia, { id: Date.now(), imageUrl: '', description: '' }]);
     const removeMedia = (id: number) => setAdditionalMedia(additionalMedia.filter(m => m.id !== id));
 
 
@@ -149,14 +146,13 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
             return acc;
         }, {} as Record<string, string>);
 
-        const mediaArray = additionalMedia.map(({ imageUrl, imageHint, description }) => ({ imageUrl, imageHint, description }));
+        const mediaArray = additionalMedia.map(({ imageUrl, description }) => ({ imageUrl, description }));
 
         const dataToValidate = {
             id: service?.id,
             name,
             description,
             imageUrl,
-            imageHint,
             category,
             price,
             priceUnit,
@@ -236,15 +232,9 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                                 <Label htmlFor="description">Description</Label>
                                 <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required />
                             </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="imageUrl">Main Image URL</Label>
-                                    <Input id="imageUrl" type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="imageHint">Image Hint</Label>
-                                    <Input id="imageHint" value={imageHint} onChange={e => setImageHint(e.target.value)} required />
-                                </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="imageUrl">Main Image URL</Label>
+                                <Input id="imageUrl" type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
@@ -321,7 +311,6 @@ export function ServiceEditor({ isOpen, onClose, service }: ServiceEditorProps) 
                                         <div key={media.id} className="space-y-2 border-t pt-3 relative">
                                             <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-0" onClick={() => removeMedia(media.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
                                             <Input placeholder="Image URL" value={media.imageUrl} onChange={e => handleMediaChange(index, 'imageUrl', e.target.value)} />
-                                            <Input placeholder="Image Hint" value={media.imageHint} onChange={e => handleMediaChange(index, 'imageHint', e.target.value)} />
                                             <Textarea placeholder="Short Description" value={media.description} onChange={e => handleMediaChange(index, 'description', e.target.value)} />
                                         </div>
                                     ))}

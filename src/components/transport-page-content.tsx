@@ -40,7 +40,6 @@ export default function TransportPageContent({ service }: { service: Service }) 
                             alt={service.description}
                             fill
                             className="object-cover"
-                            data-ai-hint={service.imageHint}
                           />
                         </div>
                       </CarouselItem>
@@ -52,7 +51,6 @@ export default function TransportPageContent({ service }: { service: Service }) 
                                 alt={media.description}
                                 fill
                                 className="object-cover"
-                                data-ai-hint={media.imageHint}
                             />
                             </div>
                         </CarouselItem>

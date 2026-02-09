@@ -3,7 +3,6 @@ export type ServiceCategory = 'cars' | 'hotels' | 'transport';
 
 export interface AdditionalMedia {
   imageUrl: string;
-  imageHint: string;
   description: string;
 }
 
@@ -12,7 +11,6 @@ export interface Service {
   name: string;
   description: string;
   imageUrl: string;
-  imageHint: string;
   isBestOffer?: boolean;
   category: ServiceCategory;
   price: number;
