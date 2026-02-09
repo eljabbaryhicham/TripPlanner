@@ -18,20 +18,23 @@ export default function Home() {
   const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
   const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
   const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
+  const exploreTripsRef = useMemoFirebase(() => firestore ? collection(firestore, 'exploreTrips') : null, [firestore]);
 
   const { data: carRentals, isLoading: carsLoading } = useCollection(carRentalsRef);
   const { data: hotels, isLoading: hotelsLoading } = useCollection(hotelsRef);
   const { data: transports, isLoading: transportsLoading } = useCollection(transportsRef);
+  const { data: exploreTrips, isLoading: exploreLoading } = useCollection(exploreTripsRef);
 
   const services = React.useMemo(() => {
     const allServices: any[] = [];
     if (carRentals) allServices.push(...carRentals.map(s => ({...s, category: 'cars'})));
     if (hotels) allServices.push(...hotels.map(s => ({...s, category: 'hotels'})));
     if (transports) allServices.push(...transports.map(s => ({...s, category: 'transport'})));
+    if (exploreTrips) allServices.push(...exploreTrips.map(s => ({...s, category: 'explore'})));
     return allServices;
-  }, [carRentals, hotels, transports]);
+  }, [carRentals, hotels, transports, exploreTrips]);
 
-  const isLoading = carsLoading || hotelsLoading || transportsLoading;
+  const isLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading;
   
   const activeServices = services.filter(service => service.isActive !== false);
   const bestOffers = activeServices.filter((service) => service.isBestOffer);
