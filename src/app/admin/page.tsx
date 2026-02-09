@@ -6,7 +6,7 @@ import { useUser, useFirestore, useCollection, useMemoFirebase, useAuth } from '
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, Settings, Star, ShieldCheck } from 'lucide-react';
+import { LogOut, Settings, Star, ShieldCheck, Database } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
@@ -23,6 +23,7 @@ export default function AdminPage() {
     const [isAdmin, setIsAdmin] = React.useState(false);
     const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
     const [settings, setSettings] = React.useState({ whatsappNumber: '' });
+    const [activeTab, setActiveTab] = React.useState('services');
 
     // Auth check
     React.useEffect(() => {
@@ -82,6 +83,7 @@ export default function AdminPage() {
     };
     
     const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading;
+    const isDatabaseEmpty = !isLoading && services.length === 0;
 
     if (isLoading) {
         return (
@@ -131,7 +133,7 @@ export default function AdminPage() {
                 </div>
             </header>
             <main className="p-4 sm:px-6 sm:py-0">
-                <Tabs defaultValue="services">
+                <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <TabsList className="grid w-full grid-cols-2 max-w-sm mb-6">
                         <TabsTrigger value="services">
                             <Star className="mr-2 h-4 w-4" />
@@ -143,7 +145,25 @@ export default function AdminPage() {
                         </TabsTrigger>
                     </TabsList>
                     <TabsContent value="services">
-                        <ServiceManagement services={services} />
+                         {isDatabaseEmpty ? (
+                            <Card className="text-center max-w-lg mx-auto">
+                                <CardHeader>
+                                    <Database className="mx-auto h-12 w-12 text-primary" />
+                                    <CardTitle>Your Database is Empty</CardTitle>
+                                    <CardDescription>
+                                        To see services on your website and in this dashboard, you need to populate your database with the initial sample data.
+                                    </CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <Button onClick={() => setActiveTab('settings')}>
+                                        <Database className="mr-2 h-4 w-4" />
+                                        Go to Settings to Seed Database
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        ) : (
+                            <ServiceManagement services={services} />
+                        )}
                     </TabsContent>
                     <TabsContent value="settings">
                         <div className="space-y-6">
