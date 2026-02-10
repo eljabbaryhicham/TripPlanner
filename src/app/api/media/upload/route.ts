@@ -23,26 +23,18 @@ export async function POST(request: Request) {
             resource_type: 'auto',
         });
         
+        // Manually construct the URL with transformations
+        const urlParts = uploadResult.secure_url.split('/upload/');
+        const baseUrl = urlParts[0];
+        const pathWithVersion = urlParts[1];
         let optimizedUrl;
-        
-        // Construct the delivery URL with transformations
+
         if (uploadResult.resource_type === 'image') {
-            optimizedUrl = cloudinary.url(uploadResult.public_id, {
-                transformation: [{
-                    width: 'auto',
-                    crop: 'scale',
-                    fetch_format: 'auto',
-                    quality: 'auto'
-                }]
-            });
+            const transformations = 'w_auto,c_scale,f_auto,q_auto';
+            optimizedUrl = `${baseUrl}/upload/${transformations}/${pathWithVersion}`;
         } else if (uploadResult.resource_type === 'video') {
-            optimizedUrl = cloudinary.url(uploadResult.public_id, {
-                resource_type: 'video',
-                transformation: [{ 
-                    fetch_format: 'auto', 
-                    video_codec: 'auto' 
-                }]
-            });
+            const transformations = 'f_auto,vc_auto';
+            optimizedUrl = `${baseUrl}/upload/${transformations}/${pathWithVersion}`;
         } else {
             // Fallback for other resource types
             optimizedUrl = uploadResult.secure_url;
