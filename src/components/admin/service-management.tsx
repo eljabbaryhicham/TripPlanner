@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import type { Service } from '@/lib/types';
+import type { Service, ServiceCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -10,7 +10,7 @@ import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase, Compass,
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { doc, deleteDoc } from 'firebase/firestore';
+import { doc, deleteDoc, setDoc } from 'firebase/firestore';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
 import {
@@ -25,23 +25,55 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { updateServiceStatus, updateServiceBestOffer } from '@/lib/actions';
+
+const getCollectionPath = (category: ServiceCategory) => {
+    switch(category) {
+        case 'cars': return 'carRentals';
+        case 'hotels': return 'hotels';
+        case 'transport': return 'transports';
+        case 'explore': return 'exploreTrips';
+        default: return null;
+    }
+}
 
 function ServiceStatusToggle({ service }: { service: Service }) {
   const { toast } = useToast();
-  const [isPending, startTransition] = React.useTransition();
+  const firestore = useFirestore();
+  const [isPending, setIsPending] = React.useState(false);
 
   const handleToggle = (checked: boolean) => {
-    startTransition(async () => {
-      const result = await updateServiceStatus(service.id, service.category, checked);
-      if (result.success) {
-        toast({ title: "Status Updated" });
-      } else {
-        toast({ variant: "destructive", title: "Error", description: result.error });
-      }
-    });
-  };
+    if (!firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+        return;
+    }
+    const collectionPath = getCollectionPath(service.category);
+    if (!collectionPath) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
+        return;
+    }
 
+    setIsPending(true);
+    const docRef = doc(firestore, collectionPath, service.id);
+    const dataToUpdate = { isActive: checked };
+
+    setDoc(docRef, dataToUpdate, { merge: true })
+        .then(() => {
+            toast({ title: "Status Updated" });
+        })
+        .catch(error => {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'update',
+                requestResourceData: dataToUpdate,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update service status. Check permissions.' });
+        })
+        .finally(() => {
+            setIsPending(false);
+        });
+  };
+  
   return (
     <div className="flex items-center space-x-2">
        <Switch
@@ -50,24 +82,47 @@ function ServiceStatusToggle({ service }: { service: Service }) {
         onCheckedChange={handleToggle}
         disabled={isPending}
       />
-      {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+      {isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
     </div>
   );
 }
 
 function BestOfferToggle({ service }: { service: Service }) {
   const { toast } = useToast();
-  const [isPending, startTransition] = React.useTransition();
+  const firestore = useFirestore();
+  const [isPending, setIsPending] = React.useState(false);
 
   const handleToggle = (checked: boolean) => {
-    startTransition(async () => {
-      const result = await updateServiceBestOffer(service.id, service.category, checked);
-      if (result.success) {
-        toast({ title: "Best Offer Updated" });
-      } else {
-        toast({ variant: "destructive", title: "Error", description: result.error });
-      }
-    });
+    if (!firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+        return;
+    }
+    const collectionPath = getCollectionPath(service.category);
+    if (!collectionPath) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
+        return;
+    }
+    
+    setIsPending(true);
+    const docRef = doc(firestore, collectionPath, service.id);
+    const dataToUpdate = { isBestOffer: checked };
+
+    setDoc(docRef, dataToUpdate, { merge: true })
+        .then(() => {
+            toast({ title: "Best Offer Updated" });
+        })
+        .catch(error => {
+            const permissionError = new FirestorePermissionError({
+                path: docRef.path,
+                operation: 'update',
+                requestResourceData: dataToUpdate,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+            toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update best offer status. Check permissions.' });
+        })
+        .finally(() => {
+            setIsPending(false);
+        });
   };
 
   return (
@@ -78,7 +133,7 @@ function BestOfferToggle({ service }: { service: Service }) {
         onCheckedChange={handleToggle}
         disabled={isPending}
       />
-      {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+      {isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
     </div>
   );
 }
@@ -95,15 +150,10 @@ function DeleteServiceMenuItem({ service }: { service: Service }) {
             return;
         }
 
-        let collectionPath: string;
-        switch(service.category) {
-            case 'cars': collectionPath = 'carRentals'; break;
-            case 'hotels': collectionPath = 'hotels'; break;
-            case 'transport': collectionPath = 'transports'; break;
-            case 'explore': collectionPath = 'exploreTrips'; break;
-            default:
-                toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
-                return;
+        const collectionPath = getCollectionPath(service.category);
+        if (!collectionPath) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
+            return;
         }
 
         const docRef = doc(firestore, collectionPath, service.id);
