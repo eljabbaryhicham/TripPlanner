@@ -103,8 +103,6 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
 
     setIsUploading(true);
     setUploadProgress(0);
-    const formData = new FormData();
-    formData.append('file', file);
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/media/upload', true);
@@ -141,7 +139,7 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
       toast({ variant: 'destructive', title: 'Upload Failed', description: 'A network error occurred.' });
     };
     
-    xhr.send(formData);
+    xhr.send(file);
   };
 
   return (

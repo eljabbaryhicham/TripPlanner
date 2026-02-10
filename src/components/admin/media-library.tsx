@@ -133,8 +133,6 @@ export default function MediaLibrary() {
 
     setIsUploading(true);
     setUploadProgress(0);
-    const formData = new FormData();
-    formData.append('file', file);
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/media/upload', true);
@@ -145,7 +143,7 @@ export default function MediaLibrary() {
         setUploadProgress(percentComplete);
       }
     };
-
+    
     xhr.onload = () => {
       setIsUploading(false);
       setUploadProgress(null);
@@ -171,7 +169,7 @@ export default function MediaLibrary() {
       toast({ variant: 'destructive', title: 'Upload Failed', description: 'A network error occurred.' });
     };
     
-    xhr.send(formData);
+    xhr.send(file);
   };
   
   const handleDelete = async (publicId: string, resourceType: 'image' | 'video') => {

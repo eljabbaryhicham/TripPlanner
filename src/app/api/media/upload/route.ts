@@ -1,49 +1,79 @@
 
 import { NextResponse } from 'next/server';
 import cloudinary from '@/lib/cloudinary';
+import { Writable } from 'stream';
+
+// Helper function to pipe a Web ReadableStream to a Node WritableStream
+async function pipeWebStreamToNodeWritable(webStream: ReadableStream<Uint8Array>, nodeWritable: Writable) {
+    const reader = webStream.getReader();
+    try {
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) {
+                nodeWritable.end();
+                break;
+            }
+            if (!nodeWritable.write(value)) {
+                // Handle backpressure
+                await new Promise(resolve => nodeWritable.once('drain', resolve));
+            }
+        }
+    } catch (error) {
+        const e = error as Error
+        nodeWritable.destroy(e);
+        throw e;
+    }
+}
+
 
 export async function POST(request: Request) {
-    // In a production app, you MUST add authentication here to ensure
-    // only authorized administrators can upload files.
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-
-    if (!file) {
-        return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
+    if (!request.body) {
+        return NextResponse.json({ error: 'No file stream provided.' }, { status: 400 });
     }
 
     try {
-        const buffer = await file.arrayBuffer();
-        const base64String = Buffer.from(buffer).toString('base64');
-        const dataUri = `data:${file.type};base64,${base64String}`;
+        const uploadResult = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                {
+                    folder: 'triplanner',
+                    resource_type: 'auto',
+                },
+                (error, result) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve(result);
+                }
+            );
 
-        const uploadResult = await cloudinary.uploader.upload(dataUri, {
-            folder: 'triplanner',
-            resource_type: 'auto',
+            pipeWebStreamToNodeWritable(request.body!, uploadStream).catch(reject);
         });
+
+        const result = uploadResult as any;
         
         let optimizedUrl;
 
-        if (uploadResult.resource_type === 'image') {
-            optimizedUrl = cloudinary.url(uploadResult.public_id, {
+        if (result.resource_type === 'image') {
+            optimizedUrl = cloudinary.url(result.public_id, {
                 transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto' }]
             });
-        } else if (uploadResult.resource_type === 'video') {
-            optimizedUrl = cloudinary.url(uploadResult.public_id, {
+        } else if (result.resource_type === 'video') {
+            optimizedUrl = cloudinary.url(result.public_id, {
                 resource_type: 'video',
                 transformation: [{ fetch_format: 'auto', video_codec: 'auto' }]
             });
         } else {
-            optimizedUrl = uploadResult.secure_url;
+            optimizedUrl = result.secure_url;
         }
 
         return NextResponse.json({
             url: optimizedUrl,
-            public_id: uploadResult.public_id
+            public_id: result.public_id
         });
 
     } catch (error) {
         console.error('Upload failed:', error);
-        return NextResponse.json({ error: 'Upload failed.' }, { status: 500 });
+        const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during upload.';
+        return NextResponse.json({ error: 'Upload failed: ' + errorMessage }, { status: 500 });
     }
 }
