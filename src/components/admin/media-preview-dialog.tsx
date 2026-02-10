@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -43,17 +42,19 @@ export function MediaPreviewDialog({ isOpen, onClose, media }: MediaPreviewDialo
                 <DialogHeader className="sr-only">
                     <DialogTitle>Media Preview: {media.public_id}</DialogTitle>
                 </DialogHeader>
-                <div className="bg-black">
+                <div className="bg-black flex items-center justify-center max-h-[85vh]">
                     {media.resource_type === 'image' ? (
                         <Image
                             src={media.secure_url}
                             alt={media.public_id}
                             width={media.width}
                             height={media.height}
-                            className="w-full h-auto object-contain max-h-[80vh]"
+                            className="object-contain max-w-full max-h-full"
                         />
                     ) : (
-                        <Plyr source={videoSource} options={{ controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] }} />
+                        <div className="w-full h-full max-w-full max-h-full">
+                           <Plyr source={videoSource} options={{ controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] }} />
+                        </div>
                     )}
                 </div>
             </DialogContent>
