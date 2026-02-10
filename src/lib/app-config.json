@@ -3,7 +3,7 @@
   "categories": {
     "cars": true,
     "hotels": true,
-    "transport": true,
+    "transport": false,
     "explore": true
   }
 }

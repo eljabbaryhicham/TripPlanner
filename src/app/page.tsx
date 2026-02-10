@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowDown, Archive, ServerCrash, Star } from 'lucide-react';
+import { ArrowDown, Archive, ServerCrash } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
@@ -65,18 +65,12 @@ export default function Home() {
       );
     }
 
-    const hasServices = services.length > 0;
-    if (!hasServices) {
+    if (services.length === 0) {
         return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title="No Services Available" message="There are currently no services listed on our platform. Please check back later." />;
     }
     
-    const hasActiveServices = activeServices.length > 0;
-    if (!hasActiveServices) {
+    if (activeServices.length === 0) {
         return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title="Services Are Busy" message="All of our services are temporarily unavailable. We'll be back soon!" />;
-    }
-
-    if (bestOffers.length === 0) {
-        return <PageMessage icon={<Star className="h-10 w-10 text-primary" />} title="No Special Offers" message="There are no featured best offers at the moment. Please check out our individual service pages!" />;
     }
     
     return <BestServicesSection bestOffers={bestOffers} categorySettings={settings.categories || {}} />;
