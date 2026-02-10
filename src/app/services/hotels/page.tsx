@@ -16,34 +16,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-const PageMessage = ({ icon, title, message }: { icon: React.ReactNode, title: string, message: string }) => (
-    <div className="text-center py-20 space-y-4">
-        <div className="inline-block p-4 bg-muted rounded-full">
-            {icon}
-        </div>
-        <h2 className="text-2xl font-bold">{title}</h2>
-        <p className="text-foreground/80 max-w-md mx-auto">{message}</p>
-    </div>
-);
+import { useSettings } from '@/components/settings-provider';
+import PageMessage from '@/components/page-message';
 
 export default function HotelsPage() {
   const firestore = useFirestore();
   const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
   const { data: hotelServices, isLoading: servicesLoading } = useCollection(hotelsRef);
   
-  const [settings, setSettings] = React.useState<{ categories?: { hotels?: boolean } }>({});
-  const [settingsLoading, setSettingsLoading] = React.useState(true);
+  const settings = useSettings();
   const [selectedCity, setSelectedCity] = React.useState('all');
 
-  React.useEffect(() => {
-      fetch('/api/settings')
-          .then(res => res.json())
-          .then(data => setSettings(data))
-          .catch(console.error)
-          .finally(() => setSettingsLoading(false));
-  }, []);
-  
   const filteredHotels = React.useMemo(() => {
     let activeServices = hotelServices?.filter(service => service.isActive !== false) ?? [];
     if (selectedCity === 'all') {
@@ -52,7 +35,7 @@ export default function HotelsPage() {
     return activeServices.filter(hotel => hotel.location === selectedCity);
   }, [hotelServices, selectedCity]);
 
-  const isLoading = servicesLoading || settingsLoading;
+  const isLoading = servicesLoading;
 
   const renderContent = () => {
     if (isLoading) {

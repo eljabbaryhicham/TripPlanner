@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowDown } from 'lucide-react';
+import { ArrowDown, Archive, ServerCrash, Star } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
@@ -11,20 +11,13 @@ import AiSuggestions from '@/components/ai-suggestions';
 import { Button } from '@/components/ui/button';
 import BestServicesSection from '@/components/best-services-section';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useSettings } from '@/components/settings-provider';
+import PageMessage from '@/components/page-message';
+import Footer from '@/components/footer';
 
 export default function Home() {
   const firestore = useFirestore();
-  
-  const [settings, setSettings] = React.useState<{ categories?: { [key: string]: boolean } }>({});
-  const [settingsLoading, setSettingsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-      fetch('/api/settings')
-          .then(res => res.json())
-          .then(data => setSettings(data))
-          .catch(console.error)
-          .finally(() => setSettingsLoading(false));
-  }, []);
+  const settings = useSettings();
 
   const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
   const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
@@ -45,7 +38,7 @@ export default function Home() {
     return allServices;
   }, [carRentals, hotels, transports, exploreTrips]);
 
-  const isLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading || settingsLoading;
+  const isLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading;
   
   const activeServices = services.filter(service => service.isActive !== false);
   
@@ -56,6 +49,38 @@ export default function Home() {
         return isBest && isCategoryActive;
     });
   }, [activeServices, settings.categories]);
+
+  const renderBestServices = () => {
+    if (isLoading) {
+      return (
+        <div className="container mx-auto px-4 space-y-8">
+            <Skeleton className="h-10 w-1/3 mx-auto" />
+            <Skeleton className="h-10 w-2/3 mx-auto" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <Skeleton className="h-96" />
+                <Skeleton className="h-96" />
+                <Skeleton className="h-96" />
+            </div>
+        </div>
+      );
+    }
+
+    const hasServices = services.length > 0;
+    if (!hasServices) {
+        return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title="No Services Available" message="There are currently no services listed on our platform. Please check back later." />;
+    }
+    
+    const hasActiveServices = activeServices.length > 0;
+    if (!hasActiveServices) {
+        return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title="Services Are Busy" message="All of our services are temporarily unavailable. We'll be back soon!" />;
+    }
+
+    if (bestOffers.length === 0) {
+        return <PageMessage icon={<Star className="h-10 w-10 text-primary" />} title="No Special Offers" message="There are no featured best offers at the moment. Please check out our individual service pages!" />;
+    }
+    
+    return <BestServicesSection bestOffers={bestOffers} categorySettings={settings.categories || {}} />;
+  };
 
   return (
     <div className="h-screen snap-y snap-mandatory overflow-y-scroll scroll-smooth">
@@ -96,21 +121,15 @@ export default function Home() {
 
         <AiSuggestions />
         
-        {isLoading ? (
-          <div className="min-h-screen flex items-center justify-center">
-            <div className="container mx-auto px-4 space-y-8">
-                <Skeleton className="h-10 w-1/3 mx-auto" />
-                <Skeleton className="h-10 w-2/3 mx-auto" />
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <Skeleton className="h-96" />
-                    <Skeleton className="h-96" />
-                    <Skeleton className="h-96" />
-                </div>
-            </div>
+        <section
+          id="best-services"
+          className="flex min-h-screen snap-start flex-col"
+        >
+          <div className="flex flex-1 items-center justify-center">
+            {renderBestServices()}
           </div>
-        ) : (
-          <BestServicesSection bestOffers={bestOffers} categorySettings={settings.categories || {}} />
-        )}
+          <Footer />
+        </section>
       </main>
     </div>
   );

@@ -18,6 +18,7 @@ import AdminManagement from '@/components/admin/admin-management';
 import EmailTemplateEditor from '@/components/admin/email-template-editor';
 import ClientEmailTemplateEditor from '@/components/admin/client-email-template-editor';
 import CategoryManagement from '@/components/admin/category-management';
+import { useSettings } from '@/components/settings-provider';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -25,6 +26,7 @@ export default function AdminPage() {
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
+    const settings = useSettings();
     
     const [isAdmin, setIsAdmin] = React.useState(false);
     const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
@@ -65,18 +67,14 @@ export default function AdminPage() {
 
     // Fetch settings
     React.useEffect(() => {
+        setWhatsappNumber(settings.whatsappNumber);
+        setCategorySettings(settings.categories);
+        // still need to fetch templates
         setSettingsLoading(true);
         Promise.all([
-            fetch('/api/settings').then(res => res.json()),
             fetch('/api/email-template').then(res => res.json()),
             fetch('/api/client-email-template').then(res => res.json())
-        ]).then(([settingsData, templateData, clientTemplateData]) => {
-            if (settingsData.whatsappNumber) {
-                setWhatsappNumber(settingsData.whatsappNumber);
-            }
-            if (settingsData.categories) {
-                setCategorySettings(settingsData.categories);
-            }
+        ]).then(([templateData, clientTemplateData]) => {
             if (templateData.template) {
                 setEmailTemplate(templateData.template);
             }
@@ -85,7 +83,7 @@ export default function AdminPage() {
             }
         }).catch(console.error)
           .finally(() => setSettingsLoading(false));
-    }, []);
+    }, [settings]);
 
     // Data fetching for services from all collections
     const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);

@@ -2,17 +2,50 @@ import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { SettingsProvider } from '@/components/settings-provider';
+import fs from 'fs/promises';
+import path from 'path';
 
 export const metadata: Metadata = {
   title: 'TriPlanner',
   description: 'Your ultimate travel planning assistant.',
 };
 
-export default function RootLayout({
+// Define a default settings structure
+const defaultSettings = {
+  whatsappNumber: "",
+  categories: {
+    cars: true,
+    hotels: true,
+    transport: true,
+    explore: true
+  }
+};
+
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  let settings = defaultSettings;
+  try {
+    const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
+    const settingsJson = await fs.readFile(settingsFilePath, 'utf-8');
+    // Important: Merging to avoid errors if the file is missing some keys
+    const fileSettings = JSON.parse(settingsJson);
+    settings = {
+      ...defaultSettings,
+      ...fileSettings,
+      categories: {
+        ...defaultSettings.categories,
+        ...fileSettings.categories
+      }
+    };
+  } catch (error) {
+    console.error("Could not load app-config.json, using defaults:", error);
+    // settings is already defaultSettings
+  }
+
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
       <head>
@@ -22,9 +55,11 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          {children}
-        </FirebaseClientProvider>
+        <SettingsProvider settings={settings}>
+          <FirebaseClientProvider>
+            {children}
+          </FirebaseClientProvider>
+        </SettingsProvider>
         <Toaster />
       </body>
     </html>

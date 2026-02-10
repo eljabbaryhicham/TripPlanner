@@ -8,38 +8,21 @@ import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import { Compass, ServerCrash, Archive, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-
-const PageMessage = ({ icon, title, message }: { icon: React.ReactNode, title: string, message: string }) => (
-    <div className="text-center py-20 space-y-4">
-        <div className="inline-block p-4 bg-muted rounded-full">
-            {icon}
-        </div>
-        <h2 className="text-2xl font-bold">{title}</h2>
-        <p className="text-foreground/80 max-w-md mx-auto">{message}</p>
-    </div>
-);
+import { useSettings } from '@/components/settings-provider';
+import PageMessage from '@/components/page-message';
 
 export default function ExplorePage() {
   const firestore = useFirestore();
   const exploreTripsRef = useMemoFirebase(() => firestore ? collection(firestore, 'exploreTrips') : null, [firestore]);
   const { data: exploreServices, isLoading: servicesLoading } = useCollection(exploreTripsRef);
   
-  const [settings, setSettings] = React.useState<{ categories?: { explore?: boolean } }>({});
-  const [settingsLoading, setSettingsLoading] = React.useState(true);
-
-  React.useEffect(() => {
-      fetch('/api/settings')
-          .then(res => res.json())
-          .then(data => setSettings(data))
-          .catch(console.error)
-          .finally(() => setSettingsLoading(false));
-  }, []);
+  const settings = useSettings();
 
   const activeExploreServices = React.useMemo(() => {
     return exploreServices?.filter(service => service.isActive !== false) ?? [];
   }, [exploreServices]);
 
-  const isLoading = servicesLoading || settingsLoading;
+  const isLoading = servicesLoading;
 
   const renderContent = () => {
     if (isLoading) {
