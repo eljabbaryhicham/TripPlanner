@@ -1,3 +1,4 @@
+'use server';
 
 import { NextResponse } from 'next/server';
 import cloudinary from '@/lib/cloudinary';
@@ -11,37 +12,23 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
         }
 
-        // Convert the file to a buffer to reliably stream it.
+        // Convert the file to a buffer and then to a Base64 Data URI.
+        // This is a more robust method than streaming the buffer directly in some environments.
         const bytes = await file.arrayBuffer();
         const buffer = Buffer.from(bytes);
+        const dataUri = `data:${file.type};base64,${buffer.toString('base64')}`;
 
-        // Upload the buffer to Cloudinary using a stream.
-        // This is more memory-efficient for large files.
-        const uploadResult: any = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: 'triplanner',
-                    resource_type: 'auto', // Let Cloudinary detect if it's an image or video
-                },
-                (error, result) => {
-                    if (error) {
-                        console.error("Cloudinary upload error:", error);
-                        return reject(error);
-                    }
-                    // CRITICAL FIX: Check if the result is valid.
-                    // This prevents silent failures where no error is thrown but the upload didn't succeed.
-                    if (!result || !result.public_id) {
-                        console.error("Cloudinary upload failed: Invalid result received.", result);
-                        return reject(new Error('Cloudinary upload failed: The server returned an invalid result.'));
-                    }
-                    resolve(result);
-                }
-            );
-            // Write the buffer to the stream and end it.
-            uploadStream.end(buffer);
+        // Use the standard uploader with the data URI.
+        const uploadResult = await cloudinary.uploader.upload(dataUri, {
+            folder: 'triplanner',
+            resource_type: 'auto', // Let Cloudinary detect the resource type.
         });
-        
-        // This part will only be reached if the promise resolves (i.e., upload is successful)
+
+        // CRITICAL: Explicitly check for a valid result.
+        if (!uploadResult || !uploadResult.public_id) {
+            throw new Error('Cloudinary upload failed: The server returned an invalid result.');
+        }
+
         let optimizedUrl;
         if (uploadResult.resource_type === 'image') {
             optimizedUrl = cloudinary.url(uploadResult.public_id, {
@@ -63,7 +50,6 @@ export async function POST(request: Request) {
 
     } catch (error: any) {
         console.error('Upload API route failed:', error);
-        // This catch block will now correctly handle rejections from the promise
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during upload.';
         return NextResponse.json({ error: 'Upload failed: ' + errorMessage }, { status: 500 });
     }
