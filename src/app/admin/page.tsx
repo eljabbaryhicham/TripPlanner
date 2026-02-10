@@ -19,6 +19,7 @@ import CategoryManagement from '@/components/admin/category-management';
 import { useSettings } from '@/components/settings-provider';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import EmailTemplatesManagement from '@/components/admin/email-templates-management';
+import MediaLibrary from '@/components/admin/media-library';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -251,6 +252,16 @@ export default function AdminPage() {
                             </AccordionTrigger>
                             <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
                                 <AdminManagement admins={admins} currentUser={adminProfile} />
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
+                     {isSuperAdmin && (
+                        <AccordionItem value="media">
+                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                                Media Library
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                                <MediaLibrary />
                             </AccordionContent>
                         </AccordionItem>
                     )}
