@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { adminAuth, adminFirestore } from '@/firebase/admin';
+import { getAdminServices } from '@/firebase/admin';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
@@ -297,6 +297,7 @@ const addAdminSchema = z.object({
     password: z.string().min(6),
 });
 export async function addAdmin(prevState: any, formData: FormData) {
+    const { adminAuth, adminFirestore } = getAdminServices();
     const parsed = addAdminSchema.safeParse(Object.fromEntries(formData));
     if (!parsed.success) {
         return { error: parsed.error.errors[0].message, success: false };
@@ -321,6 +322,7 @@ export async function addAdmin(prevState: any, formData: FormData) {
 
 const removeAdminSchema = z.object({ id: z.string() });
 export async function removeAdmin(prevState: any, formData: FormData) {
+     const { adminAuth, adminFirestore } = getAdminServices();
      const parsed = removeAdminSchema.safeParse(Object.fromEntries(formData));
     if (!parsed.success) {
         return { error: "Invalid ID", success: false };
@@ -339,7 +341,8 @@ export async function removeAdmin(prevState: any, formData: FormData) {
 
 const setSuperAdminSchema = z.object({ id: z.string() });
 export async function setSuperAdmin(prevState: any, formData: FormData) {
-     const parsed = setSuperAdminSchema.safeParse(Object.fromEntries(formData));
+    const { adminFirestore } = getAdminServices();
+    const parsed = setSuperAdminSchema.safeParse(Object.fromEntries(formData));
     if (!parsed.success) {
         return { error: "Invalid ID", success: false };
     }

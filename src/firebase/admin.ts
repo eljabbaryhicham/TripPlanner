@@ -3,23 +3,37 @@ import { initializeApp, getApps, App, getApp } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-let app: App;
-
-// This logic ensures that we don't try to re-initialize the app in environments
-// where the module is cached (like during development with hot-reloading).
-if (getApps().length === 0) {
-  // In Google Cloud environments (like Firebase App Hosting),
-  // initializeApp() with no arguments will automatically discover
-  // the project configuration and credentials. This is the most robust method.
-  app = initializeApp();
-} else {
-  // If the app is already initialized, we retrieve the existing instance.
-  app = getApp();
+interface AdminServices {
+    adminAuth: Auth;
+    adminFirestore: Firestore;
 }
 
-const adminAuth: Auth = getAuth(app);
-const adminFirestore: Firestore = getFirestore(app);
+let services: AdminServices | null = null;
 
-// Export the initialized services directly.
-// This ensures they are stable singletons for the server's lifecycle.
-export { adminAuth, adminFirestore };
+/**
+ * Initializes and/or returns the Firebase Admin SDK services.
+ * This uses a lazy initialization pattern to ensure it only runs once per server instance.
+ */
+export function getAdminServices(): AdminServices {
+  if (services) {
+    return services;
+  }
+
+  let app: App;
+  if (getApps().length === 0) {
+    // In Google Cloud environments (like Firebase App Hosting),
+    // initializeApp() with no arguments will automatically discover
+    // the project configuration and credentials. This is the most robust method.
+    app = initializeApp();
+  } else {
+    // If the app is already initialized, we retrieve the existing instance.
+    app = getApp();
+  }
+
+  services = {
+    adminAuth: getAuth(app),
+    adminFirestore: getFirestore(app),
+  };
+
+  return services;
+}

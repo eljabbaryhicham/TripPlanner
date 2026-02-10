@@ -6,5 +6,6 @@
     "transport": true,
     "explore": true
   },
-  "bookingEmailTo": "eljabbaryhicham@gmail.com"
+  "bookingEmailTo": "eljabbaryhicham@gmail.com",
+  "resendEmailFrom": "TriPlanner <Contact@Traiplanner.ma>"
 }
