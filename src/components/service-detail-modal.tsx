@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -195,8 +194,8 @@ const ServiceDetailModal = ({
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10" />
-                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10" />
+                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 h-10 w-10 bg-primary/50 text-primary-foreground hover:bg-primary/80 border-0" />
+                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 h-10 w-10 bg-primary/50 text-primary-foreground hover:bg-primary/80 border-0" />
               </Carousel>
             </div>
           </DialogHeader>
