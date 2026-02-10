@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { adminAuth, adminFirestore } from '@/firebase/admin';
+import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
@@ -48,6 +48,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
   
   const appSettings = await getSettings();
   const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
+  const fromEmail = appSettings.resendEmailFrom || 'TriPlanner <onboarding@resend.dev>';
 
   if (!process.env.RESEND_API_KEY || !recipientEmail) {
     console.error('Resend API Key or recipient email is not configured.');
@@ -86,7 +87,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     adminHtmlBody = adminHtmlBody.replace(new RegExp('{{email}}', 'g'), email);
 
     const { error: adminError } = await resend.emails.send({
-      from: 'TriPlanner <onboarding@resend.dev>',
+      from: fromEmail,
       to: [recipientEmail],
       subject: `New Booking Inquiry for ${serviceName}`,
       html: adminHtmlBody,
@@ -107,7 +108,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     clientHtmlBody = clientHtmlBody.replace(new RegExp('{{serviceName}}', 'g'), serviceName);
     
     const { error: clientError } = await resend.emails.send({
-        from: 'TriPlanner <onboarding@resend.dev>',
+        from: fromEmail,
         to: [email],
         subject: `Your Booking Inquiry for ${serviceName}`,
         html: clientHtmlBody,
@@ -115,8 +116,6 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     
     if (clientError) {
         console.error('Resend error (to client):', clientError);
-        // The admin email was sent, but client confirmation failed.
-        // Return success with a warning to inform the user.
         return { 
             success: true, 
             error: null,
@@ -150,6 +149,7 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
   
   const appSettings = await getSettings();
   const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
+  const fromEmail = appSettings.resendEmailFrom || 'TriPlanner Contact <onboarding@resend.dev>';
   
   if (!process.env.RESEND_API_KEY || !recipientEmail) {
     console.error('Resend API Key or recipient email is not configured.');
@@ -161,7 +161,7 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({
-      from: 'TriPlanner Contact <onboarding@resend.dev>',
+      from: fromEmail,
       to: [recipientEmail],
       subject: `New Message from ${name}`,
       reply_to: email,
@@ -193,6 +193,7 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
 const generalSettingsSchema = z.object({
     whatsappNumber: z.string().min(1, { message: 'WhatsApp number cannot be empty.' }),
     bookingEmailTo: z.string().email({ message: 'A valid recipient email is required.' }),
+    resendEmailFrom: z.string().min(1, { message: 'A "from" email is required for Resend.' }),
 });
 
 export async function updateGeneralSettings(prevState: any, formData: FormData) {
@@ -202,11 +203,11 @@ export async function updateGeneralSettings(prevState: any, formData: FormData) 
         return { error: parsed.error.errors[0].message, success: false };
     }
 
-    const { whatsappNumber, bookingEmailTo } = parsed.data;
+    const { whatsappNumber, bookingEmailTo, resendEmailFrom } = parsed.data;
     
     try {
         const currentConfig = await getSettings();
-        const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber, bookingEmailTo }, null, 2);
+        const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber, bookingEmailTo, resendEmailFrom }, null, 2);
         await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
         
         revalidatePath('/admin');
@@ -303,6 +304,8 @@ export async function addAdmin(prevState: any, formData: FormData) {
     const { login, password } = parsed.data;
 
     try {
+        const adminAuth = getAdminAuth();
+        const adminFirestore = getAdminFirestore();
         const userRecord = await adminAuth.createUser({ email: login, password });
         await adminFirestore.collection('roles_admin').doc(userRecord.uid).set({
             email: login,
@@ -326,6 +329,8 @@ export async function removeAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
+        const adminAuth = getAdminAuth();
+        const adminFirestore = getAdminFirestore();
         await adminAuth.deleteUser(id);
         await adminFirestore.collection('roles_admin').doc(id).delete();
         revalidatePath('/admin');
@@ -344,6 +349,7 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
+        const adminFirestore = getAdminFirestore();
         await adminFirestore.collection('roles_admin').doc(id).update({ role: 'superadmin' });
         revalidatePath('/admin');
         return { success: true, error: null };

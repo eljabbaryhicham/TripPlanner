@@ -25,9 +25,10 @@ function SubmitButton() {
 interface SettingsManagementProps {
     currentWhatsappNumber: string;
     currentBookingEmailTo: string;
+    currentResendEmailFrom: string;
 }
 
-export default function SettingsManagement({ currentWhatsappNumber, currentBookingEmailTo }: SettingsManagementProps) {
+export default function SettingsManagement({ currentWhatsappNumber, currentBookingEmailTo, currentResendEmailFrom }: SettingsManagementProps) {
     const router = useRouter();
     const { toast } = useToast();
     const [state, formAction] = React.useActionState(updateGeneralSettings, { error: null, success: false });
@@ -72,6 +73,19 @@ export default function SettingsManagement({ currentWhatsappNumber, currentBooki
                             required
                         />
                          <p className="text-xs text-muted-foreground">The email address that receives all booking and contact form inquiries.</p>
+                    </div>
+                    <Separator />
+                    <div className="space-y-2">
+                        <Label htmlFor="resendEmailFrom">"From" Email Address (Resend)</Label>
+                        <Input
+                            id="resendEmailFrom"
+                            name="resendEmailFrom"
+                            type="text"
+                            defaultValue={currentResendEmailFrom}
+                            placeholder="My App <noreply@mydomain.com>"
+                            required
+                        />
+                         <p className="text-xs text-muted-foreground">The "From" address for emails sent via Resend. Must be a verified domain.</p>
                     </div>
                     <div className="flex justify-end pt-2">
                         <SubmitButton />

@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 const defaultSettings = {
   whatsappNumber: "",
   bookingEmailTo: "",
+  resendEmailFrom: "TriPlanner <onboarding@resend.dev>",
   categories: {
     cars: true,
     hotels: true,
@@ -39,7 +40,7 @@ export default async function RootLayout({
       ...fileSettings,
       categories: {
         ...defaultSettings.categories,
-        ...fileSettings.categories
+        ...(fileSettings.categories || {})
       }
     };
   } catch (error) {

@@ -3,17 +3,41 @@ import { initializeApp, getApps, App, applicationDefault, getApp } from 'firebas
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-let adminApp: App;
-
-if (getApps().length === 0) {
-  adminApp = initializeApp({
-    credential: applicationDefault(),
-  });
-} else {
-  adminApp = getApp();
+interface AdminServices {
+    app: App;
+    auth: Auth;
+    firestore: Firestore;
 }
 
-const adminAuth: Auth = getAuth(adminApp);
-const adminFirestore: Firestore = getFirestore(adminApp);
+let services: AdminServices | null = null;
 
-export { adminAuth, adminFirestore };
+function getAdminServices(): AdminServices {
+    if (services) {
+        return services;
+    }
+
+    let app: App;
+    if (getApps().length === 0) {
+        app = initializeApp({
+            credential: applicationDefault(),
+        });
+    } else {
+        app = getApp();
+    }
+
+    services = {
+        app,
+        auth: getAuth(app),
+        firestore: getFirestore(app),
+    };
+
+    return services;
+}
+
+export function getAdminAuth(): Auth {
+    return getAdminServices().auth;
+}
+
+export function getAdminFirestore(): Firestore {
+    return getAdminServices().firestore;
+}

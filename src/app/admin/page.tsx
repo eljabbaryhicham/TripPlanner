@@ -224,6 +224,7 @@ export default function AdminPage() {
                             <SettingsManagement 
                                 currentWhatsappNumber={settings.whatsappNumber}
                                 currentBookingEmailTo={settings.bookingEmailTo || ''}
+                                currentResendEmailFrom={settings.resendEmailFrom || ''}
                             />
                         </AccordionContent>
                     </AccordionItem>

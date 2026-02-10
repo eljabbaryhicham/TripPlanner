@@ -11,20 +11,35 @@ export async function POST(request: Request) {
         if (!file) {
             return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
         }
+        
+        // Use the file's stream method to handle large files efficiently
+        const fileStream = file.stream();
+        
+        const result = await new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+                { folder: 'triplanner', resource_type: 'auto' },
+                (error, result) => {
+                    if (error) {
+                        return reject(error);
+                    }
+                    resolve(result);
+                }
+            );
 
-        // Convert the file to a buffer and then to a Base64 Data URI.
-        // This is a more robust method than streaming the buffer directly in some environments.
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-        const dataUri = `data:${file.type};base64,${buffer.toString('base64')}`;
-
-        // Use the standard uploader with the data URI.
-        const uploadResult = await cloudinary.uploader.upload(dataUri, {
-            folder: 'triplanner',
-            resource_type: 'auto', // Let Cloudinary detect the resource type.
+            // Pipe the file stream to Cloudinary's upload stream
+            const reader = fileStream.getReader();
+            reader.read().then(function processStream({ done, value }): any {
+                if (done) {
+                    uploadStream.end();
+                    return;
+                }
+                uploadStream.write(value);
+                return reader.read().then(processStream);
+            }).catch(reject);
         });
 
-        // CRITICAL: Explicitly check for a valid result.
+        const uploadResult = result as any;
+
         if (!uploadResult || !uploadResult.public_id) {
             throw new Error('Cloudinary upload failed: The server returned an invalid result.');
         }
