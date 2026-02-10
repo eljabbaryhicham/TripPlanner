@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,15 +6,17 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Loader2, AlertTriangle, UploadCloud } from 'lucide-react';
+import { Loader2, AlertTriangle, UploadCloud, PlayCircle } from 'lucide-react';
 import { AspectRatio } from '../ui/aspect-ratio';
 import { ScrollArea } from '../ui/scroll-area';
 
 type CloudinaryMedia = {
   public_id: string;
   secure_url: string;
+  thumbnail_url: string;
   width: number;
   height: number;
+  resource_type: 'image' | 'video';
 };
 
 interface MediaBrowserDialogProps {
@@ -29,8 +32,13 @@ const SelectableMediaCard = ({ media, onSelect }: { media: CloudinaryMedia, onSe
             className="block w-full overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm transition-all duration-200 hover:shadow-lg hover:ring-2 hover:ring-primary focus:outline-none focus:ring-2 focus:ring-primary"
             onClick={() => onSelect(media.secure_url)}
         >
-            <AspectRatio ratio={1 / 1} className="bg-muted">
-                 <Image src={media.secure_url} alt={media.public_id} fill className="object-cover" />
+            <AspectRatio ratio={1 / 1} className="bg-muted relative">
+                 <Image src={media.thumbnail_url} alt={media.public_id} fill className="object-cover" />
+                 {media.resource_type === 'video' && (
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <PlayCircle className="h-8 w-8 text-white" />
+                    </div>
+                )}
             </AspectRatio>
         </button>
     );
@@ -117,7 +125,7 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
                         ref={fileInputRef} 
                         onChange={handleFileUpload}
                         className="hidden" 
-                        accept="image/png, image/jpeg, image/gif, image/webp"
+                        accept="image/*,video/*"
                     />
                 </div>
             </DialogHeader>

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,7 +6,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, UploadCloud, Trash2, Copy, AlertTriangle } from 'lucide-react';
+import { Loader2, UploadCloud, Trash2, Copy, AlertTriangle, PlayCircle } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +23,10 @@ import { AspectRatio } from '../ui/aspect-ratio';
 type CloudinaryMedia = {
   public_id: string;
   secure_url: string;
+  thumbnail_url: string;
   width: number;
   height: number;
+  resource_type: 'image' | 'video';
 };
 
 const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (publicId: string) => void }) => {
@@ -31,13 +34,18 @@ const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (pub
 
     const copyUrl = () => {
         navigator.clipboard.writeText(media.secure_url);
-        toast({ title: 'URL Copied!', description: 'The image URL has been copied to your clipboard.' });
+        toast({ title: 'URL Copied!', description: 'The media URL has been copied to your clipboard.' });
     };
     
     return (
         <Card className="overflow-hidden">
-            <AspectRatio ratio={1 / 1} className="bg-muted">
-                 <Image src={media.secure_url} alt={media.public_id} fill className="object-cover" />
+            <AspectRatio ratio={1 / 1} className="bg-muted relative">
+                <Image src={media.thumbnail_url} alt={media.public_id} fill className="object-cover" />
+                {media.resource_type === 'video' && (
+                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
+                        <PlayCircle className="h-8 w-8 text-white" />
+                    </div>
+                )}
             </AspectRatio>
             <div className="p-2 flex items-center justify-end gap-2 bg-background/50">
                 <Button variant="ghost" size="icon" onClick={copyUrl}><Copy className="h-4 w-4" /></Button>
@@ -48,7 +56,7 @@ const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (pub
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                            <AlertDialogDescription>This will permanently delete the image from Cloudinary. This action cannot be undone.</AlertDialogDescription>
+                            <AlertDialogDescription>This will permanently delete the media from Cloudinary. This action cannot be undone.</AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -127,7 +135,7 @@ export default function MediaLibrary() {
         throw new Error(errorData.error || 'Upload failed');
       }
       
-      toast({ title: 'Upload Successful', description: 'Your image has been added to the library.' });
+      toast({ title: 'Upload Successful', description: 'Your media has been added to the library.' });
       fetchMedia(); // Refresh the media list
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Upload Failed', description: e.message });
@@ -148,7 +156,7 @@ export default function MediaLibrary() {
         });
         if(!res.ok) throw new Error('Failed to delete media');
         
-        toast({ title: 'Image Deleted' });
+        toast({ title: 'Media Deleted' });
         setMedia(prev => prev.filter(m => m.public_id !== publicId));
     } catch (e: any) {
         toast({ variant: 'destructive', title: 'Delete Failed', description: e.message });
@@ -189,14 +197,14 @@ export default function MediaLibrary() {
             </div>
             <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
                 {isUploading ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
-                Upload Image
+                Upload Media
             </Button>
             <input 
                 type="file" 
                 ref={fileInputRef} 
                 onChange={handleFileUpload}
                 className="hidden" 
-                accept="image/png, image/jpeg, image/gif, image/webp"
+                accept="image/*,video/*"
             />
         </div>
       </CardHeader>
@@ -208,7 +216,7 @@ export default function MediaLibrary() {
         ) : error ? (
             <p className="text-destructive text-center">{error}</p>
         ) : media.length === 0 ? (
-            <p className="text-center text-muted-foreground py-8">Your media library is empty. Upload an image to get started.</p>
+            <p className="text-center text-muted-foreground py-8">Your media library is empty. Upload an image or video to get started.</p>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {media.map((item) => (

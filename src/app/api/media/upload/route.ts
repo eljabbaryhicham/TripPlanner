@@ -1,3 +1,4 @@
+
 import { NextResponse } from 'next/server';
 import cloudinary from '@/lib/cloudinary';
 
@@ -16,11 +17,20 @@ export async function POST(request: Request) {
         const base64String = Buffer.from(buffer).toString('base64');
         const dataUri = `data:${file.type};base64,${base64String}`;
 
-        const uploadResult = await cloudinary.uploader.upload(dataUri, {
+        const uploadOptions: any = {
             folder: 'triplanner',
-            // Auto-optimization settings
-            transformation: [{ quality: 'auto', fetch_format: 'auto' }]
-        });
+            resource_type: 'auto',
+        };
+
+        if (file.type.startsWith('image/')) {
+            // For images, optimize quality and format. `w_auto` and `c_scale` are delivery-time transformations.
+            uploadOptions.transformation = [{ quality: 'auto', fetch_format: 'auto' }];
+        } else if (file.type.startsWith('video/')) {
+            // For videos, optimize format and codec.
+            uploadOptions.transformation = [{ fetch_format: 'auto', video_codec: 'auto' }];
+        }
+
+        const uploadResult = await cloudinary.uploader.upload(dataUri, uploadOptions);
 
         return NextResponse.json({
             url: uploadResult.secure_url,
