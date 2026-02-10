@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { getAdminServices } from '@/firebase/admin';
+import { manageAdmin } from '@/ai/flows/manage-admin-flow';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
@@ -297,62 +297,65 @@ const addAdminSchema = z.object({
     password: z.string().min(6),
 });
 export async function addAdmin(prevState: any, formData: FormData) {
-    const { adminAuth, adminFirestore } = getAdminServices();
     const parsed = addAdminSchema.safeParse(Object.fromEntries(formData));
     if (!parsed.success) {
         return { error: parsed.error.errors[0].message, success: false };
     }
     const { login, password } = parsed.data;
 
-    try {
-        const userRecord = await adminAuth.createUser({ email: login, password });
-        await adminFirestore.collection('roles_admin').doc(userRecord.uid).set({
-            email: login,
-            role: 'admin',
-            createdAt: new Date(),
-            id: userRecord.uid,
-        });
+    const result = await manageAdmin({
+        action: 'add',
+        email: login,
+        password: password,
+    });
+
+    if (result.success) {
         revalidatePath('/admin');
         return { success: true, error: null };
-    } catch (error: any) {
-        console.error("Error adding admin:", error.message);
-        return { success: false, error: error.message };
+    } else {
+        console.error("Error adding admin:", result.message);
+        return { success: false, error: result.message };
     }
 }
 
 const removeAdminSchema = z.object({ id: z.string() });
 export async function removeAdmin(prevState: any, formData: FormData) {
-     const { adminAuth, adminFirestore } = getAdminServices();
      const parsed = removeAdminSchema.safeParse(Object.fromEntries(formData));
     if (!parsed.success) {
         return { error: "Invalid ID", success: false };
     }
     const { id } = parsed.data;
 
-    try {
-        await adminAuth.deleteUser(id);
-        await adminFirestore.collection('roles_admin').doc(id).delete();
+    const result = await manageAdmin({
+        action: 'remove',
+        uid: id,
+    });
+
+    if (result.success) {
         revalidatePath('/admin');
         return { success: true, error: null };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } else {
+        return { success: false, error: result.message };
     }
 }
 
 const setSuperAdminSchema = z.object({ id: z.string() });
 export async function setSuperAdmin(prevState: any, formData: FormData) {
-    const { adminFirestore } = getAdminServices();
     const parsed = setSuperAdminSchema.safeParse(Object.fromEntries(formData));
     if (!parsed.success) {
         return { error: "Invalid ID", success: false };
     }
     const { id } = parsed.data;
 
-    try {
-        await adminFirestore.collection('roles_admin').doc(id).update({ role: 'superadmin' });
+    const result = await manageAdmin({
+        action: 'promote',
+        uid: id,
+    });
+
+    if (result.success) {
         revalidatePath('/admin');
         return { success: true, error: null };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } else {
+        return { success: false, error: result.message };
     }
 }
