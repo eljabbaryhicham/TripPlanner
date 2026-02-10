@@ -1,7 +1,7 @@
 {
   "whatsappNumber": "+212602569334",
   "categories": {
-    "cars": false,
+    "cars": true,
     "hotels": true,
     "transport": true,
     "explore": true
