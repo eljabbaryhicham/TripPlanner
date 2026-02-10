@@ -17,27 +17,28 @@ export async function POST(request: Request) {
         const base64String = Buffer.from(buffer).toString('base64');
         const dataUri = `data:${file.type};base64,${base64String}`;
 
-        // Upload the raw file without incoming transformations
         const uploadResult = await cloudinary.uploader.upload(dataUri, {
             folder: 'triplanner',
             resource_type: 'auto',
         });
         
-        // Manually construct the URL with transformations
-        const urlParts = uploadResult.secure_url.split('/upload/');
-        const baseUrl = urlParts[0];
-        const pathWithVersion = urlParts[1];
-        let optimizedUrl;
+        const uploadMarker = '/upload/';
+        const markerIndex = uploadResult.secure_url.indexOf(uploadMarker);
+        
+        let optimizedUrl = uploadResult.secure_url;
 
-        if (uploadResult.resource_type === 'image') {
-            const transformations = 'w_auto,c_scale,f_auto,q_auto';
-            optimizedUrl = `${baseUrl}/upload/${transformations}/${pathWithVersion}`;
-        } else if (uploadResult.resource_type === 'video') {
-            const transformations = 'f_auto,vc_auto';
-            optimizedUrl = `${baseUrl}/upload/${transformations}/${pathWithVersion}`;
-        } else {
-            // Fallback for other resource types
-            optimizedUrl = uploadResult.secure_url;
+        if (markerIndex !== -1) {
+            const baseUrl = uploadResult.secure_url.substring(0, markerIndex);
+            const path = uploadResult.secure_url.substring(markerIndex + uploadMarker.length);
+            let transformations;
+
+            if (uploadResult.resource_type === 'image') {
+                transformations = 'f_auto,q_auto';
+                optimizedUrl = `${baseUrl}${uploadMarker}${transformations}/${path}`;
+            } else if (uploadResult.resource_type === 'video') {
+                transformations = 'f_auto,vc_auto';
+                optimizedUrl = `${baseUrl}${uploadMarker}${transformations}/${path}`;
+            }
         }
 
         return NextResponse.json({
