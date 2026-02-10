@@ -30,7 +30,7 @@ type CloudinaryMedia = {
   resource_type: 'image' | 'video';
 };
 
-const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (publicId: string) => void }) => {
+const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (publicId: string, resourceType: 'image' | 'video') => void }) => {
     const { toast } = useToast();
 
     const copyUrl = () => {
@@ -61,7 +61,7 @@ const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (pub
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(media.public_id)}>Delete</AlertDialogAction>
+                            <AlertDialogAction onClick={() => onDelete(media.public_id, media.resource_type)}>Delete</AlertDialogAction>
                         </AlertDialogFooter>
                     </AlertDialogContent>
                 </AlertDialog>
@@ -165,12 +165,12 @@ export default function MediaLibrary() {
     xhr.send(formData);
   };
   
-  const handleDelete = async (publicId: string) => {
+  const handleDelete = async (publicId: string, resourceType: 'image' | 'video') => {
     try {
         const res = await fetch('/api/media/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ publicId })
+            body: JSON.stringify({ publicId, resourceType })
         });
         if(!res.ok) throw new Error('Failed to delete media');
         
