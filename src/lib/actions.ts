@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { getFirestoreAdmin, getAuthAdmin } from '@/firebase/admin';
+import { firestoreAdmin, authAdmin } from '@/firebase/admin';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
@@ -295,8 +295,6 @@ export async function addAdmin(prevState: any, formData: FormData) {
     const { login, password } = parsed.data;
 
     try {
-        const authAdmin = getAuthAdmin();
-        const firestoreAdmin = getFirestoreAdmin();
         const userRecord = await authAdmin.createUser({ email: login, password });
         await firestoreAdmin.collection('roles_admin').doc(userRecord.uid).set({
             email: login,
@@ -320,8 +318,6 @@ export async function removeAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
-        const authAdmin = getAuthAdmin();
-        const firestoreAdmin = getFirestoreAdmin();
         await authAdmin.deleteUser(id);
         await firestoreAdmin.collection('roles_admin').doc(id).delete();
         revalidatePath('/admin');
@@ -340,7 +336,6 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
-        const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection('roles_admin').doc(id).update({ role: 'superadmin' });
         revalidatePath('/admin');
         return { success: true, error: null };
@@ -373,7 +368,6 @@ export async function updateServiceStatus(serviceId: string, category: string, i
     }
 
     try {
-        const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection(collectionPath).doc(serviceId).set({ isActive }, { merge: true });
         
         revalidatePath('/admin');
@@ -411,7 +405,6 @@ export async function updateServiceBestOffer(serviceId: string, category: string
     }
 
     try {
-        const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection(collectionPath).doc(serviceId).set({ isBestOffer }, { merge: true });
         
         revalidatePath('/admin');

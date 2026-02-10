@@ -1,23 +1,18 @@
+'use server';
 import admin from 'firebase-admin';
 import { getApps } from 'firebase-admin/app';
 
-const initializeAdminApp = () => {
-  if (getApps().length === 0) {
-    // In a managed environment like Cloud Functions or App Hosting,
-    // initializeApp() can be called without arguments. It will automatically
-    // discover the project credentials.
-    admin.initializeApp();
-  }
-  return admin;
-};
+// Initialize the app only if it's not already been initialized.
+// This is the recommended pattern for server environments where code might be re-evaluated.
+if (getApps().length === 0) {
+  // When running in a Google Cloud environment like App Hosting,
+  // initializeApp() with no arguments automatically discovers credentials.
+  admin.initializeApp();
+}
 
-// Export getter functions instead of instances
-export const getFirestoreAdmin = () => {
-  const adminApp = initializeAdminApp();
-  return adminApp.firestore();
-};
+// Export the initialized services directly.
+// These are now singletons for the lifetime of the module.
+const firestoreAdmin = admin.firestore();
+const authAdmin = admin.auth();
 
-export const getAuthAdmin = () => {
-  const adminApp = initializeAdminApp();
-  return adminApp.auth();
-};
+export { firestoreAdmin, authAdmin };
