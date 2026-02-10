@@ -48,10 +48,10 @@ const Header = () => {
   const auth = useAuth();
   
   const [categorySettings, setCategorySettings] = React.useState({
-    cars: true,
-    hotels: true,
-    transport: true,
-    explore: true,
+    cars: false,
+    hotels: false,
+    transport: false,
+    explore: false,
   });
 
   React.useEffect(() => {

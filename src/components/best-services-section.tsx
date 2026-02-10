@@ -15,7 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import Footer from '@/components/footer';
 
-export default function BestServicesSection({ bestOffers }: { bestOffers: Service[] }) {
+export default function BestServicesSection({ bestOffers, categorySettings }: { bestOffers: Service[], categorySettings: { [key: string]: boolean } }) {
   return (
     <section
       id="best-services"
@@ -27,24 +27,32 @@ export default function BestServicesSection({ bestOffers }: { bestOffers: Servic
             Best Service Offers
           </h2>
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full max-w-lg mx-auto grid-cols-5 mb-8">
+            <TabsList className="flex flex-wrap h-auto justify-center w-full max-w-lg mx-auto mb-8">
               <TabsTrigger value="all">All</TabsTrigger>
-              <TabsTrigger value="cars">
-                <Car className="w-4 h-4 mr-2" />
-                Cars
-              </TabsTrigger>
-              <TabsTrigger value="hotels">
-                <BedDouble className="w-4 h-4 mr-2" />
-                Hotels
-              </TabsTrigger>
-              <TabsTrigger value="transport">
-                <Briefcase className="w-4 h-4 mr-2" />
-                Pickup
-              </TabsTrigger>
-              <TabsTrigger value="explore">
-                <Compass className="w-4 h-4 mr-2" />
-                Explore
-              </TabsTrigger>
+              {categorySettings.cars !== false && (
+                <TabsTrigger value="cars">
+                  <Car className="w-4 h-4 mr-2" />
+                  Cars
+                </TabsTrigger>
+              )}
+              {categorySettings.hotels !== false && (
+                <TabsTrigger value="hotels">
+                  <BedDouble className="w-4 h-4 mr-2" />
+                  Hotels
+                </TabsTrigger>
+              )}
+              {categorySettings.transport !== false && (
+                <TabsTrigger value="transport">
+                  <Briefcase className="w-4 h-4 mr-2" />
+                  Pickup
+                </TabsTrigger>
+              )}
+              {categorySettings.explore !== false && (
+                <TabsTrigger value="explore">
+                  <Compass className="w-4 h-4 mr-2" />
+                  Explore
+                </TabsTrigger>
+              )}
             </TabsList>
             <TabsContent value="all">
               <ServiceList services={bestOffers.slice(0, 3)} />

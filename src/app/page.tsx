@@ -15,6 +15,17 @@ import { Skeleton } from '@/components/ui/skeleton';
 export default function Home() {
   const firestore = useFirestore();
   
+  const [settings, setSettings] = React.useState<{ categories?: { [key: string]: boolean } }>({});
+  const [settingsLoading, setSettingsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+      fetch('/api/settings')
+          .then(res => res.json())
+          .then(data => setSettings(data))
+          .catch(console.error)
+          .finally(() => setSettingsLoading(false));
+  }, []);
+
   const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
   const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
   const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
@@ -34,10 +45,17 @@ export default function Home() {
     return allServices;
   }, [carRentals, hotels, transports, exploreTrips]);
 
-  const isLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading;
+  const isLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading || settingsLoading;
   
   const activeServices = services.filter(service => service.isActive !== false);
-  const bestOffers = activeServices.filter((service) => service.isBestOffer);
+  
+  const bestOffers = React.useMemo(() => {
+    return activeServices.filter((service) => {
+        const isBest = service.isBestOffer;
+        const isCategoryActive = settings.categories ? settings.categories[service.category] !== false : true;
+        return isBest && isCategoryActive;
+    });
+  }, [activeServices, settings.categories]);
 
   return (
     <div className="h-screen snap-y snap-mandatory overflow-y-scroll scroll-smooth">
@@ -91,7 +109,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-          <BestServicesSection bestOffers={bestOffers} />
+          <BestServicesSection bestOffers={bestOffers} categorySettings={settings.categories || {}} />
         )}
       </main>
     </div>
