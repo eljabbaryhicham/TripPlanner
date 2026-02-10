@@ -1,15 +1,18 @@
 
-import { initializeApp, getApps, App, getApp } from 'firebase-admin/app';
+import { initializeApp, getApps, App, getApp, applicationDefault } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
 let app: App;
 
+// This logic is designed to work in a server environment where `initializeApp`
+// should ideally be called only once.
 if (getApps().length === 0) {
-  // In a Google Cloud environment (like App Hosting or Cloud Functions), 
-  // initializeApp() with no arguments automatically uses the environment's 
-  // service account credentials. This is the most secure and robust method for production.
-  app = initializeApp();
+  // Explicitly use the Application Default Credentials from the environment.
+  // This is the most robust way to authenticate in a Google Cloud environment.
+  app = initializeApp({
+    credential: applicationDefault(),
+  });
 } else {
   // If the app is already initialized (e.g., in a hot-reload development environment),
   // just get a reference to it.
