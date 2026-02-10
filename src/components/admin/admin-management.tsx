@@ -10,8 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, PlusCircle, Trash2, Crown } from 'lucide-react';
+import { Loader2, PlusCircle, Trash2, Crown, ChevronsUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 function SubmitButton({ children, variant = 'default' }: { children: React.ReactNode, variant?: 'default' | 'destructive' | 'secondary' }) {
     const { pending } = useFormStatus();
@@ -25,11 +26,13 @@ function SubmitButton({ children, variant = 'default' }: { children: React.React
 function AddAdminForm() {
     const router = useRouter();
     const { toast } = useToast();
+    const formRef = React.useRef<HTMLFormElement>(null);
     const [state, formAction] = React.useActionState(addAdmin, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {
             toast({ title: 'Admin Added', description: 'The new admin has been successfully added.' });
+            formRef.current?.reset();
             router.refresh();
         }
         if (state.error) {
@@ -38,10 +41,10 @@ function AddAdminForm() {
     }, [state, toast, router]);
 
     return (
-        <form action={formAction} className="space-y-4">
+        <form ref={formRef} action={formAction} className="space-y-4 rounded-md border p-4">
             <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                    <Label htmlFor="login">Login</Label>
+                    <Label htmlFor="login">Login Email</Label>
                     <Input id="login" name="login" required />
                 </div>
                 <div className="space-y-2">
@@ -110,51 +113,56 @@ function SetSuperAdminForm({ adminId }: { adminId: string }) {
 
 
 export default function AdminManagement({ admins, currentUser }: { admins: any[], currentUser: any }) {
-    return (
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Manage Administrators</CardTitle>
-                    <CardDescription>Add, remove, or promote administrators.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Login</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead className="text-right">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {admins.map((admin) => (
-                                <TableRow key={admin.id}>
-                                    <TableCell>{admin.login}</TableCell>
-                                    <TableCell>{admin.role}</TableCell>
-                                    <TableCell className="flex justify-end gap-2">
-                                        {admin.id !== currentUser.id && admin.role !== 'superadmin' && (
-                                            <SetSuperAdminForm adminId={admin.id} />
-                                        )}
-                                        {admin.id !== currentUser.id && (
-                                            <RemoveAdminForm adminId={admin.id} />
-                                        )}
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+    const [isAddFormOpen, setIsAddFormOpen] = React.useState(false);
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Add New Admin</CardTitle>
-                    <CardDescription>Create a new administrator account.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AddAdminForm />
-                </CardContent>
-            </Card>
-        </div>
+    return (
+        <Card>
+            <CardHeader>
+                <CardTitle>Manage Administrators</CardTitle>
+                <CardDescription>Add, remove, or promote administrators.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Email</TableHead>
+                            <TableHead>Role</TableHead>
+                            <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {admins.map((admin) => (
+                            <TableRow key={admin.id}>
+                                <TableCell>{admin.email}</TableCell>
+                                <TableCell className="capitalize">{admin.role}</TableCell>
+                                <TableCell className="flex justify-end gap-2">
+                                    {admin.id !== currentUser.id && admin.role !== 'superadmin' && (
+                                        <SetSuperAdminForm adminId={admin.id} />
+                                    )}
+                                    {admin.id !== currentUser.id && (
+                                        <RemoveAdminForm adminId={admin.id} />
+                                    )}
+                                </TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+
+                <Collapsible open={isAddFormOpen} onOpenChange={setIsAddFormOpen} className="mt-6">
+                    <CollapsibleTrigger asChild>
+                         <div className="flex items-center justify-between rounded-lg border p-3 cursor-pointer hover:bg-muted/50 transition-colors">
+                            <p className="font-semibold text-sm">Add New Admin</p>
+                            <Button variant="ghost" size="sm" className="w-9 p-0">
+                                <ChevronsUpDown className="h-4 w-4" />
+                                <span className="sr-only">Toggle</span>
+                            </Button>
+                        </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="pt-4">
+                        <AddAdminForm />
+                    </CollapsibleContent>
+                </Collapsible>
+            </CardContent>
+        </Card>
     );
 }

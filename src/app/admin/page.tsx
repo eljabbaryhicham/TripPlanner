@@ -15,10 +15,10 @@ import { useToast } from '@/hooks/use-toast';
 import { ServiceEditor } from '@/components/admin/service-editor';
 import type { Service } from '@/lib/types';
 import AdminManagement from '@/components/admin/admin-management';
-import EmailTemplateEditor from '@/components/admin/email-template-editor';
-import ClientEmailTemplateEditor from '@/components/admin/client-email-template-editor';
 import CategoryManagement from '@/components/admin/category-management';
 import { useSettings } from '@/components/settings-provider';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import EmailTemplatesManagement from '@/components/admin/email-templates-management';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -203,19 +203,58 @@ export default function AdminPage() {
                     </Button>
                 </div>
             </header>
-            <main className="p-4 sm:px-6 sm:py-0 space-y-6">
-                <ServiceManagement 
-                    services={services} 
-                    onAdd={handleAddService} 
-                    onEdit={handleEditService} 
-                />
-                <SettingsManagement currentWhatsappNumber={whatsappNumber} />
-                <CategoryManagement currentSettings={categorySettings} />
-                <EmailTemplateEditor currentTemplate={emailTemplate} />
-                <ClientEmailTemplateEditor currentTemplate={clientEmailTemplate} />
-                {isSuperAdmin && admins && adminProfile && (
-                    <AdminManagement admins={admins} currentUser={adminProfile} />
-                )}
+            <main className="p-4 sm:px-6 sm:py-0">
+                <Accordion type="multiple" defaultValue={['services']} className="w-full space-y-4">
+                    <AccordionItem value="services">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Service Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            <ServiceManagement 
+                                services={services} 
+                                onAdd={handleAddService} 
+                                onEdit={handleEditService} 
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="settings">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            General Settings
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            <SettingsManagement currentWhatsappNumber={whatsappNumber} />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="categories">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Category Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            <CategoryManagement currentSettings={categorySettings} />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="email-templates">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Email Templates
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            <EmailTemplatesManagement 
+                                currentAdminTemplate={emailTemplate} 
+                                currentClientTemplate={clientEmailTemplate} 
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+                    {isSuperAdmin && admins && adminProfile && (
+                        <AccordionItem value="admins">
+                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                                Administrator Management
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                                <AdminManagement admins={admins} currentUser={adminProfile} />
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
+                </Accordion>
             </main>
             <ServiceEditor
                 isOpen={editorOpen}
