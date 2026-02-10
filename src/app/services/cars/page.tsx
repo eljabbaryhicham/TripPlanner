@@ -27,6 +27,9 @@ export default function CarsPage() {
   const [priceRange, setPriceRange] = React.useState('all');
   const [seats, setSeats] = React.useState('all');
 
+  const hasServices = carServices && carServices.length > 0;
+  const allInactive = hasServices && carServices.every(s => s.isActive === false);
+
   const filteredCarServices = React.useMemo(() => {
     let services = carServices?.filter(service => service.isActive !== false) ?? [];
 
@@ -73,12 +76,10 @@ export default function CarsPage() {
       return <PageMessage icon={<AlertTriangle className="h-10 w-10 text-primary" />} title="Service Unavailable" message="This service category is currently disabled. Please check back later." />;
     }
 
-    const hasServices = carServices && carServices.length > 0;
     if (!hasServices) {
         return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title="No Services Available" message="There are currently no services in this category. Please check back later." />;
     }
 
-    const allInactive = hasServices && carServices.every(s => s.isActive === false);
     if (allInactive) {
         return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title="Services Are Busy" message="All services in this category are temporarily unavailable. We'll be back soon!" />;
     }
@@ -106,7 +107,7 @@ export default function CarsPage() {
               </p>
             </div>
 
-            {settings.categories?.cars !== false && carServices && carServices.length > 0 && (
+            {!isLoading && settings.categories?.cars !== false && hasServices && !allInactive && (
               <div className="mb-8 flex flex-col sm:flex-row justify-center gap-4">
                 <Select value={priceRange} onValueChange={setPriceRange}>
                   <SelectTrigger className="w-full sm:w-[200px]">

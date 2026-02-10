@@ -26,6 +26,9 @@ export default function HotelsPage() {
   
   const settings = useSettings();
   const [selectedCity, setSelectedCity] = React.useState('all');
+  
+  const hasServices = hotelServices && hotelServices.length > 0;
+  const allInactive = hasServices && hotelServices.every(s => s.isActive === false);
 
   const filteredHotels = React.useMemo(() => {
     let activeServices = hotelServices?.filter(service => service.isActive !== false) ?? [];
@@ -52,12 +55,10 @@ export default function HotelsPage() {
       return <PageMessage icon={<AlertTriangle className="h-10 w-10 text-primary" />} title="Service Unavailable" message="This service category is currently disabled. Please check back later." />;
     }
 
-    const hasServices = hotelServices && hotelServices.length > 0;
     if (!hasServices) {
         return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title="No Hotels Available" message="There are currently no hotels in this category. Please check back later." />;
     }
 
-    const allInactive = hasServices && hotelServices.every(s => s.isActive === false);
     if (allInactive) {
         return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title="Hotels Are Fully Booked" message="All hotels in this category are temporarily unavailable. We'll be back soon!" />;
     }
@@ -85,7 +86,7 @@ export default function HotelsPage() {
               </p>
             </div>
             
-            {settings.categories?.hotels !== false && hotelServices && hotelServices.length > 0 && (
+            {!isLoading && settings.categories?.hotels !== false && hasServices && !allInactive && (
               <div className="mb-8 flex justify-center">
                 <Select value={selectedCity} onValueChange={setSelectedCity}>
                   <SelectTrigger className="w-full max-w-xs">

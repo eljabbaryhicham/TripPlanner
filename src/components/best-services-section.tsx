@@ -17,6 +17,12 @@ import { Button } from '@/components/ui/button';
 import PageMessage from './page-message';
 
 export default function BestServicesSection({ bestOffers, categorySettings }: { bestOffers: Service[], categorySettings: { [key: string]: boolean } }) {
+  
+  const bestCars = bestOffers.filter(s => s.category === 'cars');
+  const bestHotels = bestOffers.filter(s => s.category === 'hotels');
+  const bestTransports = bestOffers.filter(s => s.category === 'transport');
+  const bestExplores = bestOffers.filter(s => s.category === 'explore');
+  
   return (
     <div className="container mx-auto px-4">
       <h2 className="mb-12 text-center font-headline text-3xl font-bold md:text-4xl">
@@ -57,72 +63,72 @@ export default function BestServicesSection({ bestOffers, categorySettings }: { 
             <ServiceList services={bestOffers.slice(0, 3)} />
           </TabsContent>
           <TabsContent value="cars">
-            <div className="space-y-8">
-              <ServiceList
-                services={bestOffers.filter(
-                  (service) => service.category === 'cars'
-                ).slice(0, 3)}
-              />
-              <div className="text-center">
-                <Button asChild variant="outline">
-                  <Link href="/services/cars">
-                    Show More Cars
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+            {bestCars.length > 0 ? (
+              <div className="space-y-8">
+                <ServiceList services={bestCars.slice(0, 3)} />
+                <div className="text-center">
+                  <Button asChild variant="outline">
+                    <Link href="/services/cars">
+                      Show More Cars
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+               <p className="text-center text-lg text-foreground/80 py-8">No car rental offers are featured at the moment.</p>
+            )}
           </TabsContent>
           <TabsContent value="hotels">
-            <div className="space-y-8">
-              <ServiceList
-                services={bestOffers.filter(
-                  (service) => service.category === 'hotels'
-                ).slice(0, 3)}
-              />
-              <div className="text-center">
-                <Button asChild variant="outline">
-                  <Link href="/services/hotels">
-                    Show More Hotels
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+            {bestHotels.length > 0 ? (
+              <div className="space-y-8">
+                <ServiceList services={bestHotels.slice(0, 3)} />
+                <div className="text-center">
+                  <Button asChild variant="outline">
+                    <Link href="/services/hotels">
+                      Show More Hotels
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+              <p className="text-center text-lg text-foreground/80 py-8">No hotel offers are featured at the moment.</p>
+            )}
           </TabsContent>
           <TabsContent value="transport">
-            <div className="space-y-8">
-              <ServiceList
-                services={bestOffers.filter(
-                  (service) => service.category === 'transport'
-                ).slice(0, 3)}
-              />
-              <div className="text-center">
-                <Button asChild variant="outline">
-                  <Link href="/services/transport">
-                    View Details & Book
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+            {bestTransports.length > 0 ? (
+              <div className="space-y-8">
+                <ServiceList services={bestTransports.slice(0, 3)} />
+                <div className="text-center">
+                  <Button asChild variant="outline">
+                    <Link href="/services/transport">
+                      View Details & Book
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+                <p className="text-center text-lg text-foreground/80 py-8">No transport offers are featured at the moment.</p>
+            )}
           </TabsContent>
           <TabsContent value="explore">
-            <div className="space-y-8">
-              <ServiceList
-                services={bestOffers.filter(
-                  (service) => service.category === 'explore'
-                ).slice(0, 3)}
-              />
-              <div className="text-center">
-                <Button asChild variant="outline">
-                  <Link href="/services/explore">
-                    Show More Trips
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+            {bestExplores.length > 0 ? (
+              <div className="space-y-8">
+                <ServiceList services={bestExplores.slice(0, 3)} />
+                <div className="text-center">
+                  <Button asChild variant="outline">
+                    <Link href="/services/explore">
+                      Show More Trips
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </div>
-            </div>
+            ) : (
+               <p className="text-center text-lg text-foreground/80 py-8">No 'Explore' offers are featured at the moment.</p>
+            )}
           </TabsContent>
         </Tabs>
       )}
