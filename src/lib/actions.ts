@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { getAdminAuth, getAdminFirestore } from '@/firebase/admin';
+import { adminAuth, adminFirestore } from '@/firebase/admin';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
@@ -304,8 +304,6 @@ export async function addAdmin(prevState: any, formData: FormData) {
     const { login, password } = parsed.data;
 
     try {
-        const adminAuth = getAdminAuth();
-        const adminFirestore = getAdminFirestore();
         const userRecord = await adminAuth.createUser({ email: login, password });
         await adminFirestore.collection('roles_admin').doc(userRecord.uid).set({
             email: login,
@@ -316,6 +314,7 @@ export async function addAdmin(prevState: any, formData: FormData) {
         revalidatePath('/admin');
         return { success: true, error: null };
     } catch (error: any) {
+        console.error("Error adding admin:", error.message);
         return { success: false, error: error.message };
     }
 }
@@ -329,8 +328,6 @@ export async function removeAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
-        const adminAuth = getAdminAuth();
-        const adminFirestore = getAdminFirestore();
         await adminAuth.deleteUser(id);
         await adminFirestore.collection('roles_admin').doc(id).delete();
         revalidatePath('/admin');
@@ -349,7 +346,6 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
-        const adminFirestore = getAdminFirestore();
         await adminFirestore.collection('roles_admin').doc(id).update({ role: 'superadmin' });
         revalidatePath('/admin');
         return { success: true, error: null };
