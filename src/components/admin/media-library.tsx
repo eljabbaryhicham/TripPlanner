@@ -155,7 +155,7 @@ export default function MediaLibrary() {
         toast({ title: 'Upload Successful', description: "Library will refresh shortly." });
         setTimeout(() => {
             fetchMedia();
-        }, 2000); // 2-second delay
+        }, 5000); // 5-second delay
       } else {
         try {
             const errorData = JSON.parse(xhr.responseText);

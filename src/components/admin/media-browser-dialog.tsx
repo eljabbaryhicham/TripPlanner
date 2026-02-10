@@ -125,7 +125,7 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
         toast({ title: 'Upload Successful', description: "Library will refresh shortly." });
         setTimeout(() => {
           fetchMedia();
-        }, 2000);
+        }, 5000);
       } else {
         try {
             const errorData = JSON.parse(xhr.responseText);
