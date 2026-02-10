@@ -25,7 +25,14 @@ export async function POST(request: Request) {
                 },
                 (error, result) => {
                     if (error) {
+                        console.error("Cloudinary upload error:", error);
                         return reject(error);
+                    }
+                    // CRITICAL FIX: Check if the result is valid.
+                    // This prevents silent failures where no error is thrown but the upload didn't succeed.
+                    if (!result || !result.public_id) {
+                        console.error("Cloudinary upload failed: Invalid result received.", result);
+                        return reject(new Error('Cloudinary upload failed: The server returned an invalid result.'));
                     }
                     resolve(result);
                 }
@@ -34,6 +41,7 @@ export async function POST(request: Request) {
             uploadStream.end(buffer);
         });
         
+        // This part will only be reached if the promise resolves (i.e., upload is successful)
         let optimizedUrl;
         if (uploadResult.resource_type === 'image') {
             optimizedUrl = cloudinary.url(uploadResult.public_id, {
@@ -54,7 +62,8 @@ export async function POST(request: Request) {
         });
 
     } catch (error: any) {
-        console.error('Upload failed:', error);
+        console.error('Upload API route failed:', error);
+        // This catch block will now correctly handle rejections from the promise
         const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred during upload.';
         return NextResponse.json({ error: 'Upload failed: ' + errorMessage }, { status: 500 });
     }
