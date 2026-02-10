@@ -1,3 +1,4 @@
+
 'use server';
 
 /**
@@ -24,9 +25,9 @@ function getAdminServices() {
         return adminServices;
     }
     
+    // In a managed Google Cloud environment, initializeApp() with no arguments
+    // automatically discovers credentials.
     if (getApps().length === 0) {
-        // When running in a Google Cloud environment, the SDK will automatically
-        // discover the project ID and credentials.
         initializeApp();
     }
     
