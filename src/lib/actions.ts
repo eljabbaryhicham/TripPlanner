@@ -343,3 +343,40 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
         return { success: false, error: error.message };
     }
 }
+
+// --- Service Status Action ---
+const updateServiceStatusSchema = z.object({
+    serviceId: z.string(),
+    category: z.string(),
+    isActive: z.boolean(),
+});
+
+export async function updateServiceStatus(serviceId: string, category: string, isActive: boolean): Promise<{ success: boolean; error?: string | null; }> {
+    const parsed = updateServiceStatusSchema.safeParse({ serviceId, category, isActive });
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid data provided.' };
+    }
+
+    let collectionPath: string;
+    switch(category) {
+        case 'cars': collectionPath = 'carRentals'; break;
+        case 'hotels': collectionPath = 'hotels'; break;
+        case 'transport': collectionPath = 'transports'; break;
+        case 'explore': collectionPath = 'exploreTrips'; break;
+        default:
+            return { success: false, error: 'Invalid service category.' };
+    }
+
+    try {
+        await firestoreAdmin.collection(collectionPath).doc(serviceId).update({ isActive });
+        
+        revalidatePath('/admin');
+        revalidatePath(`/services/${category}`);
+        revalidatePath('/'); // Best offers and general service availability might change
+
+        return { success: true, error: null };
+    } catch (error: any) {
+        console.error("Failed to update service status:", error);
+        return { success: false, error: "Could not update the service status in the database." };
+    }
+}

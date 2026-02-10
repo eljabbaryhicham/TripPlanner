@@ -22,23 +22,19 @@ export async function POST(request: Request) {
             resource_type: 'auto',
         });
         
-        const uploadMarker = '/upload/';
-        const markerIndex = uploadResult.secure_url.indexOf(uploadMarker);
-        
-        let optimizedUrl = uploadResult.secure_url;
+        let optimizedUrl;
 
-        if (markerIndex !== -1) {
-            const baseUrl = uploadResult.secure_url.substring(0, markerIndex);
-            const path = uploadResult.secure_url.substring(markerIndex + uploadMarker.length);
-            let transformations;
-
-            if (uploadResult.resource_type === 'image') {
-                transformations = 'f_auto,q_auto';
-                optimizedUrl = `${baseUrl}${uploadMarker}${transformations}/${path}`;
-            } else if (uploadResult.resource_type === 'video') {
-                transformations = 'f_auto,vc_auto';
-                optimizedUrl = `${baseUrl}${uploadMarker}${transformations}/${path}`;
-            }
+        if (uploadResult.resource_type === 'image') {
+            optimizedUrl = cloudinary.url(uploadResult.public_id, {
+                transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto' }]
+            });
+        } else if (uploadResult.resource_type === 'video') {
+            optimizedUrl = cloudinary.url(uploadResult.public_id, {
+                resource_type: 'video',
+                transformation: [{ fetch_format: 'auto', video_codec: 'auto' }]
+            });
+        } else {
+            optimizedUrl = uploadResult.secure_url;
         }
 
         return NextResponse.json({

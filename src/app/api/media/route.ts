@@ -13,40 +13,34 @@ export async function GET() {
       .execute();
     
     const media = resources.map((r: any) => {
-        const uploadMarker = '/upload/';
-        const markerIndex = r.secure_url.indexOf(uploadMarker);
-
-        let optimizedUrl = r.secure_url;
+        let optimizedUrl;
         let thumbnailUrl;
 
-        if (markerIndex !== -1) {
-            const baseUrl = r.secure_url.substring(0, markerIndex);
-            const path = r.secure_url.substring(markerIndex + uploadMarker.length);
-
-            if (r.resource_type === 'image') {
-                const transformations = 'f_auto,q_auto';
-                optimizedUrl = `${baseUrl}${uploadMarker}${transformations}/${path}`;
-                thumbnailUrl = cloudinary.url(r.public_id, {
-                    resource_type: 'image',
-                    transformation: [
-                        {width: 300, height: 300, crop: 'thumb', gravity: 'auto'},
-                        {quality: 'auto', fetch_format: 'auto'}
-                    ]
-                });
-            } else if (r.resource_type === 'video') {
-                const transformations = 'f_auto,vc_auto';
-                optimizedUrl = `${baseUrl}${uploadMarker}${transformations}/${path}`;
-                thumbnailUrl = cloudinary.url(r.public_id, {
-                    resource_type: 'video',
-                    format: 'jpg',
-                    crop: 'thumb',
-                    width: 300,
-                    height: 300,
-                });
-            } else {
-                 thumbnailUrl = r.secure_url;
-            }
+        if (r.resource_type === 'image') {
+            optimizedUrl = cloudinary.url(r.public_id, {
+                transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto' }]
+            });
+            thumbnailUrl = cloudinary.url(r.public_id, {
+                resource_type: 'image',
+                transformation: [
+                    {width: 300, height: 300, crop: 'thumb', gravity: 'auto'},
+                    {quality: 'auto', fetch_format: 'auto'}
+                ]
+            });
+        } else if (r.resource_type === 'video') {
+            optimizedUrl = cloudinary.url(r.public_id, {
+                resource_type: 'video',
+                transformation: [{ fetch_format: 'auto', video_codec: 'auto' }]
+            });
+            thumbnailUrl = cloudinary.url(r.public_id, {
+                resource_type: 'video',
+                format: 'jpg',
+                crop: 'thumb',
+                width: 300,
+                height: 300,
+            });
         } else {
+             optimizedUrl = r.secure_url;
              thumbnailUrl = r.secure_url;
         }
         
