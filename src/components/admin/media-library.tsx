@@ -6,7 +6,7 @@ import Image from 'next/image';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, UploadCloud, Trash2, Copy, AlertTriangle, PlayCircle } from 'lucide-react';
+import { Loader2, UploadCloud, Trash2, Copy, AlertTriangle, PlayCircle, Eye, RefreshCw } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from '../ui/aspect-ratio';
 import { Progress } from "@/components/ui/progress";
+import { MediaPreviewDialog } from '@/components/admin/media-preview-dialog';
+
 
 type CloudinaryMedia = {
   public_id: string;
@@ -30,7 +32,7 @@ type CloudinaryMedia = {
   resource_type: 'image' | 'video';
 };
 
-const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (publicId: string, resourceType: 'image' | 'video') => void }) => {
+const MediaCard = ({ media, onDelete, onPreview }: { media: CloudinaryMedia, onDelete: (publicId: string, resourceType: 'image' | 'video') => void, onPreview: () => void }) => {
     const { toast } = useToast();
 
     const copyUrl = () => {
@@ -40,13 +42,18 @@ const MediaCard = ({ media, onDelete }: { media: CloudinaryMedia, onDelete: (pub
     
     return (
         <Card className="overflow-hidden">
-            <AspectRatio ratio={1 / 1} className="bg-muted relative">
+            <AspectRatio ratio={1 / 1} className="bg-muted relative group">
                 <Image src={media.thumbnail_url} alt={media.public_id} fill className="object-cover" />
                 {media.resource_type === 'video' && (
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center">
                         <PlayCircle className="h-8 w-8 text-white" />
                     </div>
                 )}
+                 <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button variant="ghost" size="icon" onClick={onPreview} className="text-white hover:bg-white/20 hover:text-white">
+                        <Eye className="h-6 w-6" />
+                    </Button>
+                </div>
             </AspectRatio>
             <div className="p-2 flex items-center justify-end gap-2 bg-background/50">
                 <Button variant="ghost" size="icon" onClick={copyUrl}><Copy className="h-4 w-4" /></Button>
@@ -78,6 +85,7 @@ export default function MediaLibrary() {
   const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [previewItem, setPreviewItem] = React.useState<CloudinaryMedia | null>(null);
 
   const [isConfigured, setIsConfigured] = React.useState(true);
   const [isCheckingConfig, setIsCheckingConfig] = React.useState(true);
@@ -99,6 +107,7 @@ export default function MediaLibrary() {
 
   const fetchMedia = React.useCallback(async () => {
     setIsLoading(true);
+    setError(null);
     try {
       const res = await fetch('/api/media');
       if (!res.ok) throw new Error('Failed to fetch media');
@@ -206,37 +215,43 @@ export default function MediaLibrary() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-start justify-between gap-4">
-            <div>
-                <CardTitle>Media Library</CardTitle>
-                <CardDescription>Upload, manage, and use media from your Cloudinary account.</CardDescription>
-            </div>
-            <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
-                {isUploading ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
-                Upload Media
-            </Button>
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                onChange={handleFileUpload}
-                className="hidden" 
-                accept="image/*,video/*"
-            />
-        </div>
-      </CardHeader>
-      <CardContent>
-        {isUploading && uploadProgress !== null && (
-            <div className="mb-4 space-y-2">
-                <div className="flex justify-between items-center">
-                    <p className="text-sm font-medium text-muted-foreground">Uploading...</p>
-                    <p className="text-sm font-medium text-muted-foreground">{uploadProgress}%</p>
+    <>
+        <Card>
+        <CardHeader>
+            <div className="flex items-start justify-between gap-4">
+                <div>
+                    <CardTitle>Media Library</CardTitle>
+                    <CardDescription>Upload, manage, and use media from your Cloudinary account.</CardDescription>
                 </div>
-                <Progress value={uploadProgress} className="h-2" />
+                <div className="flex items-center gap-2">
+                    <Button variant="outline" size="icon" onClick={() => fetchMedia()} disabled={isLoading}>
+                        <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                    <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading}>
+                        {isUploading ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
+                        Upload Media
+                    </Button>
+                    <input 
+                        type="file" 
+                        ref={fileInputRef} 
+                        onChange={handleFileUpload}
+                        className="hidden" 
+                        accept="image/*,video/*"
+                    />
+                </div>
             </div>
-        )}
-        {isLoading ? (
+        </CardHeader>
+        <CardContent>
+            {isUploading && uploadProgress !== null && (
+                <div className="mb-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                        <p className="text-sm font-medium text-muted-foreground">Uploading...</p>
+                        <p className="text-sm font-medium text-muted-foreground">{uploadProgress}%</p>
+                    </div>
+                    <Progress value={uploadProgress} className="h-2" />
+                </div>
+            )}
+            {isLoading && !isUploading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <AspectRatio ratio={1/1} key={i} className="bg-muted animate-pulse rounded-md" />)}
           </div>
@@ -247,11 +262,17 @@ export default function MediaLibrary() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {media.map((item) => (
-              <MediaCard key={item.public_id} media={item} onDelete={handleDelete} />
+              <MediaCard key={item.public_id} media={item} onDelete={handleDelete} onPreview={() => setPreviewItem(item)} />
             ))}
           </div>
         )}
       </CardContent>
-    </Card>
+        </Card>
+        <MediaPreviewDialog 
+            isOpen={!!previewItem}
+            onClose={() => setPreviewItem(null)}
+            media={previewItem}
+        />
+    </>
   );
 }
