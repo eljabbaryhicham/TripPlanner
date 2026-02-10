@@ -3,7 +3,6 @@
 import * as React from 'react';
 import Image from 'next/image';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Plyr from 'plyr-react';
 
 type CloudinaryMedia = {
   public_id: string;
@@ -21,17 +20,25 @@ interface MediaPreviewDialogProps {
 }
 
 export function MediaPreviewDialog({ isOpen, onClose, media }: MediaPreviewDialogProps) {
+    const [PlyrComponent, setPlyrComponent] = React.useState<React.ComponentType<any> | null>(null);
+
+    React.useEffect(() => {
+        if (isOpen && media?.resource_type === 'video' && !PlyrComponent) {
+            import('plyr-react').then(module => {
+                setPlyrComponent(() => module.default);
+            });
+        }
+    }, [isOpen, media, PlyrComponent]);
+
     if (!media) {
         return null;
     }
 
-    const videoSource: Plyr.SourceInfo = {
-        type: 'video',
+    const videoSource = {
+        type: 'video' as const,
         sources: [
             {
                 src: media.secure_url,
-                // Cloudinary's f_auto will determine the type, but we can give a hint.
-                // It's often mp4, but could be webm etc. Let's let the browser decide.
             },
         ],
     };
@@ -53,7 +60,7 @@ export function MediaPreviewDialog({ isOpen, onClose, media }: MediaPreviewDialo
                         />
                     ) : (
                         <div className="w-full h-full max-w-full max-h-full">
-                           <Plyr source={videoSource} options={{ controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] }} />
+                           {PlyrComponent && <PlyrComponent source={videoSource} options={{ controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] }} />}
                         </div>
                     )}
                 </div>
