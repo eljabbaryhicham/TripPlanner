@@ -5,5 +5,6 @@
     "hotels": true,
     "transport": true,
     "explore": true
-  }
+  },
+  "bookingEmailTo": "user@example.com"
 }

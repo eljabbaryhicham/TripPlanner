@@ -1,15 +1,19 @@
 import admin from 'firebase-admin';
-import { getApps, initializeApp } from 'firebase-admin/app';
+import { getApps, initializeApp, applicationDefault } from 'firebase-admin/app';
 
 /**
  * Initializes the Firebase Admin SDK if it hasn't been already.
- * This is a singleton pattern to ensure it only runs once.
+ * This function is designed to be lazy-loaded and called only when admin services are needed.
  */
 function initializeAdminApp() {
+  // Check if any apps are already initialized to prevent re-initialization.
   if (getApps().length === 0) {
-    // When running in a Google Cloud environment like App Hosting,
-    // initializeApp() with no arguments automatically discovers credentials.
-    initializeApp();
+    // When running in a Google Cloud environment (like App Hosting),
+    // using applicationDefault() allows the SDK to automatically discover
+    // the service account credentials from the environment.
+    initializeApp({
+      credential: applicationDefault(),
+    });
   }
 }
 

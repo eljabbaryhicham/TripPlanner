@@ -19,7 +19,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AspectRatio } from '../ui/aspect-ratio';
-import { Progress } from "@/components/ui/progress";
 import { MediaPreviewDialog } from '@/components/admin/media-preview-dialog';
 
 
@@ -82,7 +81,6 @@ export default function MediaLibrary() {
   const [media, setMedia] = React.useState<CloudinaryMedia[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isUploading, setIsUploading] = React.useState(false);
-  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [previewItem, setPreviewItem] = React.useState<CloudinaryMedia | null>(null);
@@ -132,44 +130,28 @@ export default function MediaLibrary() {
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/media/upload', true);
+    try {
+        const response = await fetch('/api/media/upload', {
+            method: 'POST',
+            body: file,
+        });
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const percentComplete = Math.round((e.loaded / e.total) * 100);
-        setUploadProgress(percentComplete);
-      }
-    };
-    
-    xhr.onload = () => {
-      setIsUploading(false);
-      setUploadProgress(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        toast({ title: 'Upload Successful' });
-        fetchMedia();
-      } else {
-        try {
-          const errorData = JSON.parse(xhr.responseText);
-          toast({ variant: 'destructive', title: 'Upload Failed', description: errorData.error || 'An unknown error occurred.' });
-        } catch {
-          toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not parse error response.' });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
         }
-      }
-    };
-    
-    xhr.onerror = () => {
-      setIsUploading(false);
-      setUploadProgress(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'A network error occurred.' });
-    };
-    
-    xhr.send(file);
+
+        toast({ title: 'Upload Successful' });
+        fetchMedia(); // Refresh the library
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+    } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }
   };
   
   const handleDelete = async (publicId: string, resourceType: 'image' | 'video') => {
@@ -240,15 +222,6 @@ export default function MediaLibrary() {
             </div>
         </CardHeader>
         <CardContent>
-            {isUploading && uploadProgress !== null && (
-                <div className="mb-4 space-y-2">
-                    <div className="flex justify-between items-center">
-                        <p className="text-sm font-medium text-muted-foreground">Uploading...</p>
-                        <p className="text-sm font-medium text-muted-foreground">{uploadProgress}%</p>
-                    </div>
-                    <Progress value={uploadProgress} className="h-2" />
-                </div>
-            )}
             {isLoading && !isUploading ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {Array.from({ length: 6 }).map((_, i) => <AspectRatio ratio={1/1} key={i} className="bg-muted animate-pulse rounded-md" />)}

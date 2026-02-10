@@ -4,6 +4,7 @@ import React, { createContext, useContext, ReactNode } from 'react';
 
 export interface AppSettings {
     whatsappNumber: string;
+    bookingEmailTo: string;
     categories: {
         cars: boolean;
         hotels: boolean;

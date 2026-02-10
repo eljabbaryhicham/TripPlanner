@@ -9,7 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Loader2, AlertTriangle, UploadCloud, PlayCircle, Eye } from 'lucide-react';
 import { AspectRatio } from '../ui/aspect-ratio';
 import { ScrollArea } from '../ui/scroll-area';
-import { Progress } from '@/components/ui/progress';
 import { MediaPreviewDialog } from './media-preview-dialog';
 
 type CloudinaryMedia = {
@@ -61,7 +60,6 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
   const [media, setMedia] = React.useState<CloudinaryMedia[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [isUploading, setIsUploading] = React.useState(false);
-  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isConfigured, setIsConfigured] = React.useState(true);
@@ -102,44 +100,28 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
     if (!file) return;
 
     setIsUploading(true);
-    setUploadProgress(0);
 
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/media/upload', true);
+    try {
+        const response = await fetch('/api/media/upload', {
+            method: 'POST',
+            body: file,
+        });
 
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) {
-        const percentComplete = Math.round((e.loaded / e.total) * 100);
-        setUploadProgress(percentComplete);
-      }
-    };
-
-    xhr.onload = () => {
-      setIsUploading(false);
-      setUploadProgress(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-
-      if (xhr.status >= 200 && xhr.status < 300) {
-        toast({ title: 'Upload Successful' });
-        fetchMedia();
-      } else {
-        try {
-          const errorData = JSON.parse(xhr.responseText);
-          toast({ variant: 'destructive', title: 'Upload Failed', description: errorData.error || 'An unknown error occurred.' });
-        } catch {
-          toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not parse error response.' });
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Upload failed');
         }
-      }
-    };
 
-    xhr.onerror = () => {
-      setIsUploading(false);
-      setUploadProgress(null);
-      if (fileInputRef.current) fileInputRef.current.value = '';
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'A network error occurred.' });
-    };
-    
-    xhr.send(file);
+        toast({ title: 'Upload Successful' });
+        fetchMedia(); // Refresh the library
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
+    } finally {
+        setIsUploading(false);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    }
   };
 
   return (
@@ -167,15 +149,6 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
                 </DialogHeader>
                 <div className="flex-1 min-h-0">
                     <ScrollArea className="h-full pr-4">
-                        {isUploading && uploadProgress !== null && (
-                            <div className="mb-4 space-y-2 sticky top-0 bg-background z-10 py-2">
-                                <div className="flex justify-between items-center">
-                                    <p className="text-sm font-medium text-muted-foreground">Uploading...</p>
-                                    <p className="text-sm font-medium text-muted-foreground">{uploadProgress}%</p>
-                                </div>
-                                <Progress value={uploadProgress} className="h-2" />
-                            </div>
-                        )}
                         {!isConfigured ? (
                             <div className="flex flex-col items-center justify-center h-full text-center">
                                 <AlertTriangle className="h-10 w-10 text-destructive mb-4" />

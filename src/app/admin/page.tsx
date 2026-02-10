@@ -33,7 +33,6 @@ export default function AdminPage() {
     const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
     const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
 
-    const [whatsappNumber, setWhatsappNumber] = React.useState('');
     const [emailTemplate, setEmailTemplate] = React.useState('');
     const [clientEmailTemplate, setClientEmailTemplate] = React.useState('');
     const [categorySettings, setCategorySettings] = React.useState({});
@@ -68,7 +67,6 @@ export default function AdminPage() {
 
     // Fetch settings
     React.useEffect(() => {
-        setWhatsappNumber(settings.whatsappNumber);
         setCategorySettings(settings.categories);
         // still need to fetch templates
         setSettingsLoading(true);
@@ -223,7 +221,10 @@ export default function AdminPage() {
                             General Settings
                         </AccordionTrigger>
                         <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                            <SettingsManagement currentWhatsappNumber={whatsappNumber} />
+                            <SettingsManagement 
+                                currentWhatsappNumber={settings.whatsappNumber}
+                                currentBookingEmailTo={settings.bookingEmailTo || ''}
+                            />
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="categories">

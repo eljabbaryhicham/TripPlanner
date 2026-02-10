@@ -14,6 +14,7 @@ export const metadata: Metadata = {
 // Define a default settings structure
 const defaultSettings = {
   whatsappNumber: "",
+  bookingEmailTo: "",
   categories: {
     cars: true,
     hotels: true,

@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { updateWhatsappNumber } from '@/lib/actions';
+import { updateGeneralSettings } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '../ui/separator';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -21,10 +22,15 @@ function SubmitButton() {
     );
 }
 
-export default function SettingsManagement({ currentWhatsappNumber }: { currentWhatsappNumber: string }) {
+interface SettingsManagementProps {
+    currentWhatsappNumber: string;
+    currentBookingEmailTo: string;
+}
+
+export default function SettingsManagement({ currentWhatsappNumber, currentBookingEmailTo }: SettingsManagementProps) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(updateWhatsappNumber, { error: null, success: false });
+    const [state, formAction] = React.useActionState(updateGeneralSettings, { error: null, success: false });
 
     React.useEffect(() => {
         if (state.success) {
@@ -40,10 +46,10 @@ export default function SettingsManagement({ currentWhatsappNumber }: { currentW
         <Card>
             <CardHeader>
                 <CardTitle>General Settings</CardTitle>
-                <CardDescription>Manage application-wide settings.</CardDescription>
+                <CardDescription>Manage application-wide settings for notifications and contact points.</CardDescription>
             </CardHeader>
             <CardContent>
-                <form action={formAction} className="space-y-4 max-w-md">
+                <form action={formAction} className="space-y-6 max-w-md">
                     <div className="space-y-2">
                         <Label htmlFor="whatsappNumber">WhatsApp Number</Label>
                         <Input
@@ -54,7 +60,20 @@ export default function SettingsManagement({ currentWhatsappNumber }: { currentW
                             required
                         />
                     </div>
-                    <div className="flex justify-end">
+                    <Separator />
+                    <div className="space-y-2">
+                        <Label htmlFor="bookingEmailTo">Booking Notification Email</Label>
+                        <Input
+                            id="bookingEmailTo"
+                            name="bookingEmailTo"
+                            type="email"
+                            defaultValue={currentBookingEmailTo}
+                            placeholder="recipient@example.com"
+                            required
+                        />
+                         <p className="text-xs text-muted-foreground">The email address that receives all booking and contact form inquiries.</p>
+                    </div>
+                    <div className="flex justify-end pt-2">
                         <SubmitButton />
                     </div>
                 </form>

@@ -12,6 +12,16 @@ const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
 const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
 
+// --- Helper to get settings ---
+async function getSettings() {
+    try {
+        const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
+        return JSON.parse(configRaw);
+    } catch {
+        return {};
+    }
+}
+
 // --- Reservation Action ---
 const reservationSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -35,13 +45,16 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
   if (!parsed.success) {
     return { success: false, error: 'Invalid data.', warning: null };
   }
+  
+  const appSettings = await getSettings();
+  const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
 
-  const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
-
-  if (!process.env.RESEND_API_KEY || !process.env.BOOKING_EMAIL_TO) {
-    console.error('Resend API Key or recipient email is not set in .env file.');
+  if (!process.env.RESEND_API_KEY || !recipientEmail) {
+    console.error('Resend API Key or recipient email is not configured.');
     return { success: false, error: 'Server is not configured to send emails.', warning: null };
   }
+
+  const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
 
   try {
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -74,7 +87,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
 
     const { error: adminError } = await resend.emails.send({
       from: 'TriPlanner <onboarding@resend.dev>',
-      to: [process.env.BOOKING_EMAIL_TO],
+      to: [recipientEmail],
       subject: `New Booking Inquiry for ${serviceName}`,
       html: adminHtmlBody,
       reply_to: email,
@@ -135,8 +148,11 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     return { success: false, error: 'Invalid data.' };
   }
   
-  if (!process.env.RESEND_API_KEY || !process.env.BOOKING_EMAIL_TO) {
-    console.error('Resend API Key or recipient email is not set in .env file.');
+  const appSettings = await getSettings();
+  const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
+  
+  if (!process.env.RESEND_API_KEY || !recipientEmail) {
+    console.error('Resend API Key or recipient email is not configured.');
     return { success: false, error: 'Server is not configured to send emails.' };
   }
   
@@ -146,7 +162,7 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({
       from: 'TriPlanner Contact <onboarding@resend.dev>',
-      to: [process.env.BOOKING_EMAIL_TO],
+      to: [recipientEmail],
       subject: `New Message from ${name}`,
       reply_to: email,
       html: `<p>You have a new contact form submission:</p>
@@ -174,23 +190,23 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
 
 // --- Settings Action ---
 
-const settingsSchema = z.object({
+const generalSettingsSchema = z.object({
     whatsappNumber: z.string().min(1, { message: 'WhatsApp number cannot be empty.' }),
+    bookingEmailTo: z.string().email({ message: 'A valid recipient email is required.' }),
 });
 
-export async function updateWhatsappNumber(prevState: any, formData: FormData) {
-    const parsed = settingsSchema.safeParse(Object.fromEntries(formData));
+export async function updateGeneralSettings(prevState: any, formData: FormData) {
+    const parsed = generalSettingsSchema.safeParse(Object.fromEntries(formData));
 
     if (!parsed.success) {
         return { error: parsed.error.errors[0].message, success: false };
     }
 
-    const { whatsappNumber } = parsed.data;
+    const { whatsappNumber, bookingEmailTo } = parsed.data;
     
     try {
-        const currentConfigRaw = await fs.readFile(settingsFilePath, 'utf-8').catch(() => '{}');
-        const currentConfig = JSON.parse(currentConfigRaw);
-        const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber }, null, 2);
+        const currentConfig = await getSettings();
+        const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber, bookingEmailTo }, null, 2);
         await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
         
         revalidatePath('/admin');
@@ -213,8 +229,7 @@ export async function updateCategorySettings(prevState: any, formData: FormData)
     };
     
     try {
-        const currentConfigRaw = await fs.readFile(settingsFilePath, 'utf-8').catch(() => '{}');
-        const currentConfig = JSON.parse(currentConfigRaw);
+        const currentConfig = await getSettings();
         currentConfig.categories = categoryStates;
         const newSettings = JSON.stringify(currentConfig, null, 2);
         await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
