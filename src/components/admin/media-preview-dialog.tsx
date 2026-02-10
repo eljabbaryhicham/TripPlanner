@@ -51,11 +51,7 @@ export function MediaPreviewDialog({ isOpen, onClose, media }: MediaPreviewDialo
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            {/* 
-              Make the dialog content's size adapt to its content, but not exceed 80% of the viewport.
-              It's also a flex container to center the media inside.
-            */}
-            <DialogContent className="max-w-[80vw] w-auto h-auto max-h-[80vh] p-0 border-0 bg-transparent shadow-none flex items-center justify-center">
+            <DialogContent className="w-[80vw] h-[80vh] p-0 border-0 bg-transparent shadow-none flex items-center justify-center">
                 <DialogHeader className="sr-only">
                     <DialogTitle>Media Preview: {media.public_id}</DialogTitle>
                 </DialogHeader>
