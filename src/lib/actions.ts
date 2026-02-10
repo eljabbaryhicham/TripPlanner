@@ -368,7 +368,7 @@ export async function updateServiceStatus(serviceId: string, category: string, i
     }
 
     try {
-        await firestoreAdmin.collection(collectionPath).doc(serviceId).update({ isActive });
+        await firestoreAdmin.collection(collectionPath).doc(serviceId).set({ isActive }, { merge: true });
         
         revalidatePath('/admin');
         revalidatePath(`/services/${category}`);
