@@ -12,7 +12,6 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
         }
         
-        // Use the file's stream method to handle large files efficiently
         const fileStream = file.stream();
         
         const result = await new Promise((resolve, reject) => {
@@ -26,7 +25,6 @@ export async function POST(request: Request) {
                 }
             );
 
-            // Pipe the file stream to Cloudinary's upload stream
             const reader = fileStream.getReader();
             reader.read().then(function processStream({ done, value }): any {
                 if (done) {
@@ -45,23 +43,43 @@ export async function POST(request: Request) {
         }
 
         let optimizedUrl;
+        let thumbnailUrl;
+
         if (uploadResult.resource_type === 'image') {
             optimizedUrl = cloudinary.url(uploadResult.public_id, {
                 transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto' }]
+            });
+            thumbnailUrl = cloudinary.url(uploadResult.public_id, {
+                resource_type: 'image',
+                transformation: [
+                    {width: 300, height: 300, crop: 'thumb', gravity: 'auto'},
+                    {quality: 'auto', fetch_format: 'auto'}
+                ]
             });
         } else if (uploadResult.resource_type === 'video') {
             optimizedUrl = cloudinary.url(uploadResult.public_id, {
                 resource_type: 'video',
                 transformation: [{ fetch_format: 'auto', video_codec: 'auto' }]
             });
+            thumbnailUrl = cloudinary.url(uploadResult.public_id, {
+                resource_type: 'video',
+                format: 'jpg',
+                crop: 'thumb',
+                width: 300,
+                height: 300,
+            });
         } else {
-            optimizedUrl = uploadResult.secure_url;
+             optimizedUrl = uploadResult.secure_url;
+             thumbnailUrl = uploadResult.secure_url;
         }
+        
+        const newMediaItem = { 
+            ...uploadResult,
+            secure_url: optimizedUrl, 
+            thumbnail_url: thumbnailUrl 
+        };
 
-        return NextResponse.json({
-            url: optimizedUrl,
-            public_id: uploadResult.public_id
-        });
+        return NextResponse.json({ media: newMediaItem });
 
     } catch (error: any) {
         console.error('Upload API route failed:', error);

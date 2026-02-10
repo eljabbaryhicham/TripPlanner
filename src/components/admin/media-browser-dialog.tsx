@@ -122,10 +122,19 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
       }
 
       if (xhr.status >= 200 && xhr.status < 300) {
-        toast({ title: 'Upload Successful', description: "Library will refresh shortly." });
-        setTimeout(() => {
-          fetchMedia();
-        }, 5000);
+        try {
+            const responseData = JSON.parse(xhr.responseText);
+            const newMedia = responseData.media;
+            if (newMedia) {
+                setMedia(prev => [newMedia, ...prev]);
+                toast({ title: 'Upload Successful' });
+            } else {
+                 throw new Error("Server did not return the new media item.");
+            }
+        } catch(e) {
+            toast({ variant: 'destructive', title: 'Upload Response Error', description: 'Could not process server response after upload. Refreshing...' });
+            fetchMedia();
+        }
       } else {
         try {
             const errorData = JSON.parse(xhr.responseText);
