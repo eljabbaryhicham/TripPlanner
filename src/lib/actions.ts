@@ -377,6 +377,42 @@ export async function updateServiceStatus(serviceId: string, category: string, i
         return { success: true, error: null };
     } catch (error: any) {
         console.error("Failed to update service status:", error);
-        return { success: false, error: "Could not update the service status in the database." };
+        return { success: false, error: error.message || "Could not update the service status in the database." };
+    }
+}
+
+// --- Service Best Offer Action ---
+const updateServiceBestOfferSchema = z.object({
+    serviceId: z.string(),
+    category: z.string(),
+    isBestOffer: z.boolean(),
+});
+
+export async function updateServiceBestOffer(serviceId: string, category: string, isBestOffer: boolean): Promise<{ success: boolean; error?: string | null; }> {
+    const parsed = updateServiceBestOfferSchema.safeParse({ serviceId, category, isBestOffer });
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid data provided.' };
+    }
+
+    let collectionPath: string;
+    switch(category) {
+        case 'cars': collectionPath = 'carRentals'; break;
+        case 'hotels': collectionPath = 'hotels'; break;
+        case 'transport': collectionPath = 'transports'; break;
+        case 'explore': collectionPath = 'exploreTrips'; break;
+        default:
+            return { success: false, error: 'Invalid service category.' };
+    }
+
+    try {
+        await firestoreAdmin.collection(collectionPath).doc(serviceId).set({ isBestOffer }, { merge: true });
+        
+        revalidatePath('/admin');
+        revalidatePath('/'); // Best offers are on the homepage
+
+        return { success: true, error: null };
+    } catch (error: any) {
+        console.error("Failed to update service best offer status:", error);
+        return { success: false, error: error.message || "Could not update the service best offer status." };
     }
 }

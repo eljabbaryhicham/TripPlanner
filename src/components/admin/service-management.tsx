@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -5,7 +6,6 @@ import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase, Compass, Loader2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
-import { updateServiceStatus } from '@/lib/actions';
+import { updateServiceStatus, updateServiceBestOffer } from '@/lib/actions';
 
 function ServiceStatusToggle({ service }: { service: Service }) {
   const { toast } = useToast();
@@ -54,6 +54,35 @@ function ServiceStatusToggle({ service }: { service: Service }) {
     </div>
   );
 }
+
+function BestOfferToggle({ service }: { service: Service }) {
+  const { toast } = useToast();
+  const [isPending, startTransition] = React.useTransition();
+
+  const handleToggle = (checked: boolean) => {
+    startTransition(async () => {
+      const result = await updateServiceBestOffer(service.id, service.category, checked);
+      if (result.success) {
+        toast({ title: "Best Offer Updated" });
+      } else {
+        toast({ variant: "destructive", title: "Error", description: result.error });
+      }
+    });
+  };
+
+  return (
+    <div className="flex items-center space-x-2">
+       <Switch
+        id={`best-offer-${service.id}`}
+        checked={service.isBestOffer ?? false}
+        onCheckedChange={handleToggle}
+        disabled={isPending}
+      />
+      {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+    </div>
+  );
+}
+
 
 function DeleteServiceMenuItem({ service }: { service: Service }) {
     const { toast } = useToast();
@@ -139,7 +168,7 @@ export default function ServiceManagement({
                 <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Price</TableHead>
-                    <TableHead>Status</TableHead>
+                    <TableHead>Active</TableHead>
                     <TableHead>Best Offer</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -154,7 +183,7 @@ export default function ServiceManagement({
                                 <ServiceStatusToggle service={service} />
                             </TableCell>
                             <TableCell>
-                                {service.isBestOffer ? <Badge>Yes</Badge> : <Badge variant="secondary">No</Badge>}
+                                <BestOfferToggle service={service} />
                             </TableCell>
                             <TableCell className="text-right">
                                 <DropdownMenu>
