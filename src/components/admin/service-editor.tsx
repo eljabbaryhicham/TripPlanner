@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, PlusCircle, Trash2 } from 'lucide-react';
+import { Loader2, Save, PlusCircle, Trash2, Image as ImageIcon } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase';
@@ -20,6 +20,7 @@ import { FirestorePermissionError } from '@/firebase/errors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { MOROCCAN_CITIES } from '@/lib/constants';
+import { MediaBrowserDialog } from '@/components/admin/media-browser-dialog';
 
 interface ServiceEditorProps {
     isOpen: boolean;
@@ -78,6 +79,10 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
     const { toast } = useToast();
     const firestore = useFirestore();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+    // Media Browser State
+    const [browserOpen, setBrowserOpen] = React.useState(false);
+    const [imageTarget, setImageTarget] = React.useState<string | null>(null); // e.g. 'main', 'additional_0'
 
     // Form state
     const [name, setName] = React.useState('');
@@ -165,6 +170,25 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
     const addMedia = () => setAdditionalMedia([...additionalMedia, { id: Date.now(), imageUrl: '', description: '' }]);
     const removeMedia = (id: number) => setAdditionalMedia(additionalMedia.filter(m => m.id !== id));
 
+    const handleOpenBrowser = (target: string) => {
+        setImageTarget(target);
+        setBrowserOpen(true);
+    };
+
+    const handleSelectImage = (url: string) => {
+        if (imageTarget === 'main') {
+            setImageUrl(url);
+        } else if (imageTarget && imageTarget.startsWith('additional_')) {
+            const index = parseInt(imageTarget.split('_')[1], 10);
+            if (index < additionalMedia.length) {
+                const newMedia = [...additionalMedia];
+                newMedia[index].imageUrl = url;
+                setAdditionalMedia(newMedia);
+            }
+        }
+        setBrowserOpen(false);
+    };
+
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         setIsSubmitting(true);
@@ -251,155 +275,168 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
     };
 
     return (
-        <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-3xl">
-                <DialogHeader>
-                    <DialogTitle>{isEditing ? 'Edit Service' : 'Add New Service'}</DialogTitle>
-                    <DialogDescription>
-                        Fill in the details below. Click save when you're done.
-                    </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit}>
-                    <ScrollArea className="h-[60vh] p-1">
-                        <div className="space-y-4 p-4">
-                             <div className="space-y-4 rounded-lg border p-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                        <Label htmlFor="isActive" className="font-semibold">Service Status</Label>
-                                        <p className="text-sm text-muted-foreground">
-                                            Inactive services will not be visible to customers.
-                                        </p>
+        <>
+            <Dialog open={isOpen} onOpenChange={onClose}>
+                <DialogContent className="max-w-3xl">
+                    <DialogHeader>
+                        <DialogTitle>{isEditing ? 'Edit Service' : 'Add New Service'}</DialogTitle>
+                        <DialogDescription>
+                            Fill in the details below. Click save when you're done.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleSubmit}>
+                        <ScrollArea className="h-[60vh] p-1">
+                            <div className="space-y-4 p-4">
+                                <div className="space-y-4 rounded-lg border p-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="isActive" className="font-semibold">Service Status</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Inactive services will not be visible to customers.
+                                            </p>
+                                        </div>
+                                        <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
                                     </div>
-                                    <Switch id="isActive" checked={isActive} onCheckedChange={setIsActive} />
-                                </div>
-                                <Separator />
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-0.5">
-                                        <Label htmlFor="isBestOffer" className="font-semibold">Best Offer</Label>
-                                        <p className="text-sm text-muted-foreground">
-                                            Mark this service to feature it on the homepage.
-                                        </p>
+                                    <Separator />
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="isBestOffer" className="font-semibold">Best Offer</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Mark this service to feature it on the homepage.
+                                            </p>
+                                        </div>
+                                        <Switch id="isBestOffer" checked={isBestOffer} onCheckedChange={setIsBestOffer} />
                                     </div>
-                                    <Switch id="isBestOffer" checked={isBestOffer} onCheckedChange={setIsBestOffer} />
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input id="name" value={name} onChange={e => setName(e.target.value)} required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="description">Description</Label>
-                                <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="imageUrl">Main Image URL</Label>
-                                <Input id="imageUrl" type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label>Category</Label>
-                                    <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport' | 'explore') => setCategory(v)} disabled={isEditing}>
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select a category" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="cars">Cars</SelectItem>
-                                            <SelectItem value="hotels">Hotels</SelectItem>
-                                            <SelectItem value="transport">Transport</SelectItem>
-                                            <SelectItem value="explore">Explore</SelectItem>
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="name">Name</Label>
+                                    <Input id="name" value={name} onChange={e => setName(e.target.value)} required />
                                 </div>
-                                 <div className="space-y-2">
-                                    <Label htmlFor="location">Location</Label>
-                                    {category === 'hotels' ? (
-                                        <Select value={location} onValueChange={setLocation}>
-                                            <SelectTrigger id="location">
-                                                <SelectValue placeholder="Select a city" />
+                                <div className="space-y-2">
+                                    <Label htmlFor="description">Description</Label>
+                                    <Textarea id="description" value={description} onChange={e => setDescription(e.target.value)} required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="imageUrl">Main Image URL</Label>
+                                    <div className="flex gap-2">
+                                        <Input id="imageUrl" type="url" value={imageUrl} onChange={e => setImageUrl(e.target.value)} required />
+                                        <Button type="button" variant="outline" onClick={() => handleOpenBrowser('main')}><ImageIcon className="mr-2 h-4 w-4" /> Browse</Button>
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Category</Label>
+                                        <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport' | 'explore') => setCategory(v)} disabled={isEditing}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select a category" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                {MOROCCAN_CITIES.map(city => (
-                                                    <SelectItem key={city} value={city}>{city}</SelectItem>
-                                                ))}
+                                                <SelectItem value="cars">Cars</SelectItem>
+                                                <SelectItem value="hotels">Hotels</SelectItem>
+                                                <SelectItem value="transport">Transport</SelectItem>
+                                                <SelectItem value="explore">Explore</SelectItem>
                                             </SelectContent>
                                         </Select>
-                                    ) : (
-                                        <Input id="location" value={location} onChange={e => setLocation(e.target.value)} required />
-                                    )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="location">Location</Label>
+                                        {category === 'hotels' ? (
+                                            <Select value={location} onValueChange={setLocation}>
+                                                <SelectTrigger id="location">
+                                                    <SelectValue placeholder="Select a city" />
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {MOROCCAN_CITIES.map(city => (
+                                                        <SelectItem key={city} value={city}>{city}</SelectItem>
+                                                    ))}
+                                                </SelectContent>
+                                            </Select>
+                                        ) : (
+                                            <Input id="location" value={location} onChange={e => setLocation(e.target.value)} required />
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="price">Price</Label>
-                                <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
-                            </div>
-                            
-                            <div className="space-y-2 rounded-md border p-4">
-                                <Label>Service Details</Label>
                                 <div className="space-y-2">
-                                    {details.map((detail, index) => {
-                                        const options = (detailOptions[category] as Record<string, string[] | undefined>)?.[detail.key];
-                                        return (
-                                        <div key={detail.id} className="flex items-center gap-2">
-                                            <Input placeholder="Key (e.g., Seats)" value={detail.key} onChange={e => handleDetailChange(index, 'key', e.target.value)} />
-                                            {options ? (
-                                                <Select value={detail.value} onValueChange={(value) => handleDetailChange(index, 'value', value)}>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select a value" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {options.map(option => (
-                                                            <SelectItem key={option} value={option}>{option}</SelectItem>
-                                                        ))}
-                                                    </SelectContent>
-                                                </Select>
-                                            ) : (
-                                                <Input placeholder="Value (e.g., 4)" value={detail.value} onChange={e => handleDetailChange(index, 'value', e.target.value)} />
-                                            )}
-                                            <Button type="button" variant="ghost" size="icon" onClick={() => removeDetail(detail.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                        </div>
-                                    )})}
+                                    <Label htmlFor="price">Price</Label>
+                                    <Input id="price" type="number" step="0.01" value={price} onChange={e => setPrice(e.target.value)} required />
                                 </div>
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button type="button" variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Add Detail</Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent>
-                                        {(detailKeySuggestions[category] || []).map(key => (
-                                            <DropdownMenuItem key={key} onSelect={() => addDetail(key)}>
-                                                Add '{key}'
+                                
+                                <div className="space-y-2 rounded-md border p-4">
+                                    <Label>Service Details</Label>
+                                    <div className="space-y-2">
+                                        {details.map((detail, index) => {
+                                            const options = (detailOptions[category] as Record<string, string[] | undefined>)?.[detail.key];
+                                            return (
+                                            <div key={detail.id} className="flex items-center gap-2">
+                                                <Input placeholder="Key (e.g., Seats)" value={detail.key} onChange={e => handleDetailChange(index, 'key', e.target.value)} />
+                                                {options ? (
+                                                    <Select value={detail.value} onValueChange={(value) => handleDetailChange(index, 'value', value)}>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select a value" />
+                                                        </SelectTrigger>
+                                                        <SelectContent>
+                                                            {options.map(option => (
+                                                                <SelectItem key={option} value={option}>{option}</SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                ) : (
+                                                    <Input placeholder="Value (e.g., 4)" value={detail.value} onChange={e => handleDetailChange(index, 'value', e.target.value)} />
+                                                )}
+                                                <Button type="button" variant="ghost" size="icon" onClick={() => removeDetail(detail.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                            </div>
+                                        )})}
+                                    </div>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button type="button" variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Add Detail</Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent>
+                                            {(detailKeySuggestions[category] || []).map(key => (
+                                                <DropdownMenuItem key={key} onSelect={() => addDetail(key)}>
+                                                    Add '{key}'
+                                                </DropdownMenuItem>
+                                            ))}
+                                            <DropdownMenuItem onSelect={() => addDetail('')}>
+                                                Add Custom Detail
                                             </DropdownMenuItem>
-                                        ))}
-                                        <DropdownMenuItem onSelect={() => addDetail('')}>
-                                            Add Custom Detail
-                                        </DropdownMenuItem>
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
-                            </div>
-
-                            <div className="space-y-2 rounded-md border p-4">
-                                <Label>Additional Media (Optional)</Label>
-                                <div className="space-y-3">
-                                    {additionalMedia.map((media, index) => (
-                                        <div key={media.id} className="space-y-2 border-t pt-3 relative">
-                                            <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-0" onClick={() => removeMedia(media.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
-                                            <Input placeholder="Image URL" value={media.imageUrl} onChange={e => handleMediaChange(index, 'imageUrl', e.target.value)} />
-                                            <Textarea placeholder="Short Description" value={media.description} onChange={e => handleMediaChange(index, 'description', e.target.value)} />
-                                        </div>
-                                    ))}
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </div>
-                                <Button type="button" variant="outline" size="sm" className="mt-2" onClick={addMedia}><PlusCircle className="mr-2 h-4 w-4" />Add Media</Button>
+
+                                <div className="space-y-2 rounded-md border p-4">
+                                    <Label>Additional Media (Optional)</Label>
+                                    <div className="space-y-3">
+                                        {additionalMedia.map((media, index) => (
+                                            <div key={media.id} className="space-y-2 border-t pt-3 relative">
+                                                <Button type="button" variant="ghost" size="icon" className="absolute top-2 right-0" onClick={() => removeMedia(media.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                                <div className="flex gap-2">
+                                                    <Input placeholder="Image URL" value={media.imageUrl} onChange={e => handleMediaChange(index, 'imageUrl', e.target.value)} />
+                                                    <Button type="button" variant="outline" size="icon" onClick={() => handleOpenBrowser(`additional_${index}`)}><ImageIcon className="h-4 w-4" /></Button>
+                                                </div>
+                                                <Textarea placeholder="Short Description" value={media.description} onChange={e => handleMediaChange(index, 'description', e.target.value)} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <Button type="button" variant="outline" size="sm" className="mt-2" onClick={addMedia}><PlusCircle className="mr-2 h-4 w-4" />Add Media</Button>
+                                </div>
                             </div>
-                        </div>
-                    </ScrollArea>
-                    <DialogFooter className="mt-4">
-                        <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
-                        <Button type="submit" disabled={isSubmitting}>
-                            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                            {isEditing ? 'Save Changes' : 'Create Service'}
-                        </Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+                        </ScrollArea>
+                        <DialogFooter className="mt-4">
+                            <Button variant="outline" type="button" onClick={onClose} disabled={isSubmitting}>Cancel</Button>
+                            <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                {isEditing ? 'Save Changes' : 'Create Service'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+            <MediaBrowserDialog
+                isOpen={browserOpen}
+                onClose={() => setBrowserOpen(false)}
+                onSelect={handleSelectImage}
+            />
+        </>
     );
 };
