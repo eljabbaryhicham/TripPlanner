@@ -152,8 +152,10 @@ export default function MediaLibrary() {
       }
 
       if (xhr.status >= 200 && xhr.status < 300) {
-        toast({ title: 'Upload Successful' });
-        fetchMedia();
+        toast({ title: 'Upload Successful', description: "Library will refresh shortly." });
+        setTimeout(() => {
+            fetchMedia();
+        }, 2000); // 2-second delay
       } else {
         try {
             const errorData = JSON.parse(xhr.responseText);
