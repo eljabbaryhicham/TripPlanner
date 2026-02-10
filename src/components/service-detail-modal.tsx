@@ -257,13 +257,15 @@ const ServiceDetailModal = ({
                         <Badge variant="secondary" className="text-lg">
                           ${finalPrice.toFixed(2)}
                         </Badge>
-                        {days && (
+                        {days && service.priceUnit !== 'trip' && (
                            <p className="text-xs text-muted-foreground mt-1">
                             (${service.price} / {service.priceUnit} for {days}{' '}
                             {days === 1 ? service.priceUnit : service.priceUnit + 's'})
                            </p>
                         )}
                       </div>
+                    ) : service.category === 'transport' ? (
+                       <span className="text-sm text-muted-foreground">Select route for price</span>
                     ) : (
                       <Badge variant="secondary" className="text-lg">
                         ${service.price} / {service.priceUnit}

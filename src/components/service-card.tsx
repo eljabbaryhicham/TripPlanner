@@ -53,7 +53,7 @@ const ServiceCard = ({
             <span>{service.location}</span>
           </div>
            {service.category === 'transport' ? (
-            <div className="flex items-baseline text-base font-semibold text-foreground/80">
+            <div className="flex items-baseline text-base text-muted-foreground">
               Price varies by route
             </div>
            ) : (
