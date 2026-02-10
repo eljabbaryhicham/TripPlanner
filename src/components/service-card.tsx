@@ -1,3 +1,4 @@
+
 'use client';
 
 import Image from 'next/image';
@@ -51,13 +52,19 @@ const ServiceCard = ({
             <MapPin className="w-4 h-4 mr-2" />
             <span>{service.location}</span>
           </div>
-           <div className="flex items-baseline text-lg font-semibold">
-            <DollarSign className="w-4 h-4 mr-1" />
-            {service.price}
-            <span className="text-sm font-normal text-foreground/60">
-              /{service.priceUnit}
-            </span>
-          </div>
+           {service.category === 'transport' ? (
+            <div className="flex items-baseline text-base font-semibold text-foreground/80">
+              Price varies by route
+            </div>
+           ) : (
+            <div className="flex items-baseline text-lg font-semibold">
+              <DollarSign className="w-4 h-4 mr-1" />
+              {service.price}
+              <span className="text-sm font-normal text-foreground/60">
+                /{service.priceUnit}
+              </span>
+            </div>
+          )}
         </div>
         <Button asChild variant="default" className="w-full mt-4">
             <Link href={`${pathname}?${slugify(service.name)}`} scroll={false}>
