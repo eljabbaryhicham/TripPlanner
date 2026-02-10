@@ -28,6 +28,9 @@ import ReviewsPopup from './reviews-popup';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import { Star } from 'lucide-react';
+import { getTransportPrice } from '@/lib/utils';
+import { MOROCCAN_CITIES, AIRPORTS } from '@/lib/constants';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ServiceDetailModalProps {
   service: Service | null;
@@ -40,11 +43,20 @@ const ServiceDetailModal = ({
   isOpen,
   onClose,
 }: ServiceDetailModalProps) => {
-  const [startDate, setStartDate] = React.useState('');
-  const [endDate, setEndDate] = React.useState('');
+  // General state
   const [fullName, setFullName] = React.useState('');
   const [reviewsOpen, setReviewsOpen] = React.useState(false);
   const firestore = useFirestore();
+  
+  // State for car/hotel date ranges
+  const [startDate, setStartDate] = React.useState('');
+  const [endDate, setEndDate] = React.useState('');
+
+  // State for transport pickup
+  const [fromAirport, setFromAirport] = React.useState('');
+  const [toCity, setToCity] = React.useState('');
+  const [pickupDate, setPickupDate] = React.useState('');
+  const [pickupTime, setPickupTime] = React.useState('');
 
   const reviewsQuery = useMemoFirebase(
     () => service ? query(collection(firestore, 'reviews'), where('serviceId', '==', service.id)) : null,
@@ -70,13 +82,15 @@ const ServiceDetailModal = ({
     return `${year}-${month}-${day}`;
   }, []);
 
-  const { days, totalPrice } = React.useMemo(() => {
-    if (service && startDate && endDate) {
+  // --- Start of calculation memos ---
+
+  const { days, dateRangeTotalPrice } = React.useMemo(() => {
+    if (service && (service.category === 'cars' || service.category === 'hotels') && startDate && endDate) {
       try {
         const from = new Date(startDate);
         const to = new Date(endDate);
 
-        if (to <= from) return { days: null, totalPrice: null };
+        if (to <= from) return { days: null, dateRangeTotalPrice: null };
 
         const timeDiff = to.getTime() - from.getTime();
         const dayDifference = Math.round(timeDiff / (1000 * 3600 * 24));
@@ -89,37 +103,55 @@ const ServiceDetailModal = ({
         }
 
         if (dayCount > 0) {
-          return { days: dayCount, totalPrice: dayCount * service.price };
+          return { days: dayCount, dateRangeTotalPrice: dayCount * service.price };
         }
       } catch (e) {
-        return { days: null, totalPrice: null };
+         return { days: null, dateRangeTotalPrice: null };
       }
     }
-    // If dates are not provided (e.g. for a trip), but the price is per trip, then total price is service price.
-    if (service?.priceUnit === 'trip') {
-      return { days: null, totalPrice: service.price };
-    }
-    return { days: null, totalPrice: null };
+    return { days: null, dateRangeTotalPrice: null };
   }, [startDate, endDate, service]);
 
+  const transportPrice = React.useMemo(() => getTransportPrice(fromAirport, toCity), [fromAirport, toCity]);
+
+  const finalPrice = React.useMemo(() => {
+    if (service?.category === 'transport') return transportPrice;
+    if (dateRangeTotalPrice !== null) return dateRangeTotalPrice;
+    if (service?.priceUnit === 'trip') return service.price;
+    return null;
+  }, [service, transportPrice, dateRangeTotalPrice]);
+  
   const dateForFlow = React.useMemo(() => {
-    if (!startDate || !endDate) return undefined;
-    try {
+    if (service?.category === 'transport' && pickupDate && pickupTime) {
+      try {
+        return { from: new Date(`${pickupDate}T${pickupTime}`) };
+      } catch {
+        return undefined;
+      }
+    }
+    if ((service?.category === 'cars' || service?.category === 'hotels') && startDate && endDate) {
+      try {
         const from = new Date(startDate);
         const to = new Date(endDate);
-        if (to <= from) return undefined;
-        return { from, to };
-    } catch(e) {
+        if (to > from) return { from, to };
+      } catch {
         return undefined;
+      }
     }
-  }, [startDate, endDate]);
+    return undefined;
+  }, [service, startDate, endDate, pickupDate, pickupTime]);
 
+  // --- End of calculation memos ---
 
   React.useEffect(() => {
     if (!isOpen) {
       setStartDate('');
       setEndDate('');
       setFullName('');
+      setFromAirport('');
+      setToCity('');
+      setPickupDate('');
+      setPickupTime('');
     }
   }, [isOpen]);
 
@@ -220,22 +252,17 @@ const ServiceDetailModal = ({
                   </div>
                   <div className="flex justify-between items-baseline">
                     <span className="text-foreground/80">Price:</span>
-                    {totalPrice !== null && days ? (
+                    {finalPrice !== null ? (
                       <div className="text-right">
                         <Badge variant="secondary" className="text-lg">
-                          ${totalPrice.toFixed(2)}
+                          ${finalPrice.toFixed(2)}
                         </Badge>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          (${service.price} / {service.priceUnit} for {days}{' '}
-                          {days === 1
-                            ? service.priceUnit === 'day'
-                              ? 'day'
-                              : 'night'
-                            : service.priceUnit === 'day'
-                            ? 'days'
-                            : 'nights'}
-                          )
-                        </p>
+                        {days && (
+                           <p className="text-xs text-muted-foreground mt-1">
+                            (${service.price} / {service.priceUnit} for {days}{' '}
+                            {days === 1 ? service.priceUnit : service.priceUnit + 's'})
+                           </p>
+                        )}
                       </div>
                     ) : (
                       <Badge variant="secondary" className="text-lg">
@@ -261,6 +288,64 @@ const ServiceDetailModal = ({
                     required
                 />
             </div>
+            
+            {service.category === 'transport' && (
+               <div className="space-y-4 mb-6">
+                <h3 className="font-semibold">Pickup Details</h3>
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="from-airport">From</Label>
+                      <Select value={fromAirport} onValueChange={setFromAirport} disabled={!fullName}>
+                          <SelectTrigger id="from-airport">
+                              <SelectValue placeholder="Select an airport" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {AIRPORTS.map(airport => (
+                                  <SelectItem key={airport} value={airport}>{airport}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                  <div className="space-y-2">
+                      <Label htmlFor="to-city">To</Label>
+                      <Select value={toCity} onValueChange={setToCity} disabled={!fromAirport}>
+                          <SelectTrigger id="to-city">
+                              <SelectValue placeholder="Select a destination" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              {MOROCCAN_CITIES.map(city => (
+                                  <SelectItem key={city} value={city}>{city}</SelectItem>
+                              ))}
+                          </SelectContent>
+                      </Select>
+                  </div>
+                   <div className="space-y-2">
+                        <Label htmlFor="pickup-date">Date</Label>
+                        <Input 
+                            id="pickup-date"
+                            type="date" 
+                            value={pickupDate} 
+                            onChange={(e) => setPickupDate(e.target.value)}
+                            min={todayDate}
+                            disabled={!toCity}
+                            className="bg-secondary/50"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="pickup-time">Time</Label>
+                        <Input 
+                            id="pickup-time"
+                            type="time"
+                            value={pickupTime}
+                            onChange={(e) => setPickupTime(e.target.value)}
+                            disabled={!pickupDate}
+                            className="bg-secondary/50"
+                        />
+                    </div>
+                </div>
+               </div>
+            )}
+
             {(service.category === 'cars' || service.category === 'hotels') && (
               <div className="space-y-4 mb-6">
                 <Label>Reservation Dates</Label>
@@ -295,8 +380,10 @@ const ServiceDetailModal = ({
             <ReservationFlow
               service={service}
               dates={dateForFlow}
-              totalPrice={totalPrice}
+              totalPrice={finalPrice}
               fullName={fullName}
+              origin={service.category === 'transport' ? fromAirport : undefined}
+              destination={service.category === 'transport' ? toCity : undefined}
             />
           </div>
 

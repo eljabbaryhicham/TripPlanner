@@ -90,8 +90,11 @@ body {
   }
 
   /* Style for the date picker icon */
-  input[type="date"]::-webkit-calendar-picker-indicator {
+  input[type='date']::-webkit-calendar-picker-indicator,
+  input[type='time']::-webkit-calendar-picker-indicator,
+  input[type='datetime-local']::-webkit-calendar-picker-indicator {
     filter: invert(1);
     cursor: pointer;
+    transform: scale(1.2);
   }
 }
