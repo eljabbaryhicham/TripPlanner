@@ -10,6 +10,7 @@ import { Loader2, AlertTriangle, UploadCloud, PlayCircle, Eye } from 'lucide-rea
 import { AspectRatio } from '../ui/aspect-ratio';
 import { ScrollArea } from '../ui/scroll-area';
 import { MediaPreviewDialog } from './media-preview-dialog';
+import { Progress } from '@/components/ui/progress';
 
 type CloudinaryMedia = {
   public_id: string;
@@ -59,7 +60,7 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
   const { toast } = useToast();
   const [media, setMedia] = React.useState<CloudinaryMedia[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
-  const [isUploading, setIsUploading] = React.useState(false);
+  const [uploadProgress, setUploadProgress] = React.useState<number | null>(null);
   const [error, setError] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isConfigured, setIsConfigured] = React.useState(true);
@@ -95,33 +96,53 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
     }
   }, [isOpen, fetchMedia]);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
+    setUploadProgress(0);
 
-    try {
-        const response = await fetch('/api/media/upload', {
-            method: 'POST',
-            body: file,
-        });
+    const formData = new FormData();
+    formData.append('file', file);
 
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Upload failed');
-        }
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/media/upload', true);
 
+    xhr.upload.onprogress = (e) => {
+      if (e.lengthComputable) {
+        const percent = Math.round((e.loaded / e.total) * 100);
+        setUploadProgress(percent);
+      }
+    };
+
+    xhr.onload = () => {
+      setUploadProgress(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      if (xhr.status >= 200 && xhr.status < 300) {
         toast({ title: 'Upload Successful' });
-        fetchMedia(); // Refresh the library
-    } catch (error: any) {
-        toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
-    } finally {
-        setIsUploading(false);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
+        fetchMedia();
+      } else {
+        try {
+            const errorData = JSON.parse(xhr.responseText);
+            toast({ variant: 'destructive', title: 'Upload Failed', description: errorData.error || 'An unknown server error occurred.' });
+        } catch {
+            toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not parse error response from server.' });
         }
-    }
+      }
+    };
+
+    xhr.onerror = () => {
+      setUploadProgress(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      toast({ variant: 'destructive', title: 'Upload Failed', description: 'A network error occurred during upload.' });
+    };
+
+    xhr.send(formData);
   };
 
   return (
@@ -134,9 +155,9 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
                             <DialogTitle>Browse Media Library</DialogTitle>
                             <DialogDescription>Select an image or upload a new one.</DialogDescription>
                         </div>
-                        <Button onClick={() => fileInputRef.current?.click()} disabled={isUploading || !isConfigured}>
-                            {isUploading ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
-                            Upload
+                        <Button onClick={() => fileInputRef.current?.click()} disabled={uploadProgress !== null || !isConfigured}>
+                            {uploadProgress !== null ? <Loader2 className="mr-2 animate-spin" /> : <UploadCloud className="mr-2" />}
+                            {uploadProgress !== null ? `Uploading...` : 'Upload'}
                         </Button>
                         <input 
                             type="file" 
@@ -144,9 +165,15 @@ export function MediaBrowserDialog({ isOpen, onClose, onSelect }: MediaBrowserDi
                             onChange={handleFileUpload}
                             className="hidden" 
                             accept="image/*,video/*"
+                            disabled={uploadProgress !== null}
                         />
                     </div>
                 </DialogHeader>
+                {uploadProgress !== null && (
+                    <div className="px-1 pt-2">
+                        <Progress value={uploadProgress} />
+                    </div>
+                )}
                 <div className="flex-1 min-h-0">
                     <ScrollArea className="h-full pr-4">
                         {!isConfigured ? (
