@@ -50,13 +50,20 @@ const CheckoutPage = () => {
         });
     }, [reservation]);
 
-    const formattedPeriod = useMemo(() => {
-        if (!reservation?.startDate || !reservation?.endDate) return '';
+    const { formattedPeriod, isPickup } = useMemo(() => {
+        if (!reservation?.startDate) return { formattedPeriod: '', isPickup: false };
         const from = new Date(reservation.startDate.seconds * 1000);
+
+        if (!reservation.endDate) { // It's a pickup
+             const fromString = from.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+             return { formattedPeriod: fromString, isPickup: true };
+        }
+        
+        // It's a date range
         const to = new Date(reservation.endDate.seconds * 1000);
         const fromString = from.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         const toString = to.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        return `${fromString} - ${toString}`;
+        return { formattedPeriod: `${fromString} - ${toString}`, isPickup: false };
     }, [reservation]);
 
     const { days } = useMemo(() => {
@@ -131,8 +138,8 @@ const CheckoutPage = () => {
                                             <div>
                                                 <p className="font-medium">{reservation.serviceName}</p>
                                                 <p className="text-sm text-muted-foreground">Reserved on: {formattedDate}</p>
-                                                {(reservation.startDate && reservation.endDate) &&
-                                                    <p className="text-sm text-muted-foreground">Dates: {formattedPeriod}</p>
+                                                {formattedPeriod &&
+                                                    <p className="text-sm text-muted-foreground">{isPickup ? 'Pickup:' : 'Dates:'} {formattedPeriod}</p>
                                                 }
                                             </div>
                                              <div className="text-right">

@@ -52,6 +52,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         { label: 'Name', value: name },
         { label: 'Email', value: email },
         { label: 'Phone', value: phone },
+        { label: 'Pickup', value: startDate && !endDate ? startDate : null },
         { label: 'Dates', value: (startDate && endDate) ? `${startDate} - ${endDate}` : null },
         { label: 'Origin', value: origin },
         { label: 'Destination', value: destination },

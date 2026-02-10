@@ -75,7 +75,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const [whatsappNumber, setWhatsappNumber] = React.useState<string>('');
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
-  const isDateRequired = service.category === 'cars' || service.category === 'hotels';
+  const isDateRequired = service.category === 'cars' || service.category === 'hotels' || service.category === 'transport';
   const isFlowDisabled = !fullName || (isDateRequired && !dates) || (service.category === 'transport' && !totalPrice);
 
     React.useEffect(() => {
@@ -106,7 +106,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
     const submissionData = {
       ...data,
       name: fullName,
-      startDate: dates?.from?.toLocaleDateString(),
+      startDate: dates?.from ? (dates.to ? dates.from.toLocaleDateString() : dates.from.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })) : undefined,
       endDate: dates?.to?.toLocaleDateString(),
       origin,
       destination,
@@ -205,8 +205,10 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
   const whatsappMessage = React.useMemo(() => {
     let message = `Hello, I'd like to book the service: ${service.name}. My name is ${fullName}.`;
-    if (dates?.from && dates?.to) {
+    if (dates?.from && dates.to) {
       message += ` From: ${dates.from.toLocaleDateString()} To: ${dates.to.toLocaleDateString()}.`;
+    } else if (dates?.from) {
+      message += ` For pickup on: ${dates.from.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })}.`
     }
     if (origin && destination) {
         message += ` From: ${origin} To: ${destination}.`;

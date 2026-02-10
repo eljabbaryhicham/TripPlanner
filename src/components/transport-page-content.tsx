@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -59,8 +58,28 @@ export default function TransportPageContent({ service }: { service: Service }) 
   
   const [fromAirport, setFromAirport] = React.useState('');
   const [toCity, setToCity] = React.useState('');
+  const [pickupDate, setPickupDate] = React.useState('');
+  const [pickupTime, setPickupTime] = React.useState('');
   
   const calculatedPrice = React.useMemo(() => getTransportPrice(fromAirport, toCity), [fromAirport, toCity]);
+  
+  const pickupDateTime = React.useMemo(() => {
+    if (pickupDate && pickupTime) {
+      try {
+        return new Date(`${pickupDate}T${pickupTime}`);
+      } catch (e) {
+        console.error("Invalid date/time for pickup", e);
+        return undefined;
+      }
+    }
+    return undefined;
+  }, [pickupDate, pickupTime]);
+
+  const dateForFlow = React.useMemo(() => {
+    if (!pickupDateTime) return undefined;
+    return { from: pickupDateTime };
+  }, [pickupDateTime]);
+
 
   const reviewsQuery = useMemoFirebase(
     () => service ? query(collection(firestore, 'reviews'), where('serviceId', '==', service.id)) : null,
@@ -77,7 +96,14 @@ export default function TransportPageContent({ service }: { service: Service }) 
         totalReviews: reviews.length
     };
   }, [reviews]);
-
+  
+  const todayDate = React.useMemo(() => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = (d.getMonth() + 1).toString().padStart(2, '0');
+    const day = d.getDate().toString().padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
 
   return (
     <>
@@ -206,6 +232,36 @@ export default function TransportPageContent({ service }: { service: Service }) 
             </div>
 
             <Separator className="my-4" />
+            
+            <div className="space-y-4 mb-6">
+                <h3 className="font-semibold">Pickup Details</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="pickup-date">Date</Label>
+                        <Input 
+                            id="pickup-date"
+                            type="date" 
+                            value={pickupDate} 
+                            onChange={(e) => setPickupDate(e.target.value)}
+                            min={todayDate}
+                            disabled={!fromAirport || !toCity}
+                            className="bg-secondary/50"
+                        />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="pickup-time">Time</Label>
+                        <Input 
+                            id="pickup-time"
+                            type="time"
+                            value={pickupTime}
+                            onChange={(e) => setPickupTime(e.target.value)}
+                            disabled={!pickupDate}
+                            className="bg-secondary/50"
+                        />
+                    </div>
+                </div>
+            </div>
+
             <div className="space-y-4 mb-6">
                 <Label htmlFor="full-name" className="font-semibold">Your Full Name</Label>
                 <Input 
@@ -218,7 +274,7 @@ export default function TransportPageContent({ service }: { service: Service }) 
             </div>
             <ReservationFlow
                 service={service}
-                dates={undefined}
+                dates={dateForFlow}
                 totalPrice={calculatedPrice}
                 fullName={fullName}
                 origin={fromAirport}
