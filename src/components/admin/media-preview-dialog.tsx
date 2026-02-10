@@ -42,28 +42,38 @@ export function MediaPreviewDialog({ isOpen, onClose, media }: MediaPreviewDialo
             },
         ],
     };
+    
+    // Dynamically set the aspect ratio for the player
+    const videoOptions = {
+        controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'],
+        ratio: `${media.width}:${media.height}`
+    };
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-[80vw] w-[80vw] p-0 border-0">
+            {/* 
+              Make the dialog content's size adapt to its content, but not exceed 80% of the viewport.
+              It's also a flex container to center the media inside.
+            */}
+            <DialogContent className="max-w-[80vw] w-auto h-auto max-h-[80vh] p-0 border-0 bg-transparent shadow-none flex items-center justify-center">
                 <DialogHeader className="sr-only">
                     <DialogTitle>Media Preview: {media.public_id}</DialogTitle>
                 </DialogHeader>
-                <div className="bg-black flex items-center justify-center h-[80vh]">
-                    {media.resource_type === 'image' ? (
-                        <Image
-                            src={media.secure_url}
-                            alt={media.public_id}
-                            width={media.width}
-                            height={media.height}
-                            className="object-contain max-w-full max-h-full"
-                        />
-                    ) : (
-                        <div className="w-full h-full">
-                           {PlyrComponent && <PlyrComponent source={videoSource} options={{ controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] }} />}
-                        </div>
-                    )}
-                </div>
+                
+                {media.resource_type === 'image' ? (
+                    <Image
+                        src={media.secure_url}
+                        alt={media.public_id}
+                        width={media.width}
+                        height={media.height}
+                        className="object-contain max-w-full max-h-full rounded-lg"
+                    />
+                ) : (
+                    // This container ensures the player respects the dialog's max-width/max-height.
+                    <div className="w-full h-full">
+                       {PlyrComponent && <PlyrComponent source={videoSource} options={videoOptions} />}
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );
