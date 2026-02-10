@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { firestoreAdmin, authAdmin } from '@/firebase/admin';
+import { getFirestoreAdmin, getAuthAdmin } from '@/firebase/admin';
 
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
@@ -276,13 +276,6 @@ export async function updateClientEmailTemplate(prevState: any, formData: FormDa
 
 
 // --- Admin Management Actions ---
-// NOTE: These actions use the Firebase Admin SDK and should ideally be protected
-// by checking the caller's authentication status and role. In a typical Next.js
-// app, this would be done using a library like NextAuth.js or by validating an
-// ID token. For this environment, we rely on Firestore rules to protect the
-// /roles_admin collection, but the actions to create/delete Auth users are
-// not fully secure from being called by non-superadmins.
-
 const addAdminSchema = z.object({
     login: z.string().email(),
     password: z.string().min(6),
@@ -295,6 +288,8 @@ export async function addAdmin(prevState: any, formData: FormData) {
     const { login, password } = parsed.data;
 
     try {
+        const authAdmin = getAuthAdmin();
+        const firestoreAdmin = getFirestoreAdmin();
         const userRecord = await authAdmin.createUser({ email: login, password });
         await firestoreAdmin.collection('roles_admin').doc(userRecord.uid).set({
             email: login,
@@ -318,6 +313,8 @@ export async function removeAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
+        const authAdmin = getAuthAdmin();
+        const firestoreAdmin = getFirestoreAdmin();
         await authAdmin.deleteUser(id);
         await firestoreAdmin.collection('roles_admin').doc(id).delete();
         revalidatePath('/admin');
@@ -336,6 +333,7 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
     const { id } = parsed.data;
 
     try {
+        const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection('roles_admin').doc(id).update({ role: 'superadmin' });
         revalidatePath('/admin');
         return { success: true, error: null };
@@ -368,6 +366,7 @@ export async function updateServiceStatus(serviceId: string, category: string, i
     }
 
     try {
+        const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection(collectionPath).doc(serviceId).set({ isActive }, { merge: true });
         
         revalidatePath('/admin');
@@ -405,6 +404,7 @@ export async function updateServiceBestOffer(serviceId: string, category: string
     }
 
     try {
+        const firestoreAdmin = getFirestoreAdmin();
         await firestoreAdmin.collection(collectionPath).doc(serviceId).set({ isBestOffer }, { merge: true });
         
         revalidatePath('/admin');
