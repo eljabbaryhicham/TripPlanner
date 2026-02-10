@@ -1,7 +1,6 @@
 
 import { NextResponse } from 'next/server';
 import cloudinary from '@/lib/cloudinary';
-import { Readable } from 'stream';
 
 export async function POST(request: Request) {
     try {
@@ -12,15 +11,17 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
         }
 
-        // Convert the File's web stream to a Node.js stream
-        const fileStream = file.stream();
-        const nodeStream = Readable.fromWeb(fileStream as any);
+        // Convert the file to a buffer to reliably stream it.
+        const bytes = await file.arrayBuffer();
+        const buffer = Buffer.from(bytes);
 
+        // Upload the buffer to Cloudinary using a stream.
+        // This is more memory-efficient for large files.
         const uploadResult: any = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder: 'triplanner',
-                    resource_type: 'auto',
+                    resource_type: 'auto', // Let Cloudinary detect if it's an image or video
                 },
                 (error, result) => {
                     if (error) {
@@ -29,7 +30,8 @@ export async function POST(request: Request) {
                     resolve(result);
                 }
             );
-            nodeStream.pipe(uploadStream);
+            // Write the buffer to the stream and end it.
+            uploadStream.end(buffer);
         });
         
         let optimizedUrl;
