@@ -6,17 +6,72 @@ import Footer from '@/components/footer';
 import ServiceList from '@/components/service-list';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { Compass } from 'lucide-react';
+import { Compass, ServerCrash, Archive, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
+
+const PageMessage = ({ icon, title, message }: { icon: React.ReactNode, title: string, message: string }) => (
+    <div className="text-center py-20 space-y-4">
+        <div className="inline-block p-4 bg-muted rounded-full">
+            {icon}
+        </div>
+        <h2 className="text-2xl font-bold">{title}</h2>
+        <p className="text-foreground/80 max-w-md mx-auto">{message}</p>
+    </div>
+);
 
 export default function ExplorePage() {
   const firestore = useFirestore();
   const exploreTripsRef = useMemoFirebase(() => firestore ? collection(firestore, 'exploreTrips') : null, [firestore]);
-  const { data: exploreServices, isLoading } = useCollection(exploreTripsRef);
+  const { data: exploreServices, isLoading: servicesLoading } = useCollection(exploreTripsRef);
+  
+  const [settings, setSettings] = React.useState<{ categories?: { explore?: boolean } }>({});
+  const [settingsLoading, setSettingsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+      fetch('/api/settings')
+          .then(res => res.json())
+          .then(data => setSettings(data))
+          .catch(console.error)
+          .finally(() => setSettingsLoading(false));
+  }, []);
 
   const activeExploreServices = React.useMemo(() => {
     return exploreServices?.filter(service => service.isActive !== false) ?? [];
   }, [exploreServices]);
+
+  const isLoading = servicesLoading || settingsLoading;
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Skeleton className="h-96" />
+            <Skeleton className="h-96" />
+            <Skeleton className="h-96" />
+         </div>
+      );
+    }
+    
+    if (settings.categories?.explore === false) {
+      return <PageMessage icon={<AlertTriangle className="h-10 w-10 text-primary" />} title="Service Unavailable" message="This service category is currently disabled. Please check back later." />;
+    }
+
+    const hasServices = exploreServices && exploreServices.length > 0;
+    if (!hasServices) {
+        return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title="No Trips Available" message="There are currently no trips in this category. Please check back later." />;
+    }
+
+    const allInactive = hasServices && exploreServices.every(s => s.isActive === false);
+    if (allInactive) {
+        return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title="Trips Are Fully Booked" message="All trips in this category are temporarily unavailable. We'll be back soon with new adventures!" />;
+    }
+    
+    if (activeExploreServices.length === 0) {
+        return <p className="text-center text-lg text-foreground/80">No active trips available right now.</p>;
+    }
+
+    return <ServiceList services={activeExploreServices} />;
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -33,15 +88,7 @@ export default function ExplorePage() {
                 Join our organized trips and discover the wonders of Morocco with fellow travelers.
               </p>
             </div>
-            {isLoading ? (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  <Skeleton className="h-96" />
-                  <Skeleton className="h-96" />
-                  <Skeleton className="h-96" />
-               </div>
-            ) : (
-              <ServiceList services={activeExploreServices} />
-            )}
+            {renderContent()}
           </div>
         </section>
       </main>

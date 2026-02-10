@@ -46,6 +46,13 @@ const NavLink = ({
 const Header = () => {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
+  
+  const [categorySettings, setCategorySettings] = React.useState({
+    cars: true,
+    hotels: true,
+    transport: true,
+    explore: true,
+  });
 
   React.useEffect(() => {
     // If auth is ready, and we're done checking, and there's no user, sign in anonymously.
@@ -54,6 +61,17 @@ const Header = () => {
     }
   }, [auth, isUserLoading, user]);
 
+  React.useEffect(() => {
+    fetch('/api/settings')
+      .then(res => res.json())
+      .then(data => {
+        if (data.categories) {
+          setCategorySettings(data.categories);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
   return (
     <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
       <nav className="flex h-20 items-start justify-center gap-4 rounded-3xl border bg-background/50 p-3 shadow-lg backdrop-blur-md">
@@ -61,18 +79,26 @@ const Header = () => {
           <Mountain className="h-7 w-7 text-foreground" />
         </NavLink>
         <div className="mx-1 h-10 self-center w-px bg-border" />
-        <NavLink href="/services/cars" label="Cars">
-          <Car className="h-7 w-7 text-foreground" />
-        </NavLink>
-        <NavLink href="/services/hotels" label="Hotels">
-          <BedDouble className="h-7 w-7 text-foreground" />
-        </NavLink>
-        <NavLink href="/services/transport" label="Pickup">
-          <Briefcase className="h-7 w-7 text-foreground" />
-        </NavLink>
-        <NavLink href="/services/explore" label="Explore">
-          <Compass className="h-7 w-7 text-foreground" />
-        </NavLink>
+        {categorySettings.cars && (
+          <NavLink href="/services/cars" label="Cars">
+            <Car className="h-7 w-7 text-foreground" />
+          </NavLink>
+        )}
+        {categorySettings.hotels && (
+          <NavLink href="/services/hotels" label="Hotels">
+            <BedDouble className="h-7 w-7 text-foreground" />
+          </NavLink>
+        )}
+        {categorySettings.transport && (
+          <NavLink href="/services/transport" label="Pickup">
+            <Briefcase className="h-7 w-7 text-foreground" />
+          </NavLink>
+        )}
+        {categorySettings.explore && (
+          <NavLink href="/services/explore" label="Explore">
+            <Compass className="h-7 w-7 text-foreground" />
+          </NavLink>
+        )}
       </nav>
     </div>
   );

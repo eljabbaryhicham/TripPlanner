@@ -17,6 +17,7 @@ import type { Service } from '@/lib/types';
 import AdminManagement from '@/components/admin/admin-management';
 import EmailTemplateEditor from '@/components/admin/email-template-editor';
 import ClientEmailTemplateEditor from '@/components/admin/client-email-template-editor';
+import CategoryManagement from '@/components/admin/category-management';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -32,6 +33,7 @@ export default function AdminPage() {
     const [whatsappNumber, setWhatsappNumber] = React.useState('');
     const [emailTemplate, setEmailTemplate] = React.useState('');
     const [clientEmailTemplate, setClientEmailTemplate] = React.useState('');
+    const [categorySettings, setCategorySettings] = React.useState({});
     const [settingsLoading, setSettingsLoading] = React.useState(true);
     
     const [editorOpen, setEditorOpen] = React.useState(false);
@@ -71,6 +73,9 @@ export default function AdminPage() {
         ]).then(([settingsData, templateData, clientTemplateData]) => {
             if (settingsData.whatsappNumber) {
                 setWhatsappNumber(settingsData.whatsappNumber);
+            }
+            if (settingsData.categories) {
+                setCategorySettings(settingsData.categories);
             }
             if (templateData.template) {
                 setEmailTemplate(templateData.template);
@@ -207,6 +212,7 @@ export default function AdminPage() {
                     onEdit={handleEditService} 
                 />
                 <SettingsManagement currentWhatsappNumber={whatsappNumber} />
+                <CategoryManagement currentSettings={categorySettings} />
                 <EmailTemplateEditor currentTemplate={emailTemplate} />
                 <ClientEmailTemplateEditor currentTemplate={clientEmailTemplate} />
                 {isSuperAdmin && admins && adminProfile && (

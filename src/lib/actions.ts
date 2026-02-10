@@ -201,6 +201,38 @@ export async function updateWhatsappNumber(prevState: any, formData: FormData) {
     }
 }
 
+// --- Category Settings Action ---
+export async function updateCategorySettings(prevState: any, formData: FormData) {
+    const data = Object.fromEntries(formData);
+    const categoryStates = {
+        cars: data.cars === 'on',
+        hotels: data.hotels === 'on',
+        transport: data.transport === 'on',
+        explore: data.explore === 'on',
+    };
+    
+    try {
+        const currentConfigRaw = await fs.readFile(settingsFilePath, 'utf-8').catch(() => '{}');
+        const currentConfig = JSON.parse(currentConfigRaw);
+        currentConfig.categories = categoryStates;
+        const newSettings = JSON.stringify(currentConfig, null, 2);
+        await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
+        
+        revalidatePath('/admin');
+        revalidatePath('/services/cars');
+        revalidatePath('/services/hotels');
+        revalidatePath('/services/transport');
+        revalidatePath('/services/explore');
+        revalidatePath('/'); // For header and homepage
+        
+        return { error: null, success: true };
+    } catch (error) {
+        console.error('Failed to update category settings:', error);
+        return { error: 'Could not save category settings.', success: false };
+    }
+}
+
+
 // --- Email Template Action ---
 const emailTemplateSchema = z.object({
     template: z.string().min(1, { message: 'Email template cannot be empty.' }),

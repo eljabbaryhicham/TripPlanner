@@ -6,7 +6,7 @@ import Footer from '@/components/footer';
 import ServiceList from '@/components/service-list';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { Car } from 'lucide-react';
+import { Car, ServerCrash, Archive, AlertTriangle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import {
   Select,
@@ -16,53 +16,96 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 
+const PageMessage = ({ icon, title, message }: { icon: React.ReactNode, title: string, message: string }) => (
+    <div className="text-center py-20 space-y-4">
+        <div className="inline-block p-4 bg-muted rounded-full">
+            {icon}
+        </div>
+        <h2 className="text-2xl font-bold">{title}</h2>
+        <p className="text-foreground/80 max-w-md mx-auto">{message}</p>
+    </div>
+);
+
 export default function CarsPage() {
   const firestore = useFirestore();
   const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
-  const { data: carServices, isLoading } = useCollection(carRentalsRef);
+  const { data: carServices, isLoading: servicesLoading } = useCollection(carRentalsRef);
 
-  // New state for filters
+  const [settings, setSettings] = React.useState<{ categories?: { cars?: boolean } }>({});
+  const [settingsLoading, setSettingsLoading] = React.useState(true);
   const [priceRange, setPriceRange] = React.useState('all');
   const [seats, setSeats] = React.useState('all');
+
+  React.useEffect(() => {
+      fetch('/api/settings')
+          .then(res => res.json())
+          .then(data => setSettings(data))
+          .catch(console.error)
+          .finally(() => setSettingsLoading(false));
+  }, []);
 
   const filteredCarServices = React.useMemo(() => {
     let services = carServices?.filter(service => service.isActive !== false) ?? [];
 
-    // Price filter
     if (priceRange !== 'all') {
       services = services.filter(service => {
         switch (priceRange) {
-          case 'lt-50':
-            return service.price < 50;
-          case '50-100':
-            return service.price >= 50 && service.price <= 100;
-          case 'gt-100':
-            return service.price > 100;
-          default:
-            return true;
+          case 'lt-50': return service.price < 50;
+          case '50-100': return service.price >= 50 && service.price <= 100;
+          case 'gt-100': return service.price > 100;
+          default: return true;
         }
       });
     }
 
-    // Seats filter
     if (seats !== 'all') {
       services = services.filter(service => {
         const numSeats = parseInt(service.details?.Seats, 10);
         if (isNaN(numSeats)) return false;
-        
         switch (seats) {
-          case '2-4':
-            return numSeats >= 2 && numSeats <= 4;
-          case '5+':
-            return numSeats >= 5;
-          default:
-            return true;
+          case '2-4': return numSeats >= 2 && numSeats <= 4;
+          case '5+': return numSeats >= 5;
+          default: return true;
         }
       });
     }
 
     return services;
   }, [carServices, priceRange, seats]);
+
+  const isLoading = servicesLoading || settingsLoading;
+
+  const renderContent = () => {
+    if (isLoading) {
+      return (
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <Skeleton className="h-96" />
+            <Skeleton className="h-96" />
+            <Skeleton className="h-96" />
+         </div>
+      );
+    }
+    
+    if (settings.categories?.cars === false) {
+      return <PageMessage icon={<AlertTriangle className="h-10 w-10 text-primary" />} title="Service Unavailable" message="This service category is currently disabled. Please check back later." />;
+    }
+
+    const hasServices = carServices && carServices.length > 0;
+    if (!hasServices) {
+        return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title="No Services Available" message="There are currently no services in this category. Please check back later." />;
+    }
+
+    const allInactive = hasServices && carServices.every(s => s.isActive === false);
+    if (allInactive) {
+        return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title="Services Are Busy" message="All services in this category are temporarily unavailable. We'll be back soon!" />;
+    }
+    
+    if(filteredCarServices.length === 0) {
+        return <p className="text-center text-lg text-foreground/80">No cars match your current filters.</p>;
+    }
+
+    return <ServiceList services={filteredCarServices} />;
+  };
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -80,40 +123,34 @@ export default function CarsPage() {
               </p>
             </div>
 
-            {/* Filter UI */}
-            <div className="mb-8 flex flex-col sm:flex-row justify-center gap-4">
-              <Select value={priceRange} onValueChange={setPriceRange}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filter by price" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any Price</SelectItem>
-                  <SelectItem value="lt-50">Under $50</SelectItem>
-                  <SelectItem value="50-100">$50 - $100</SelectItem>
-                  <SelectItem value="gt-100">Over $100</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={seats} onValueChange={setSeats}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filter by seats" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Any Seats</SelectItem>
-                  <SelectItem value="2-4">2-4 Seats</SelectItem>
-                  <SelectItem value="5+">5+ Seats</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {isLoading ? (
-               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  <Skeleton className="h-96" />
-                  <Skeleton className="h-96" />
-                  <Skeleton className="h-96" />
-               </div>
-            ) : (
-              <ServiceList services={filteredCarServices} />
+            {settings.categories?.cars !== false && carServices && carServices.length > 0 && (
+              <div className="mb-8 flex flex-col sm:flex-row justify-center gap-4">
+                <Select value={priceRange} onValueChange={setPriceRange}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Filter by price" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Price</SelectItem>
+                    <SelectItem value="lt-50">Under $50</SelectItem>
+                    <SelectItem value="50-100">$50 - $100</SelectItem>
+                    <SelectItem value="gt-100">Over $100</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={seats} onValueChange={setSeats}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Filter by seats" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Any Seats</SelectItem>
+                    <SelectItem value="2-4">2-4 Seats</SelectItem>
+                    <SelectItem value="5+">5+ Seats</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             )}
+            
+            {renderContent()}
+
           </div>
         </section>
       </main>
