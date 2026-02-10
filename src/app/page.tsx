@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { ArrowDown, Archive, ServerCrash } from 'lucide-react';
+import { ArrowDown } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
@@ -12,7 +12,6 @@ import { Button } from '@/components/ui/button';
 import BestServicesSection from '@/components/best-services-section';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettings } from '@/components/settings-provider';
-import PageMessage from '@/components/page-message';
 import Footer from '@/components/footer';
 
 export default function Home() {
@@ -40,16 +39,6 @@ export default function Home() {
 
   const isLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading;
   
-  const activeServices = services.filter(service => service.isActive !== false);
-  
-  const bestOffers = React.useMemo(() => {
-    return activeServices.filter((service) => {
-        const isBest = service.isBestOffer;
-        const isCategoryActive = settings.categories ? settings.categories[service.category] !== false : true;
-        return isBest && isCategoryActive;
-    });
-  }, [activeServices, settings.categories]);
-
   const renderBestServices = () => {
     if (isLoading) {
       return (
@@ -64,16 +53,12 @@ export default function Home() {
         </div>
       );
     }
-
-    if (services.length === 0) {
-        return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title="No Services Available" message="There are currently no services listed on our platform. Please check back later." />;
-    }
     
-    if (activeServices.length === 0) {
-        return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title="Services Are Busy" message="All of our services are temporarily unavailable. We'll be back soon!" />;
-    }
-    
-    return <BestServicesSection bestOffers={bestOffers} categorySettings={settings.categories || {}} />;
+    return <BestServicesSection 
+      allServices={services} 
+      categoryServices={{carRentals, hotels, transports, exploreTrips}} 
+      categorySettings={settings.categories || {}}
+    />;
   };
 
   return (
