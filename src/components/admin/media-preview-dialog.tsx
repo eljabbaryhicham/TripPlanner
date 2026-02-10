@@ -45,11 +45,11 @@ export function MediaPreviewDialog({ isOpen, onClose, media }: MediaPreviewDialo
 
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
-            <DialogContent className="max-w-4xl p-0 border-0">
+            <DialogContent className="max-w-[80vw] w-[80vw] p-0 border-0">
                 <DialogHeader className="sr-only">
                     <DialogTitle>Media Preview: {media.public_id}</DialogTitle>
                 </DialogHeader>
-                <div className="bg-black flex items-center justify-center max-h-[85vh]">
+                <div className="bg-black flex items-center justify-center h-[80vh]">
                     {media.resource_type === 'image' ? (
                         <Image
                             src={media.secure_url}
@@ -59,7 +59,7 @@ export function MediaPreviewDialog({ isOpen, onClose, media }: MediaPreviewDialo
                             className="object-contain max-w-full max-h-full"
                         />
                     ) : (
-                        <div className="w-full h-full max-w-full max-h-full">
+                        <div className="w-full h-full">
                            {PlyrComponent && <PlyrComponent source={videoSource} options={{ controls: ['play-large', 'play', 'progress', 'current-time', 'mute', 'volume', 'fullscreen'] }} />}
                         </div>
                     )}
