@@ -8,24 +8,12 @@ import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
 
 // --- File paths for settings that can be written to ---
-// Reading configuration is now done via API for reliability in serverless environments.
-// However, writing settings still targets the file system. This is a known limitation
-// on platforms like Vercel and may need a database in the future for persistent settings.
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
 const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
 
 
 // --- Helper Functions ---
-
-// Gets the base URL for server-side fetching.
-const getBaseUrl = () => {
-  if (process.env.VERCEL_URL) {
-    return `https://${process.env.VERCEL_URL}`;
-  }
-  // Fallback for local development, matching package.json script
-  return 'http://localhost:9002';
-};
 
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
@@ -61,36 +49,13 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     return { success: false, error: 'Invalid form data provided.' };
   }
   
-  let appSettings;
-  let adminTemplate;
-  let clientTemplate;
-
   try {
-    const baseUrl = getBaseUrl();
-    const [settingsRes, adminTemplateRes, clientTemplateRes] = await Promise.all([
-      fetch(`${baseUrl}/api/settings`, { cache: 'no-store' }),
-      fetch(`${baseUrl}/api/email-template`, { cache: 'no-store' }),
-      fetch(`${baseUrl}/api/client-email-template`, { cache: 'no-store' })
-    ]);
-
-    if (!settingsRes.ok) throw new Error(`Failed to fetch settings: ${settingsRes.statusText}`);
-    appSettings = await settingsRes.json();
-
-    if (!adminTemplateRes.ok) throw new Error(`Failed to fetch admin template: ${adminTemplateRes.statusText}`);
-    const adminTemplateData = await adminTemplateRes.json();
-    adminTemplate = adminTemplateData.template;
-
-    if (!clientTemplateRes.ok) throw new Error(`Failed to fetch client template: ${clientTemplateRes.statusText}`);
-    const clientTemplateData = await clientTemplateRes.json();
-    clientTemplate = clientTemplateData.template;
-
-  } catch (e) {
-    const error = e instanceof Error ? e.message : 'Unknown error';
-    console.error('Failed to fetch configuration:', error);
-    return { success: false, error: `Server Error: Could not load app configuration. (${error})` };
-  }
-  
-  try {
+    const appSettings = require('@/lib/app-config.json');
+    const adminTemplateConfig = require('@/lib/email-template.json');
+    const clientTemplateConfig = require('@/lib/client-email-template.json');
+    const adminTemplate = adminTemplateConfig.template;
+    const clientTemplate = clientTemplateConfig.template;
+    
     const recipientEmail = appSettings?.bookingEmailTo;
     const fromEmail = appSettings?.resendEmailFrom;
     
@@ -186,29 +151,18 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     return { success: false, error: 'Invalid data.' };
   }
   
-  let appSettings;
   try {
-    const baseUrl = getBaseUrl();
-    const settingsRes = await fetch(`${baseUrl}/api/settings`, { cache: 'no-store' });
-    if (!settingsRes.ok) throw new Error(`Failed to fetch settings: ${settingsRes.statusText}`);
-    appSettings = await settingsRes.json();
-  } catch (e) {
-    const error = e instanceof Error ? e.message : 'Unknown error';
-    console.error('Failed to fetch settings for contact form:', error);
-    return { success: false, error: 'Server is not configured to send emails.' };
-  }
+    const appSettings = require('@/lib/app-config.json');
+    const recipientEmail = appSettings.bookingEmailTo;
+    const fromEmail = appSettings.resendEmailFrom || 'TriPlanner Contact <onboarding@resend.dev>';
+    
+    if (!process.env.RESEND_API_KEY || !recipientEmail) {
+      console.error('Resend API Key or recipient email is not configured.');
+      return { success: false, error: 'Server is not configured to send emails.' };
+    }
+    
+    const { name, email, mobile, message } = parsed.data;
 
-  const recipientEmail = appSettings.bookingEmailTo;
-  const fromEmail = appSettings.resendEmailFrom || 'TriPlanner Contact <onboarding@resend.dev>';
-  
-  if (!process.env.RESEND_API_KEY || !recipientEmail) {
-    console.error('Resend API Key or recipient email is not configured.');
-    return { success: false, error: 'Server is not configured to send emails.' };
-  }
-  
-  const { name, email, mobile, message } = parsed.data;
-
-  try {
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({
       from: fromEmail,
