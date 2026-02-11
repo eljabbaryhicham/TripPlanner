@@ -7,15 +7,30 @@ import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
 
+// --- File paths for settings that can be written to ---
+// Reading configuration is now done via API for reliability in serverless environments.
+// However, writing settings still targets the file system. This is a known limitation
+// on platforms like Vercel and may need a database in the future for persistent settings.
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
 const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
 
-// --- Helper function for robust template filling ---
+
+// --- Helper Functions ---
+
+// Gets the base URL for server-side fetching.
+const getBaseUrl = () => {
+  if (process.env.VERCEL_URL) {
+    return `https://${process.env.VERCEL_URL}`;
+  }
+  // Fallback for local development, matching package.json script
+  return 'http://localhost:9002';
+};
+
+// Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
   let result = template;
   for (const key in data) {
-    // Use a simple, global replace for each key.
     result = result.replace(new RegExp(`{{${key}}}`, 'g'), data[key] || '');
   }
   return result;
@@ -47,36 +62,34 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
   }
   
   let appSettings;
-  try {
-    const settingsRaw = await fs.readFile(settingsFilePath, 'utf-8');
-    appSettings = JSON.parse(settingsRaw);
-  } catch (e) {
-    const error = e instanceof Error ? e.message : 'Unknown error';
-    console.error('Failed to read or parse app-config.json:', error);
-    return { success: false, error: `Server Error: Could not load app settings file. (${error})` };
-  }
-
   let adminTemplate;
+  let clientTemplate;
+
   try {
-    const adminTemplateRaw = await fs.readFile(emailTemplateFilePath, 'utf-8');
-    adminTemplate = JSON.parse(adminTemplateRaw).template;
+    const baseUrl = getBaseUrl();
+    const [settingsRes, adminTemplateRes, clientTemplateRes] = await Promise.all([
+      fetch(`${baseUrl}/api/settings`, { cache: 'no-store' }),
+      fetch(`${baseUrl}/api/email-template`, { cache: 'no-store' }),
+      fetch(`${baseUrl}/api/client-email-template`, { cache: 'no-store' })
+    ]);
+
+    if (!settingsRes.ok) throw new Error(`Failed to fetch settings: ${settingsRes.statusText}`);
+    appSettings = await settingsRes.json();
+
+    if (!adminTemplateRes.ok) throw new Error(`Failed to fetch admin template: ${adminTemplateRes.statusText}`);
+    const adminTemplateData = await adminTemplateRes.json();
+    adminTemplate = adminTemplateData.template;
+
+    if (!clientTemplateRes.ok) throw new Error(`Failed to fetch client template: ${clientTemplateRes.statusText}`);
+    const clientTemplateData = await clientTemplateRes.json();
+    clientTemplate = clientTemplateData.template;
+
   } catch (e) {
     const error = e instanceof Error ? e.message : 'Unknown error';
-    console.error('Failed to read or parse email-template.json:', error);
-    return { success: false, error: `Server Error: Could not load admin email template. (${error})` };
-  }
-
-  let clientTemplate;
-  try {
-      const clientTemplateRaw = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
-      clientTemplate = JSON.parse(clientTemplateRaw).template;
-  } catch(e) {
-    const error = e instanceof Error ? e.message : 'Unknown error';
-    console.error('Failed to read or parse client-email-template.json:', error);
-    return { success: false, error: `Server Error: Could not load client email template. (${error})` };
+    console.error('Failed to fetch configuration:', error);
+    return { success: false, error: `Server Error: Could not load app configuration. (${error})` };
   }
   
-  // This outer try-catch will now only handle the email sending logic
   try {
     const recipientEmail = appSettings?.bookingEmailTo;
     const fromEmail = appSettings?.resendEmailFrom;
@@ -92,7 +105,6 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     
-    // --- Prepare email content ---
     const detailsHtml = [
         { label: 'Service', value: serviceName },
         { label: 'Name', value: name },
@@ -116,7 +128,6 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         name: name
     };
     
-    // --- Prepare and send email to Admin ---
     const adminHtmlBody = fillTemplate(adminTemplate, templateData);
 
     const { error: adminError } = await resend.emails.send({
@@ -132,7 +143,6 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
       return { success: false, error: `Failed to send admin notification: ${adminError.message}` };
     }
 
-    // --- Prepare and send confirmation email to Client ---
     const clientHtmlBody = fillTemplate(clientTemplate, templateData);
     
     const { error: clientError } = await resend.emails.send({
@@ -176,10 +186,19 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     return { success: false, error: 'Invalid data.' };
   }
   
-  const settingsRaw = await fs.readFile(settingsFilePath, 'utf-8');
-  const appSettings = JSON.parse(settingsRaw);
+  let appSettings;
+  try {
+    const baseUrl = getBaseUrl();
+    const settingsRes = await fetch(`${baseUrl}/api/settings`, { cache: 'no-store' });
+    if (!settingsRes.ok) throw new Error(`Failed to fetch settings: ${settingsRes.statusText}`);
+    appSettings = await settingsRes.json();
+  } catch (e) {
+    const error = e instanceof Error ? e.message : 'Unknown error';
+    console.error('Failed to fetch settings for contact form:', error);
+    return { success: false, error: 'Server is not configured to send emails.' };
+  }
 
-  const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
+  const recipientEmail = appSettings.bookingEmailTo;
   const fromEmail = appSettings.resendEmailFrom || 'TriPlanner Contact <onboarding@resend.dev>';
   
   if (!process.env.RESEND_API_KEY || !recipientEmail) {
