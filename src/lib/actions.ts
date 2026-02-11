@@ -22,6 +22,17 @@ async function getSettings() {
     }
 }
 
+// Helper function for robust template filling
+function fillTemplate(template: string, data: Record<string, string | undefined>): string {
+  let result = template;
+  for (const key in data) {
+    // Use a simple, global replace for each key.
+    result = result.replace(new RegExp(`{{${key}}}`, 'g'), data[key] || '');
+  }
+  return result;
+}
+
+
 // --- Reservation Action ---
 const reservationSchema = z.object({
   name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
@@ -46,18 +57,33 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     return { success: false, error: 'Invalid data.', warning: null };
   }
   
-  const appSettings = await getSettings();
-  const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
-  const fromEmail = appSettings.resendEmailFrom || 'TriPlanner <onboarding@resend.dev>';
+  try { // Outer try-catch for unexpected errors
+    const appSettings = await getSettings();
+    const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
+    const fromEmail = appSettings.resendEmailFrom || 'TriPlanner <onboarding@resend.dev>';
 
-  if (!process.env.RESEND_API_KEY || !recipientEmail) {
-    console.error('Resend API Key or recipient email is not configured.');
-    return { success: false, error: 'Server is not configured to send emails.', warning: null };
-  }
+    if (!process.env.RESEND_API_KEY || !recipientEmail) {
+      console.error('Resend API Key or recipient email is not configured.');
+      return { success: false, error: 'Server is not configured to send emails.', warning: null };
+    }
 
-  const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
+    const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
 
-  try {
+    let adminTemplate: string;
+    let clientTemplate: string;
+
+    try {
+      const adminTemplateRaw = await fs.readFile(emailTemplateFilePath, 'utf-8');
+      adminTemplate = JSON.parse(adminTemplateRaw).template;
+      
+      const clientTemplateRaw = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
+      clientTemplate = JSON.parse(clientTemplateRaw).template;
+    } catch (fileError) {
+      console.error('Failed to read or parse email template file:', fileError);
+      return { success: false, error: 'Server configuration error: Could not load email templates.', warning: null };
+    }
+
+
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     // --- Prepare email content ---
@@ -66,25 +92,25 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         { label: 'Name', value: name },
         { label: 'Email', value: email },
         { label: 'Phone', value: phone },
-        { label: 'Pickup', value: startDate && !endDate ? startDate : null },
-        { label: 'Dates', value: (startDate && endDate) ? `${startDate} - ${endDate}` : null },
+        { label: 'Pickup', value: startDate && !endDate ? startDate : undefined },
+        { label: 'Dates', value: (startDate && endDate) ? `${startDate} - ${endDate}` : undefined },
         { label: 'Origin', value: origin },
         { label: 'Destination', value: destination },
-        { label: 'Estimated Price', value: totalPrice ? `$${totalPrice.toFixed(2)}` : null },
+        { label: 'Estimated Price', value: totalPrice ? `$${totalPrice.toFixed(2)}` : undefined },
         { label: 'Message', value: message },
     ]
-    .filter(item => item.value) // Filter out items with null/undefined/empty string values
+    .filter(item => item.value)
     .map(item => `<li><strong>${item.label}:</strong> <span>${item.value}</span></li>`)
     .join('');
 
-
     // --- Prepare and send email to Admin ---
-    const adminTemplateFile = await fs.readFile(emailTemplateFilePath, 'utf-8');
-    const { template: adminTemplate } = JSON.parse(adminTemplateFile);
-    
-    let adminHtmlBody = adminTemplate.replace('{{detailsList}}', detailsHtml);
-    adminHtmlBody = adminHtmlBody.replace(new RegExp('{{serviceName}}', 'g'), serviceName);
-    adminHtmlBody = adminHtmlBody.replace(new RegExp('{{email}}', 'g'), email);
+    const adminTemplateData = {
+        detailsList: detailsHtml,
+        serviceName: serviceName,
+        email: email,
+        name: name
+    };
+    const adminHtmlBody = fillTemplate(adminTemplate, adminTemplateData);
 
     const { error: adminError } = await resend.emails.send({
       from: fromEmail,
@@ -100,12 +126,12 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     }
 
     // --- Prepare and send confirmation email to Client ---
-    const clientTemplateFile = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
-    const { template: clientTemplate } = JSON.parse(clientTemplateFile);
-    
-    let clientHtmlBody = clientTemplate.replace('{{detailsList}}', detailsHtml);
-    clientHtmlBody = clientHtmlBody.replace(new RegExp('{{name}}', 'g'), name);
-    clientHtmlBody = clientHtmlBody.replace(new RegExp('{{serviceName}}', 'g'), serviceName);
+    const clientTemplateData = {
+        detailsList: detailsHtml,
+        serviceName: serviceName,
+        name: name
+    };
+    const clientHtmlBody = fillTemplate(clientTemplate, clientTemplateData);
     
     const { error: clientError } = await resend.emails.send({
         from: fromEmail,
@@ -124,8 +150,9 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     }
 
     return { success: true, error: null, warning: null };
+
   } catch (error) {
-    console.error('Failed to send email(s):', error);
+    console.error('Failed to send email(s) due to an unexpected error:', error);
     return { success: false, error: 'An unexpected error occurred while sending the email(s).', warning: null };
   }
 }
