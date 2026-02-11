@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -340,14 +339,16 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
                 Book via Email
             </Button>
             <Button
-                asChild
                 className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
                 disabled={!whatsappNumber || isFlowDisabled}
+                onClick={() => {
+                    if (whatsappNumber && !isFlowDisabled) {
+                        window.open(`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
+                    }
+                }}
             >
-                <a href={`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`} target="_blank" rel="noopener noreferrer">
-                    <WhatsappIcon className="mr-2 h-5 w-5" />
-                    Book via Whatsapp
-                </a>
+                <WhatsappIcon className="mr-2 h-5 w-5" />
+                Book via Whatsapp
             </Button>
         </div>
     </div>
