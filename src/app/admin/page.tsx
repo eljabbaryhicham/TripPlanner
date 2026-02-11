@@ -89,7 +89,9 @@ export default function AdminPage() {
     const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
     const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
     const exploreTripsRef = useMemoFirebase(() => firestore ? collection(firestore, 'exploreTrips') : null, [firestore]);
-    const adminsRef = useMemoFirebase(() => firestore ? collection(firestore, 'roles_admin') : null, [firestore]);
+    
+    // Conditionally fetch admins only if the user is an admin
+    const adminsRef = useMemoFirebase(() => (firestore && isAdmin) ? collection(firestore, 'roles_admin') : null, [firestore, isAdmin]);
 
     const { data: carRentals, isLoading: carsLoading } = useCollection(carRentalsRef);
     const { data: hotels, isLoading: hotelsLoading } = useCollection(hotelsRef);
