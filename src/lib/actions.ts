@@ -15,15 +15,23 @@ const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'clie
 // --- Helper to get settings ---
 async function getSettings() {
     try {
-        const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
-        return JSON.parse(configRaw);
-    } catch {
+        // In a serverless environment, it's more reliable to fetch from the API route
+        // than to read from the filesystem, as file paths can be inconsistent.
+        const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:9002';
+        const response = await fetch(`${baseUrl}/api/settings`, { cache: 'no-store' }); // Use no-store to get the latest settings
+        if (!response.ok) {
+            console.error(`Failed to fetch settings: ${response.statusText}`);
+            return {};
+        }
+        return await response.json();
+    } catch(e) {
+        console.error("getSettings helper failed to fetch from API:", e);
         return {};
     }
 }
 
 // Helper function for robust template filling
-function fillTemplate(template: string, data: Record<string, string | undefined>): string {
+function fillTemplate(template: string, data: Record<string, any>): string {
   let result = template;
   for (const key in data) {
     // Use a simple, global replace for each key.
@@ -73,11 +81,23 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     let clientTemplate: string;
 
     try {
-      const adminTemplateRaw = await fs.readFile(emailTemplateFilePath, 'utf-8');
-      adminTemplate = JSON.parse(adminTemplateRaw).template;
+      // In a serverless environment, it's more reliable to fetch from the API route
+      // than to read from the filesystem, as file paths can be inconsistent.
+      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:9002';
       
-      const clientTemplateRaw = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
-      clientTemplate = JSON.parse(clientTemplateRaw).template;
+      const adminTemplateResponse = await fetch(`${baseUrl}/api/email-template`, { cache: 'no-store' });
+      const clientTemplateResponse = await fetch(`${baseUrl}/api/client-email-template`, { cache: 'no-store' });
+
+      if (!adminTemplateResponse.ok || !clientTemplateResponse.ok) {
+        throw new Error('Failed to fetch one or more email templates from API routes.');
+      }
+      
+      const adminTemplateData = await adminTemplateResponse.json();
+      const clientTemplateData = await clientTemplateResponse.json();
+      
+      adminTemplate = adminTemplateData.template;
+      clientTemplate = clientTemplateData.template;
+
     } catch (fileError) {
       console.error('Failed to read or parse email template file:', fileError);
       return { success: false, error: 'Server configuration error: Could not load email templates.', warning: null };
@@ -103,14 +123,15 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     .map(item => `<li><strong>${item.label}:</strong> <span>${item.value}</span></li>`)
     .join('');
 
-    // --- Prepare and send email to Admin ---
-    const adminTemplateData = {
+    const templateData = {
         detailsList: detailsHtml,
         serviceName: serviceName,
         email: email,
         name: name
     };
-    const adminHtmlBody = fillTemplate(adminTemplate, adminTemplateData);
+    
+    // --- Prepare and send email to Admin ---
+    const adminHtmlBody = fillTemplate(adminTemplate, templateData);
 
     const { error: adminError } = await resend.emails.send({
       from: fromEmail,
@@ -126,12 +147,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     }
 
     // --- Prepare and send confirmation email to Client ---
-    const clientTemplateData = {
-        detailsList: detailsHtml,
-        serviceName: serviceName,
-        name: name
-    };
-    const clientHtmlBody = fillTemplate(clientTemplate, clientTemplateData);
+    const clientHtmlBody = fillTemplate(clientTemplate, templateData);
     
     const { error: clientError } = await resend.emails.send({
         from: fromEmail,
@@ -233,7 +249,8 @@ export async function updateGeneralSettings(prevState: any, formData: FormData) 
     const { whatsappNumber, bookingEmailTo, resendEmailFrom } = parsed.data;
     
     try {
-        const currentConfig = await getSettings();
+        const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
+        const currentConfig = JSON.parse(configRaw);
         const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber, bookingEmailTo, resendEmailFrom }, null, 2);
         await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
         
@@ -257,7 +274,8 @@ export async function updateCategorySettings(prevState: any, formData: FormData)
     };
     
     try {
-        const currentConfig = await getSettings();
+        const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
+        const currentConfig = JSON.parse(configRaw);
         currentConfig.categories = categoryStates;
         const newSettings = JSON.stringify(currentConfig, null, 2);
         await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
