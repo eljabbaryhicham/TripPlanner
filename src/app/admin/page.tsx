@@ -18,17 +18,17 @@ export default function AdminPage() {
     const auth = useAuth();
     const { toast } = useToast();
 
-    // Check for admin status
-    const adminProfileRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'roles_admin', user.uid) : null, [user, firestore]);
-    const { data: adminProfile, isLoading: isAdminProfileLoading } = useDoc(adminProfileRef);
-    const isAdmin = !!adminProfile;
-
-    // Redirect if not logged in
+    // This effect handles the redirection for non-authenticated users.
     React.useEffect(() => {
         if (!isUserLoading && !user) {
             router.push('/login');
         }
     }, [user, isUserLoading, router]);
+
+    // Check for admin status only if a user exists.
+    const adminProfileRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'roles_admin', user.uid) : null, [user, firestore]);
+    const { data: adminProfile, isLoading: isAdminProfileLoading } = useDoc(adminProfileRef);
+    const isAdmin = !!adminProfile;
 
     const handleLogout = async () => {
         if (auth) {
@@ -44,12 +44,11 @@ export default function AdminPage() {
         }
 
         const adminDocRef = doc(firestore, 'roles_admin', user.uid);
-        // Self-signup always results in 'admin' role. Promotion to 'superadmin' must be done by an existing superadmin.
         const dataToSave = { email: user.email, createdAt: serverTimestamp(), role: 'admin', id: user.uid };
 
         try {
             await setDoc(adminDocRef, dataToSave);
-            toast({ title: "Success!", description: "Admin access granted. Welcome to the dashboard. To manage users, ask a superadmin to promote your account." });
+            toast({ title: "Success!", description: "Admin access granted. Welcome. To manage other users, ask a superadmin to promote your account." });
         } catch (error) {
             const permissionError = new FirestorePermissionError({
                 path: adminDocRef.path,
@@ -61,8 +60,10 @@ export default function AdminPage() {
         }
     };
 
-    const isLoading = isUserLoading || isAdminProfileLoading;
+    // Consolidate loading states: true if user is loading, OR if we have a user and are checking their admin profile.
+    const isLoading = isUserLoading || (user && isAdminProfileLoading);
 
+    // Primary loading state for the entire page.
     if (isLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center p-4">
@@ -71,14 +72,17 @@ export default function AdminPage() {
         )
     }
 
-    if (!user) { // Should be handled by useEffect redirect, but as a fallback
+    // After loading, if there's no user, we are in the process of redirecting.
+    // Showing a spinner here prevents any content flash while router.push works.
+    if (!user) {
         return (
              <div className="flex min-h-screen items-center justify-center p-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </div>
         );
     }
-
+    
+    // If user is authenticated but not an admin, show the grant access card.
     if (!isAdmin) {
         return (
             <div className="flex min-h-screen items-center justify-center p-4">
@@ -99,6 +103,7 @@ export default function AdminPage() {
         );
     }
 
+    // If user is authenticated and is an admin, show the dashboard.
     return (
         <div className="min-h-screen bg-muted/40">
             <DashboardContent />

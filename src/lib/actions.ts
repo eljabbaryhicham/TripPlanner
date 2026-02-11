@@ -43,38 +43,52 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
   const parsed = reservationSchema.safeParse(data);
 
   if (!parsed.success) {
-    return { success: false, error: 'Invalid data.', warning: null };
+    return { success: false, error: 'Invalid form data provided.' };
   }
   
+  let appSettings;
   try {
     const settingsRaw = await fs.readFile(settingsFilePath, 'utf-8');
-    const appSettings = JSON.parse(settingsRaw);
+    appSettings = JSON.parse(settingsRaw);
+  } catch (e) {
+    const error = e instanceof Error ? e.message : 'Unknown error';
+    console.error('Failed to read or parse app-config.json:', error);
+    return { success: false, error: `Server Error: Could not load app settings file. (${error})` };
+  }
 
-    const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
-    const fromEmail = appSettings.resendEmailFrom || 'TriPlanner <onboarding@resend.dev>';
+  let adminTemplate;
+  try {
+    const adminTemplateRaw = await fs.readFile(emailTemplateFilePath, 'utf-8');
+    adminTemplate = JSON.parse(adminTemplateRaw).template;
+  } catch (e) {
+    const error = e instanceof Error ? e.message : 'Unknown error';
+    console.error('Failed to read or parse email-template.json:', error);
+    return { success: false, error: `Server Error: Could not load admin email template. (${error})` };
+  }
 
-    if (!process.env.RESEND_API_KEY || !recipientEmail) {
-      console.error('Resend API Key or recipient email is not configured.');
-      return { success: false, error: 'Server is not configured to send emails.', warning: null };
-    }
-
-    const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
-
-    let adminTemplate: string;
-    let clientTemplate: string;
-
-    try {
-      const adminTemplateRaw = await fs.readFile(emailTemplateFilePath, 'utf-8');
-      adminTemplate = JSON.parse(adminTemplateRaw).template;
-
+  let clientTemplate;
+  try {
       const clientTemplateRaw = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
       clientTemplate = JSON.parse(clientTemplateRaw).template;
-
-    } catch (fileError) {
-      console.error('Failed to read or parse email template file:', fileError);
-      return { success: false, error: 'Server configuration error: Could not load email templates.', warning: null };
+  } catch(e) {
+    const error = e instanceof Error ? e.message : 'Unknown error';
+    console.error('Failed to read or parse client-email-template.json:', error);
+    return { success: false, error: `Server Error: Could not load client email template. (${error})` };
+  }
+  
+  // This outer try-catch will now only handle the email sending logic
+  try {
+    const recipientEmail = appSettings?.bookingEmailTo;
+    const fromEmail = appSettings?.resendEmailFrom;
+    
+    if (!process.env.RESEND_API_KEY) {
+        return { success: false, error: 'Server configuration error: Resend API Key is missing.' };
     }
-
+    if (!recipientEmail || !fromEmail) {
+        return { success: false, error: 'Server configuration error: Recipient or "From" email address is missing in app-config.json.' };
+    }
+    
+    const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     
@@ -115,7 +129,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
 
     if (adminError) {
       console.error('Resend error (to admin):', adminError);
-      return { success: false, error: 'Failed to send admin notification email.', warning: null };
+      return { success: false, error: `Failed to send admin notification: ${adminError.message}` };
     }
 
     // --- Prepare and send confirmation email to Client ---
@@ -132,16 +146,16 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         console.error('Resend error (to client):', clientError);
         return { 
             success: true, 
-            error: null,
-            warning: "Your inquiry was sent to our team, but the confirmation email could not be sent to you. Please double-check the email address you provided."
+            warning: "Your inquiry was sent, but the confirmation email could not be delivered to you. Please check your email address."
         };
     }
 
-    return { success: true, error: null, warning: null };
+    return { success: true };
 
   } catch (error) {
-    console.error('Failed to send email(s) due to an unexpected error:', error);
-    return { success: false, error: 'An unexpected error occurred while sending the email(s).', warning: null };
+    console.error('A critical error occurred during email submission:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An unknown exception occurred.';
+    return { success: false, error: `An unexpected server error occurred: ${errorMessage}` };
   }
 }
 
