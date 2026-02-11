@@ -29,10 +29,6 @@ export default function AdminPage() {
     const { toast } = useToast();
     const settings = useSettings();
     
-    const [isAdmin, setIsAdmin] = React.useState(false);
-    const [isSuperAdmin, setIsSuperAdmin] = React.useState(false);
-    const [isCheckingAdmin, setIsCheckingAdmin] = React.useState(true);
-
     const [emailTemplate, setEmailTemplate] = React.useState('');
     const [clientEmailTemplate, setClientEmailTemplate] = React.useState('');
     const [categorySettings, setCategorySettings] = React.useState({});
@@ -41,8 +37,14 @@ export default function AdminPage() {
     const [editorOpen, setEditorOpen] = React.useState(false);
     const [serviceToEdit, setServiceToEdit] = React.useState<Service | null>(null);
 
+    // --- Start of new, robust admin check logic ---
     const adminProfileRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'roles_admin', user.uid) : null, [user, firestore]);
     const { data: adminProfile, isLoading: isAdminProfileLoading } = useDoc(adminProfileRef);
+
+    // Derived state: these values are calculated directly from the hook results, avoiding race conditions.
+    const isAdmin = !!adminProfile;
+    const isSuperAdmin = adminProfile?.role === 'superadmin';
+    // --- End of new logic ---
 
     // Auth check
     React.useEffect(() => {
@@ -50,20 +52,6 @@ export default function AdminPage() {
             router.push('/login');
         }
     }, [user, isUserLoading, router]);
-
-    // Admin role check
-    React.useEffect(() => {
-      setIsCheckingAdmin(isAdminProfileLoading);
-      if (adminProfile) {
-        setIsAdmin(true);
-        if (adminProfile.role === 'superadmin') {
-          setIsSuperAdmin(true);
-        }
-      } else if (!isAdminProfileLoading) {
-        setIsAdmin(false);
-        setIsSuperAdmin(false);
-      }
-    }, [adminProfile, isAdminProfileLoading]);
 
     // Fetch settings
     React.useEffect(() => {
@@ -123,12 +111,12 @@ export default function AdminPage() {
 
         const adminDocRef = doc(firestore, 'roles_admin', user.uid);
         // Self-signup always results in 'admin' role. Promotion to 'superadmin' must be done by an existing superadmin.
-        const dataToSave = { email: user.email, createdAt: serverTimestamp(), role: 'admin' };
+        const dataToSave = { email: user.email, createdAt: serverTimestamp(), role: 'admin', id: user.uid };
 
         try {
             await setDoc(adminDocRef, dataToSave);
             toast({ title: "Success!", description: "Admin access granted. Welcome to the dashboard. To manage users, ask a superadmin to promote your account." });
-            setIsAdmin(true); 
+            // No need to setIsAdmin(true) manually, the useDoc hook will handle it.
         } catch (error) {
             const permissionError = new FirestorePermissionError({
                 path: adminDocRef.path,
@@ -150,7 +138,7 @@ export default function AdminPage() {
         setEditorOpen(true);
     };
     
-    const isLoading = isUserLoading || isCheckingAdmin || carsLoading || hotelsLoading || transportsLoading || exploreLoading || adminsLoading || settingsLoading;
+    const isLoading = isUserLoading || isAdminProfileLoading || carsLoading || hotelsLoading || transportsLoading || exploreLoading || adminsLoading || settingsLoading;
 
     if (isLoading) {
         return (
