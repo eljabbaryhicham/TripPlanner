@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -12,25 +11,7 @@ const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
 const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
 
-// --- Helper to get settings ---
-async function getSettings() {
-    try {
-        // In a serverless environment, it's more reliable to fetch from the API route
-        // than to read from the filesystem, as file paths can be inconsistent.
-        const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:9002';
-        const response = await fetch(`${baseUrl}/api/settings`, { cache: 'no-store' }); // Use no-store to get the latest settings
-        if (!response.ok) {
-            console.error(`Failed to fetch settings: ${response.statusText}`);
-            return {};
-        }
-        return await response.json();
-    } catch(e) {
-        console.error("getSettings helper failed to fetch from API:", e);
-        return {};
-    }
-}
-
-// Helper function for robust template filling
+// --- Helper function for robust template filling ---
 function fillTemplate(template: string, data: Record<string, any>): string {
   let result = template;
   for (const key in data) {
@@ -65,8 +46,10 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     return { success: false, error: 'Invalid data.', warning: null };
   }
   
-  try { // Outer try-catch for unexpected errors
-    const appSettings = await getSettings();
+  try {
+    const settingsRaw = await fs.readFile(settingsFilePath, 'utf-8');
+    const appSettings = JSON.parse(settingsRaw);
+
     const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
     const fromEmail = appSettings.resendEmailFrom || 'TriPlanner <onboarding@resend.dev>';
 
@@ -81,22 +64,11 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     let clientTemplate: string;
 
     try {
-      // In a serverless environment, it's more reliable to fetch from the API route
-      // than to read from the filesystem, as file paths can be inconsistent.
-      const baseUrl = process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:9002';
-      
-      const adminTemplateResponse = await fetch(`${baseUrl}/api/email-template`, { cache: 'no-store' });
-      const clientTemplateResponse = await fetch(`${baseUrl}/api/client-email-template`, { cache: 'no-store' });
+      const adminTemplateRaw = await fs.readFile(emailTemplateFilePath, 'utf-8');
+      adminTemplate = JSON.parse(adminTemplateRaw).template;
 
-      if (!adminTemplateResponse.ok || !clientTemplateResponse.ok) {
-        throw new Error('Failed to fetch one or more email templates from API routes.');
-      }
-      
-      const adminTemplateData = await adminTemplateResponse.json();
-      const clientTemplateData = await clientTemplateResponse.json();
-      
-      adminTemplate = adminTemplateData.template;
-      clientTemplate = clientTemplateData.template;
+      const clientTemplateRaw = await fs.readFile(clientEmailTemplateFilePath, 'utf-8');
+      clientTemplate = JSON.parse(clientTemplateRaw).template;
 
     } catch (fileError) {
       console.error('Failed to read or parse email template file:', fileError);
@@ -190,7 +162,9 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     return { success: false, error: 'Invalid data.' };
   }
   
-  const appSettings = await getSettings();
+  const settingsRaw = await fs.readFile(settingsFilePath, 'utf-8');
+  const appSettings = JSON.parse(settingsRaw);
+
   const recipientEmail = appSettings.bookingEmailTo || process.env.BOOKING_EMAIL_TO;
   const fromEmail = appSettings.resendEmailFrom || 'TriPlanner Contact <onboarding@resend.dev>';
   
