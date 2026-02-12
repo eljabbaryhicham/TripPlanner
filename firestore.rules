@@ -1,19 +1,3 @@
-/**
- * This ruleset enforces a security model with a clear separation between public and private data.
- *
- * Core Philosophy:
- * The ruleset implements a dual-access model. All user-specific data (profiles, reservations, suggestions)
- * is strictly private and is governed by an ownership model. Publicly browsable service data
- * (hotels, car rentals, transports) is readable by anyone but can only be modified by administrators,
- * ensuring data integrity.
- *
- * Data Structure:
- * - Private user data is nested under `/users/{userId}`, leveraging Firestore's path hierarchy for
- *   inherent ownership-based security. This includes subcollections for `reservations` and `serviceSuggestions`.
- * - Public service data is stored in top-level collections: `/hotels`, `/carRentals`, `/transports`, and `/exploreTrips`.
- * - User-generated reviews are stored in a top-level `/reviews` collection, which is publicly readable.
- * - Administrator roles are managed in the `/roles_admin` collection, which contains a `role` field ('admin' or 'superadmin').
- */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -21,215 +5,94 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
     // Helper Functions
     // ------------------------------------------------------------------------
-
-    /**
-     * Checks if the user is authenticated.
-     */
     function isSignedIn() {
       return request.auth != null;
     }
 
-    /**
-     * Checks if the currently authenticated user's ID matches the provided userId.
-     * This is the foundation of the user-ownership model.
-     * @param userId The user ID to check against the request's auth UID.
-     */
     function isOwner(userId) {
       return isSignedIn() && request.auth.uid == userId;
     }
 
-    /**
-     * Checks if the requesting user has admin privileges.
-     * Admin status is determined by the existence of a document corresponding
-     * to their UID in the '/roles_admin' collection.
-     */
     function isAdmin() {
       return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
     }
     
-    /**
-     * Checks if the requesting user has super-admin privileges.
-     * This is determined by checking the 'role' field of their document in the
-     * '/roles_admin' collection.
-     */
     function isSuperAdmin() {
       return isAdmin() && get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'superadmin';
     }
 
     // ------------------------------------------------------------------------
-    // User Data Rules (/users)
+    // Global Admin Override
     // ------------------------------------------------------------------------
 
-    /**
-     * @description Controls access to a user's own profile document.
-     * @path /users/{userId}
-     * @allow A signed-in user (auth.uid: 'user_abc') can (create) their own profile at `/users/user_abc`.
-     * @allow An admin can read any user profile, which is required for writes to subcollections.
-     * @deny A signed-in user (auth.uid: 'user_xyz') cannot (get) the profile at `/users/user_abc`.
-     * @deny Any user cannot (list) the `/users` collection to prevent user enumeration.
-     * @principle Enforces Self-Creation and strict document ownership. Deletion is disabled to prevent orphaning subcollections.
-     */
-    match /users/{userId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if false;
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      allow update: if isOwner(userId);
-      allow delete: if false;
-    }
-
-    /**
-     * @description Controls access to a user's private list of reservations.
-     * @path /users/{userId}/reservations/{reservationId}
-     * @allow A user (auth.uid: 'user_abc') can (list) all documents under `/users/user_abc/reservations`.
-     * @allow An admin can update or delete any reservation from the dashboard.
-     * @deny A user (auth.uid: 'user_xyz') cannot (create) a reservation under `/users/user_abc/reservations`.
-     * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
-     */
-    match /users/{userId}/reservations/{reservationId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isOwner(userId) || isAdmin();
-    }
-
-    /**
-     * @description Controls access to a user's private service suggestions.
-     * @path /users/{userId}/serviceSuggestions/{serviceSuggestionId}
-     * @allow A user (auth.uid: 'user_abc') can (get) a suggestion at `/users/user_abc/serviceSuggestions/suggestion_123`.
-     * @deny A user (auth.uid: 'user_xyz') cannot (delete) a suggestion for another user.
-     * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
-     */
-    match /users/{userId}/serviceSuggestions/{serviceSuggestionId} {
-      allow get: if isOwner(userId);
-      allow list: if isOwner(userId);
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isOwner(userId);
-    }
-
-    // ------------------------------------------------------------------------
-    // Public Service Data Rules
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Controls access to public hotel listings.
-     * @path /hotels/{hotelId}
-     * @allow Any user, including anonymous ones, can (get) or (list) hotel data.
-     * @allow An admin user can (create) a new hotel document.
-     * @deny A non-admin signed-in user cannot (update) or (delete) hotel data.
-     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
-     */
-    match /hotels/{hotelId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    /**
-     * @description Controls access to public car rental listings.
-     * @path /carRentals/{carRentalId}
-     * @allow Any user, including anonymous ones, can (get) or (list) car rental data.
-     * @allow An admin user can (create) a new car rental document.
-     * @deny A non-admin signed-in user cannot (update) or (delete) car rental data.
-     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
-     */
-    match /carRentals/{carRentalId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    /**
-     * @description Controls access to public transport listings.
-     * @path /transports/{transportId}
-     * @allow Any user, including anonymous ones, can (get) or (list) transport data.
-     * @allow An admin user can (create) a new transport document.
-     * @deny A non-admin signed-in user cannot (update) or (delete) transport data.
-     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
-     */
-    match /transports/{transportId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    /**
-     * @description Controls access to public explore trip listings.
-     * @path /exploreTrips/{tripId}
-     * @allow Any user, including anonymous ones, can (get) or (list) explore trip data.
-     * @allow An admin user can (create) a new explore trip document.
-     * @deny A non-admin signed-in user cannot (update) or (delete) explore trip data.
-     * @principle Implements a "Public Read with Admin-Only Writes" model to protect data integrity.
-     */
-    match /exploreTrips/{tripId} {
-      allow read: if true;
-      allow write: if isAdmin();
+    // This rule allows any administrator to perform any action on any document.
+    // Because Firestore rules are OR'd, if a user is an admin, this is the only rule
+    // that needs to pass. Subsequent rules are for non-admin users.
+    match /{path=**} {
+      allow read, write: if isAdmin();
     }
     
     // ------------------------------------------------------------------------
-    // Review Data Rules
+    // Public Read Rules (for non-admins and anonymous users)
     // ------------------------------------------------------------------------
+    match /hotels/{hotelId} { allow read: if true; }
+    match /carRentals/{carRentalId} { allow read: if true; }
+    match /transports/{transportId} { allow read: if true; }
+    match /exploreTrips/{tripId} { allow read: if true; }
+    match /reviews/{reviewId} { allow read: if true; }
 
-    /**
-     * @description Controls access to service reviews.
-     * @path /reviews/{reviewId}
-     * @allow Any user can read reviews.
-     * @allow A signed-in user can create a review, validating their ownership and rating value.
-     * @deny A user cannot update or delete a review that is not theirs, unless they are an admin.
-     * @principle Public Read, Owner-Only Write. Protects integrity of user-generated content.
-     */
+    // ------------------------------------------------------------------------
+    // User-Specific Rules (for non-admins)
+    // ------------------------------------------------------------------------
+    match /users/{userId} {
+      // A non-admin can only get or update their own profile.
+      allow get, update: if isOwner(userId);
+      // A non-admin can only create their own profile document.
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      // Listing all users or deleting profiles is disallowed for non-admins.
+      allow list, delete: if false;
+    }
+
+    match /users/{userId}/reservations/{reservationId} {
+      // A non-admin can only manage their own reservations.
+      allow read, write: if isOwner(userId);
+    }
+    
+    match /users/{userId}/serviceSuggestions/{serviceSuggestionId} {
+      // A non-admin can only manage their own suggestions.
+      allow read, write: if isOwner(userId);
+    }
+
+    // ------------------------------------------------------------------------
+    // Public Create Rules (for non-admins)
+    // ------------------------------------------------------------------------
+    
+    // Any user can submit an inquiry. It will be managed by admins.
+    match /inquiries/{inquiryId} {
+      allow create: if true;
+      // Reads and writes for non-admins are disallowed. They are handled by the global admin rule.
+      allow read, update, delete: if false; 
+    }
+
+    // Any signed-in user can create a review for themselves.
     match /reviews/{reviewId} {
-      allow read: if true;
       allow create: if isSignedIn()
                     && request.resource.data.userId == request.auth.uid
                     && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
-      allow update: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
-      allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
+      // A non-admin user can only update/delete their own review.
+      allow update, delete: if isOwner(resource.data.userId);
     }
 
     // ------------------------------------------------------------------------
-    // Inquiry & Booking Rules
+    // Admin Role Creation (Self-Service for First Admin)
     // ------------------------------------------------------------------------
-    
-    /**
-     * @description Controls access to manual booking inquiries.
-     * @path /inquiries/{inquiryId}
-     * @allow Any user can create an inquiry.
-     * @allow Only admins can read, update, or delete inquiries.
-     * @principle Allows public submission while restricting management to privileged users.
-     */
-    match /inquiries/{inquiryId} {
-      allow create: if true;
-      allow read, update, delete: if isAdmin();
-    }
-    
-    /**
-     * @description Allows admins to query across all user reservations for the dashboard.
-     * @path /{path=**}/reservations/{reservationId}
-     * @allow An admin can read all documents across all `reservations` subcollections.
-     * @principle Enables collection group queries for administrative purposes.
-     */
-    match /{path=**}/reservations/{reservationId} {
-      allow get, list: if isAdmin();
-    }
-    
-    // ------------------------------------------------------------------------
-    // Admin Role Management Rules
-    // ------------------------------------------------------------------------
-
-    /**
-     * @description Secures the admin role collection.
-     * @path /roles_admin/{adminId}
-     * @allow An admin can read other admin documents. A user can read their own.
-     * @allow Only a superadmin can update roles (promote) or delete other admins.
-     * @deny Users cannot delete themselves.
-     */
     match /roles_admin/{adminId} {
-      allow get: if isSignedIn();
-      allow list: if isSignedIn();
-      allow create: if isOwner(adminId) || isSuperAdmin();
-      allow update: if isSuperAdmin();
-      allow delete: if isSuperAdmin() && request.auth.uid != adminId;
+      // A non-admin can only create their own initial 'admin' role document.
+      allow create: if isOwner(adminId);
+      // Non-admins can't read other admin docs.
+      allow get: if isOwner(adminId);
+      // Non-admins can't list admins, update roles, or delete admins.
+      allow list, update, delete: if false;
     }
   }
 }
-
-    
