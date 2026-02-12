@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useUser, useFirestore } from '@/firebase';
+import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import {
   Dialog,
@@ -21,7 +21,7 @@ import { Skeleton } from './ui/skeleton';
 import { Input } from './ui/input';
 
 // Form for submitting a new review
-const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName: string }) => {
+const ReviewForm = ({ serviceId, serviceName, onReviewSubmitted }: { serviceId: string, serviceName: string, onReviewSubmitted: () => void }) => {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -31,13 +31,13 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     if (!user || !firestore) {
-        return <p className="text-sm text-muted-foreground">You must be logged in to leave a review.</p>;
+        return <p className="text-sm text-muted-foreground">You must be signed in to leave a review.</p>;
     }
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (rating === 0 || comment.trim() === '') {
-            toast({ variant: 'destructive', title: 'Missing fields', description: 'Please provide a rating and a comment.' });
+        if (rating === 0 || comment.trim() === '' || name.trim() === '') {
+            toast({ variant: 'destructive', title: 'Missing fields', description: 'Please provide your name, a rating, and a comment.' });
             return;
         }
         setIsSubmitting(true);
@@ -49,22 +49,31 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
             rating,
             comment,
             createdAt: serverTimestamp(),
-            authorName: name.trim() || user.displayName || 'Client',
+            authorName: name.trim(),
             authorImage: user.photoURL || null,
         };
 
-        try {
-            await addDoc(collection(firestore, 'reviews'), reviewData);
+        const reviewsCol = collection(firestore, 'reviews');
+        addDoc(reviewsCol, reviewData)
+          .then(() => {
             toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.' });
             setRating(0);
             setComment('');
             setName('');
-        } catch (error) {
-            console.error("Error submitting review:", error);
+            onReviewSubmitted(); // Callback to trigger re-fetch in parent
+          })
+          .catch((error) => {
+            const permissionError = new FirestorePermissionError({
+                path: reviewsCol.path,
+                operation: 'create',
+                requestResourceData: reviewData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
             toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not submit your review. Please try again.' });
-        } finally {
+          })
+          .finally(() => {
             setIsSubmitting(false);
-        }
+          });
     };
     
     return (
@@ -79,9 +88,10 @@ const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName
                 ))}
             </div>
             <Input
-                placeholder="Your Name (Optional)"
+                placeholder="Your Name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                required
             />
             <Textarea 
                 placeholder="Share your experience..." 
@@ -108,9 +118,10 @@ interface ReviewsPopupProps {
   reviews: Review[] | null;
   averageRating: number;
   isLoading: boolean;
+  refetch: () => void;
 }
 
-const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averageRating, isLoading }: ReviewsPopupProps) => {
+const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averageRating, isLoading, refetch }: ReviewsPopupProps) => {
   const { user } = useUser();
   
   const sortedReviews = React.useMemo(() => {
@@ -146,7 +157,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averag
         <div className="py-4 space-y-6 max-h-[60vh] overflow-y-auto pr-2">
             {user && (
               <>
-                <ReviewForm serviceId={serviceId} serviceName={serviceName} />
+                <ReviewForm serviceId={serviceId} serviceName={serviceName} onReviewSubmitted={refetch} />
                 <Separator />
               </>
             )}
@@ -175,7 +186,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averag
                           <Avatar>
                               <AvatarImage src={review.authorImage || ''} alt={review.authorName} />
                               <AvatarFallback>
-                                  {review.authorImage ? review.authorName.charAt(0) : <Mountain className="h-5 w-5" />}
+                                  {review.authorName ? review.authorName.charAt(0) : <Mountain className="h-5 w-5" />}
                               </AvatarFallback>
                           </Avatar>
                           <div className="flex-1">

@@ -37,7 +37,7 @@ export default function AdminPage() {
         }
     };
     
-    const grantAdminAccess = async () => {
+    const grantAdminAccess = () => {
         if (!user || !firestore) {
             toast({ variant: 'destructive', title: 'Error', description: 'User or database not available.' });
             return;
@@ -46,18 +46,19 @@ export default function AdminPage() {
         const adminDocRef = doc(firestore, 'roles_admin', user.uid);
         const dataToSave = { email: user.email, createdAt: serverTimestamp(), role: 'admin', id: user.uid };
 
-        try {
-            await setDoc(adminDocRef, dataToSave);
-            toast({ title: "Success!", description: "Admin access granted. Welcome. To manage other users, ask a superadmin to promote your account." });
-        } catch (error) {
-            const permissionError = new FirestorePermissionError({
-                path: adminDocRef.path,
-                operation: 'create',
-                requestResourceData: dataToSave,
+        setDoc(adminDocRef, dataToSave)
+            .then(() => {
+                toast({ title: "Success!", description: "Admin access granted. Welcome. To manage other users, ask a superadmin to promote your account." });
+            })
+            .catch((error) => {
+                const permissionError = new FirestorePermissionError({
+                    path: adminDocRef.path,
+                    operation: 'create',
+                    requestResourceData: dataToSave,
+                });
+                errorEmitter.emit('permission-error', permissionError);
+                toast({ variant: 'destructive', title: 'Grant Access Failed', description: 'A permission error occurred. Please check security rules.' });
             });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Grant Access Failed', description: 'A permission error occurred. Please check security rules.' });
-        }
     };
 
     // Consolidate loading states: true if user is loading, OR if we have a user and are checking their admin profile.

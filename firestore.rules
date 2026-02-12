@@ -3,7 +3,7 @@
  *
  * Core Philosophy:
  * The ruleset implements a dual-access model. All user-specific data (profiles, reservations, suggestions)
- * is strictly private and governed by an ownership model. Publicly browsable service data
+ * is strictly private and is governed by an ownership model. Publicly browsable service data
  * (hotels, car rentals, transports) is readable by anyone but can only be modified by administrators,
  * ensuring data integrity.
  *
