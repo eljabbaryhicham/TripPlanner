@@ -7,7 +7,7 @@ import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
-import { initializeApp, getApps, getApp, cert } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // --- File paths for settings that can be written to ---
@@ -23,13 +23,9 @@ function getAdminFirestore() {
         return adminFirestore;
     }
     if (getApps().length === 0) {
-        // In a deployed environment (like Vercel), service account keys are stored in env variables
-        const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-        const credential = serviceAccountKey 
-            ? cert(JSON.parse(serviceAccountKey)) 
-            : undefined; // Will use Application Default Credentials if not set
-
-        initializeApp({ credential, projectId: process.env.GCLOUD_PROJECT });
+        // In a managed Google Cloud environment, initializeApp() with no arguments
+        // automatically discovers credentials.
+        initializeApp();
     }
     adminFirestore = getFirestore(getApp());
     return adminFirestore;
