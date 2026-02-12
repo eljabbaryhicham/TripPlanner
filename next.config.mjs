@@ -1,10 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // Required by Genkit for server-side code
-  serverComponentsExternalPackages: [
-    '@genkit-ai/google-genai',
-    'firebase-admin',
-  ],
+  experimental: {
+    serverComponentsExternalPackages: ['firebase-admin'],
+  },
 };
 
 export default nextConfig;
