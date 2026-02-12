@@ -1,8 +1,19 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  webpack: (config) => {
+    // See https://webpack.js.org/configuration/resolve/#resolvealias
+    config.resolve.alias = {
+      ...config.resolve.alias,
+      'sharp$': false,
+      'onnxruntime-node$': false,
+    }
+    return config
+  },
   experimental: {
-    // This is required for server-side libraries like Firebase Admin to work correctly.
-    serverComponentsExternalPackages: ['firebase-admin'],
+    // This is required for Genkit to work.
+    serverComponentsExternalPackages: [
+      'firebase-admin'
+    ],
   },
 };
 
