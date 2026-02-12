@@ -18,13 +18,12 @@ const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'clie
 
 // Lazy-initialize Firebase Admin
 function getAdminFirestore() {
-    if (getApps().length) {
-        return getFirestore(getApp());
+    if (getApps().length === 0) {
+        // In a managed Google Cloud environment, initializeApp() with no arguments
+        // automatically discovers credentials.
+        initializeApp();
     }
-    // In a managed Google Cloud environment, initializeApp() with no arguments
-    // automatically discovers credentials.
-    const app = initializeApp();
-    return getFirestore(app);
+    return getFirestore(getApp());
 }
 
 // --- Helper Functions ---
@@ -400,3 +399,5 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
         return { success: false, error: result.message };
     }
 }
+
+    
