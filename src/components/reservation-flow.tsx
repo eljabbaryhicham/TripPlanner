@@ -81,7 +81,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const { toast } = useToast();
 
   const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
-  const [showInquiryConfirmation, setShowInquiryConfirmation] = React.useState(false);
   const [showEmailSuccessDialog, setShowEmailSuccessDialog] = React.useState(false);
   const [whatsappNumber, setWhatsappNumber] = React.useState<string>('');
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
@@ -169,7 +168,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
       }
 
       form.reset();
-      setShowInquiryConfirmation(true);
       setReservationType(null);
 
     } catch (error) {
@@ -292,7 +290,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         .then(() => {
             // Only open WhatsApp after successful save
             if (whatsappNumber && !isFlowDisabled) {
-                window.open(`https://wa.me/${whatsappNumber.replace('+', '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
+                window.open(`https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
             }
         })
         .catch((error) => {
@@ -305,26 +303,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         });
   };
 
-
-
-  if (showInquiryConfirmation) {
-    return (
-      <div className="text-center p-8 bg-green-50/50 rounded-lg border border-green-200 dark:bg-green-950/20 dark:border-green-800/30">
-        <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-        <h3 className="mt-4 text-xl font-semibold">Inquiry Sent!</h3>
-        <p className="mt-2 text-muted-foreground">We've received your message and will get back to you shortly (Within 1-3 Hours). thanks</p>
-        <Button
-          className="mt-6"
-          variant="outline"
-          onClick={() => {
-            setShowInquiryConfirmation(false);
-          }}
-        >
-          Done
-        </Button>
-      </div>
-    );
-  }
 
   if (reservationType === 'contact') {
     return (
@@ -459,8 +437,3 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 };
 
 export default ReservationFlow;
-
-
-
-
-    
