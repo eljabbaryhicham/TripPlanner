@@ -1,12 +1,12 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    // This is required for Genkit and Firebase Admin to work correctly in Next.js.
-    // It ensures that these server-side libraries are treated as external packages.
-    serverComponentsExternalPackages: [
-        '@genkit-ai/google-genai',
-        'firebase-admin',
-    ],
+  // The `serverComponentsExternalPackages` option allows you to opt-out of bundling
+  // dependencies that are not compatible with the Edge Runtime.
+  // @see https://nextjs.org/docs/app/api-reference/next-config-js/serverComponentsExternalPackages
+  serverComponentsExternalPackages: [
+    '@genkit-ai/google-genai',
+    'firebase-admin',
+  ],
 };
 
 export default nextConfig;
