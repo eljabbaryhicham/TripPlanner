@@ -99,3 +99,37 @@ body {
     transform: scale(1.2);
   }
 }
+
+.embla {
+  overflow: hidden;
+  width: 100%;
+}
+
+.embla__container {
+  backface-visibility: hidden;
+  display: flex;
+  touch-action: pan-y;
+  height: 500px;
+  perspective: 2000px;
+  transform-style: preserve-3d;
+}
+
+.embla__slide {
+  flex: 0 0 33.3333%;
+  min-width: 0;
+  padding: 0 1.5rem;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+@media (max-width: 768px) {
+  .embla__slide {
+    flex: 0 0 60%;
+  }
+}
+
+@media (max-width: 480px) {
+  .embla__slide {
+    flex: 0 0 80%;
+  }
+}
