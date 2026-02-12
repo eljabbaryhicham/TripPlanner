@@ -20,6 +20,7 @@ import EmailTemplatesManagement from '@/components/admin/email-templates-managem
 import MediaLibrary from '@/components/admin/media-library';
 import { useRouter } from 'next/navigation';
 import { Skeleton } from '../ui/skeleton';
+import BookingManagement from './booking-management';
 
 export default function DashboardContent() {
     const router = useRouter();
@@ -138,6 +139,14 @@ export default function DashboardContent() {
                                     onAdd={handleAddService} 
                                     onEdit={handleEditService} 
                                 />
+                            </AccordionContent>
+                        </AccordionItem>
+                        <AccordionItem value="bookings">
+                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                                Booking Management
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                                <BookingManagement />
                             </AccordionContent>
                         </AccordionItem>
                         <AccordionItem value="settings">

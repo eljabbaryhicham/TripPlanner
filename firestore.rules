@@ -13,16 +13,6 @@
  * - Public service data is stored in top-level collections: `/hotels`, `/carRentals`, `/transports`, and `/exploreTrips`.
  * - User-generated reviews are stored in a top-level `/reviews` collection, which is publicly readable.
  * - Administrator roles are managed in the `/roles_admin` collection, which contains a `role` field ('admin' or 'superadmin').
- *
- * Key Security Decisions:
- * - User Enumeration is Disallowed: The top-level `/users` collection cannot be listed, protecting user privacy.
- * - Admin-Only Content Management: All public service data can only be created, updated, or deleted by users
- *   designated as admins in the `/roles_admin` collection.
- * - Super-Admin for User Management: Only 'superadmin' roles can add, remove, or modify other admin roles.
- * - Immutable Ownership: Once a user-owned document (like a reservation) is created, its link to the user
- *   (the `userId` field) cannot be changed. This prevents data from being re-assigned to another user.
- * - Out-of-Band Super-Admin Promotion: The first superadmin must be designated manually in the Firestore console
- *   for security reasons, preventing any client-side logic from creating the first privileged user.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -194,6 +184,32 @@ service cloud.firestore {
       allow delete: if (isSignedIn() && resource.data.userId == request.auth.uid) || isAdmin();
     }
 
+    // ------------------------------------------------------------------------
+    // Inquiry & Booking Rules
+    // ------------------------------------------------------------------------
+    
+    /**
+     * @description Controls access to manual booking inquiries.
+     * @path /inquiries/{inquiryId}
+     * @allow Any user can create an inquiry.
+     * @allow Only admins can read, update, or delete inquiries.
+     * @principle Allows public submission while restricting management to privileged users.
+     */
+    match /inquiries/{inquiryId} {
+      allow create: if true;
+      allow read, update, delete: if isAdmin();
+    }
+    
+    /**
+     * @description Allows admins to query across all user reservations for the dashboard.
+     * @path /{path=**}/reservations/{reservationId}
+     * @allow An admin can list documents across all `reservations` subcollections.
+     * @principle Enables collection group queries for administrative purposes.
+     */
+    match /{path=**}/reservations/{reservationId} {
+      allow list: if isAdmin();
+    }
+    
     // ------------------------------------------------------------------------
     // Admin Role Management Rules
     // ------------------------------------------------------------------------

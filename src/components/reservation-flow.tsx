@@ -23,6 +23,16 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { submitReservation } from '@/lib/actions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+
 
 const reservationSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address.' }),
@@ -71,6 +81,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
   const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
   const [showInquiryConfirmation, setShowInquiryConfirmation] = React.useState(false);
+  const [showEmailSuccessDialog, setShowEmailSuccessDialog] = React.useState(false);
   const [whatsappNumber, setWhatsappNumber] = React.useState<string>('');
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
 
@@ -126,6 +137,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
             "We've received your message and will get back to you shortly (Within 1-3 Hours). thanks",
         });
       }
+      setShowEmailSuccessDialog(true);
       form.reset();
       setShowInquiryConfirmation(true);
       setReservationType(null);
@@ -214,6 +226,50 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
     }
     return encodeURIComponent(message);
   }, [service, dates, fullName, origin, destination]);
+
+  const handleWhatsappBooking = async () => {
+    if (!firestore || !user) {
+        toast({
+            variant: 'destructive',
+            title: "Action unavailable",
+            description: "You must be signed in to perform this action. Please wait for the session to initialize.",
+        });
+        return;
+    }
+
+    const inquiryPayload = {
+        customerName: fullName,
+        serviceId: service.id,
+        serviceName: service.name,
+        bookingMethod: 'whatsapp',
+        startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+        endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+        origin: origin || null,
+        destination: destination || null,
+        totalPrice: totalPrice || null,
+        createdAt: serverTimestamp(),
+        // Email, phone, and message are not collected in this flow
+        email: null,
+        phone: null,
+        message: null,
+    };
+
+    try {
+        const inquiriesCol = collection(firestore, 'inquiries');
+        const docRef = await addDoc(inquiriesCol, inquiryPayload);
+        await addDoc(inquiriesCol, { ...inquiryPayload, id: docRef.id });
+
+    } catch (error) {
+        console.error("Error creating WhatsApp inquiry:", error);
+        // We still open WhatsApp, as it's the primary user action.
+        // We don't show a toast here to avoid interrupting the user flow.
+    }
+    
+    // Finally, open whatsapp link
+    if (whatsappNumber && !isFlowDisabled) {
+        window.open(`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
+    }
+};
 
 
   if (showInquiryConfirmation) {
@@ -309,6 +365,22 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
   return (
     <div className="space-y-4">
+        <AlertDialog open={showEmailSuccessDialog} onOpenChange={setShowEmailSuccessDialog}>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Email Sent Successfully!</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Your booking inquiry has been sent. We will contact you at your provided email address to confirm the details.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogAction onClick={() => setShowEmailSuccessDialog(false)}>
+                        Great!
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
+
         <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading || isFlowDisabled}>
             {isCheckingOut ? (
                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -341,11 +413,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
             <Button
                 className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
                 disabled={!whatsappNumber || isFlowDisabled}
-                onClick={() => {
-                    if (whatsappNumber && !isFlowDisabled) {
-                        window.open(`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
-                    }
-                }}
+                onClick={handleWhatsappBooking}
             >
                 <WhatsappIcon className="mr-2 h-5 w-5" />
                 Book via Whatsapp

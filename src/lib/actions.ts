@@ -6,12 +6,32 @@ import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
+import { initializeApp, getApps, getApp, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // --- File paths for settings that can be written to ---
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
 const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
 const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
 
+
+// Lazy-initialize Firebase Admin
+let adminFirestore: ReturnType<typeof getFirestore> | null = null;
+function getAdminFirestore() {
+    if (adminFirestore) {
+        return adminFirestore;
+    }
+    if (getApps().length === 0) {
+        const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+        const credential = serviceAccountKey 
+            ? cert(JSON.parse(serviceAccountKey)) 
+            : undefined;
+
+        initializeApp({ credential, projectId: process.env.GCLOUD_PROJECT });
+    }
+    adminFirestore = getFirestore(getApp());
+    return adminFirestore;
+}
 
 // --- Helper Functions ---
 
@@ -49,6 +69,8 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     return { success: false, error: 'Invalid form data provided.' };
   }
   
+  const { name, email, phone, message, serviceName, serviceId, startDate, endDate, origin, destination, totalPrice } = parsed.data;
+
   try {
     const appSettings = require('@/lib/app-config.json');
     const adminTemplateConfig = require('@/lib/email-template.json');
@@ -66,8 +88,6 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         return { success: false, error: 'Server configuration error: Recipient or "From" email address is missing in app-config.json.' };
     }
     
-    const { name, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = parsed.data;
-
     const resend = new Resend(process.env.RESEND_API_KEY);
     
     const detailsHtml = [
@@ -116,6 +136,38 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         subject: `Your Booking Inquiry for ${serviceName}`,
         html: clientHtmlBody,
     });
+    
+    // Save to Firestore after emails are sent successfully (before returning)
+     if (!clientError) {
+        try {
+            const db = getAdminFirestore();
+            const docRef = db.collection('inquiries').doc();
+            const inquiryData = {
+                id: docRef.id,
+                customerName: name,
+                email,
+                phone: phone || null,
+                message: message || null,
+                serviceId,
+                serviceName,
+                bookingMethod: 'email',
+                startDate: startDate ? new Date(startDate) : null,
+                endDate: endDate ? new Date(endDate) : null,
+                origin: origin || null,
+                destination: destination || null,
+                totalPrice: totalPrice || null,
+                createdAt: new Date(),
+            };
+            await docRef.set(inquiryData);
+        } catch (dbError) {
+            console.error("Failed to save email inquiry to Firestore:", dbError);
+            // Don't fail the whole operation, just log it. The user's email was sent.
+            return {
+                success: true,
+                warning: "Your inquiry was sent, but there was an issue saving it to our system. Please contact support if you don't hear back."
+            };
+        }
+    }
     
     if (clientError) {
         console.error('Resend error (to client):', clientError);

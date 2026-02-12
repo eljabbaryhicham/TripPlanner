@@ -197,7 +197,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "Reservation",
       "type": "object",
-      "description": "Represents a reservation made by a user.",
+      "description": "Represents a reservation made by a user via online checkout.",
       "properties": {
         "id": {
           "type": "string",
@@ -283,6 +283,83 @@
         "priceUnit",
         "totalPrice",
         "paymentStatus",
+        "createdAt"
+      ]
+    },
+    "Inquiry": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Inquiry",
+      "type": "object",
+      "description": "Represents a manual booking inquiry made via email or WhatsApp.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the inquiry."
+        },
+        "customerName": {
+          "type": "string",
+          "description": "Full name of the customer making the inquiry."
+        },
+        "email": {
+          "type": "string",
+          "description": "Email address of the customer.",
+          "format": "email"
+        },
+        "phone": {
+          "type": "string",
+          "description": "Phone number of the customer."
+        },
+        "message": {
+          "type": "string",
+          "description": "The customer's message."
+        },
+        "serviceId": {
+          "type": "string",
+          "description": "ID of the specific service being inquired about."
+        },
+        "serviceName": {
+          "type": "string",
+          "description": "Name of the service being inquired about."
+        },
+        "bookingMethod": {
+          "type": "string",
+          "enum": ["email", "whatsapp"],
+          "description": "The method used for the inquiry."
+        },
+        "startDate": {
+          "type": "string",
+          "description": "Start date of the potential reservation.",
+          "format": "date-time"
+        },
+        "endDate": {
+          "type": "string",
+          "description": "End date of the potential reservation.",
+          "format": "date-time"
+        },
+        "origin": {
+          "type": "string",
+          "description": "Origin location for transport inquiries."
+        },
+        "destination": {
+          "type": "string",
+          "description": "Destination location for transport inquiries."
+        },
+        "totalPrice": {
+          "type": "number",
+          "description": "Estimated total price of the inquiry."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Date when the inquiry was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "customerName",
+        "serviceId",
+        "serviceName",
+        "bookingMethod",
         "createdAt"
       ]
     },
@@ -567,6 +644,22 @@
             {
               "name": "tripId",
               "description": "The unique identifier for the explore trip."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/inquiries/{inquiryId}",
+        "definition": {
+          "entityName": "Inquiry",
+          "schema": {
+            "$ref": "#/backend/entities/Inquiry"
+          },
+          "description": "Stores manual booking inquiries from email and WhatsApp.",
+          "params": [
+            {
+              "name": "inquiryId",
+              "description": "The unique identifier for the inquiry."
             }
           ]
         }
