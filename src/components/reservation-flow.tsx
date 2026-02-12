@@ -113,58 +113,58 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const { isSubmitting } = form.formState;
 
   const onContactSubmit = async (data: ReservationFormValues) => {
-    const inquiryDataForDb = {
-      ...data,
-      customerName: fullName,
-      bookingMethod: 'email' as 'email' | 'whatsapp',
-      startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
-      endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
-      origin: origin || null,
-      destination: destination || null,
-      totalPrice: totalPrice,
-      createdAt: serverTimestamp(),
-      status: 'pending',
-      paymentStatus: 'unpaid',
-    };
-
+    
+    // This is a client-side only action, we save directly to firestore
     try {
-      if (!firestore) {
-        throw new Error('Firestore is not initialized.');
-      }
-      const inquiriesCol = collection(firestore, 'inquiries');
-      await addDoc(inquiriesCol, { ...inquiryDataForDb });
-
-      const emailResult = await submitInquiryEmail({
-        ...data,
-        customerName: fullName,
-        bookingMethod: 'email',
-        startDate: dates?.from,
-        endDate: dates?.to,
-        origin,
-        destination,
-        totalPrice,
-      });
-
-      if (emailResult.success) {
-        if (emailResult.warning) {
-          toast({ title: 'Inquiry Sent (with a note)', description: emailResult.warning, duration: 8000 });
-        } else {
-          toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
+        if (!firestore) {
+            throw new Error("Firestore is not initialized.");
         }
-        setShowEmailSuccess(true);
-        setShowEmailSuccessDialog(true);
-      } else {
-        toast({
-          variant: 'destructive',
-          title: 'Email Failed',
-          description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
+
+        const inquiryDataForDb = {
+            ...data,
+            customerName: fullName,
+            bookingMethod: 'email' as 'email' | 'whatsapp',
+            startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+            endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+            origin: origin || null,
+            destination: destination || null,
+            totalPrice: totalPrice,
+            createdAt: serverTimestamp(),
+            status: 'pending',
+            paymentStatus: 'unpaid',
+        };
+
+        const inquiriesCol = collection(firestore, 'inquiries');
+        await addDoc(inquiriesCol, { ...inquiryDataForDb });
+
+        const emailResult = await submitInquiryEmail({
+            ...data,
+            customerName: fullName,
+            bookingMethod: 'email',
+            startDate: dates?.from,
+            endDate: dates?.to,
+            origin,
+            destination,
+            totalPrice,
         });
-      }
 
-      form.reset();
-
+        if (emailResult.success) {
+             if (emailResult.warning) {
+                toast({ title: 'Inquiry Sent (with a note)', description: emailResult.warning, duration: 8000 });
+            } else {
+                toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
+            }
+            setShowEmailSuccess(true);
+            setShowEmailSuccessDialog(true);
+        } else {
+             toast({
+                variant: 'destructive',
+                title: 'Email Failed',
+                description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
+            });
+        }
     } catch (error) {
-        console.error("Failed to save inquiry to Firestore:", error);
+         console.error("Failed to save inquiry to Firestore:", error);
         toast({
             variant: 'destructive',
             title: 'Uh oh! Something went wrong.',
@@ -260,6 +260,10 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
       return;
     }
     if (isFlowDisabled) return;
+    
+    // Open WhatsApp first to avoid popup blockers
+    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
     const inquiryData = {
         customerName: fullName,
@@ -277,9 +281,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         paymentStatus: 'unpaid',
     };
     
-    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`;
-    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
-
     const inquiriesCol = collection(firestore, 'inquiries');
     addDoc(inquiriesCol, inquiryData).catch((error) => {
         console.error("Failed to save WhatsApp inquiry:", error);
@@ -291,155 +292,160 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
     });
   };
 
-
-  if (reservationType === 'contact') {
-    if (showEmailSuccess) {
-      return (
-        <div className="text-center p-4 bg-green-50/50 rounded-lg border border-green-200 dark:bg-green-950/20 dark:border-green-800/30">
-            <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
-            <h3 className="mt-3 text-lg font-semibold">Message Sent!</h3>
-            <p className="mt-1 text-muted-foreground">We've received your message and will get back to you shortly.</p>
-            <Button
-                className="mt-4"
-                variant="outline"
-                onClick={() => {
-                    setShowEmailSuccess(false);
-                    setReservationType(null);
-                }}
-            >
-                Done
-            </Button>
-        </div>
-      )
-    }
-    return (
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onContactSubmit)} className="space-y-4">
-          <input type="hidden" {...form.register('serviceName')} />
-          <input type="hidden" {...form.register('serviceId')} />
-          
-          <FormField
-            control={form.control}
-            name="email"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Email Address</FormLabel>
-                <FormControl>
-                  <Input placeholder="you@example.com" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="phone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone Number (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="+1 (555) 123-4567" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="message"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Message (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Any questions or special requests?"
-                    {...field}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <div className="flex justify-end gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setReservationType(null)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Send className="mr-2 h-4 w-4" />
-              )}
-              Send Inquiry
-            </Button>
-          </div>
-        </form>
-      </Form>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-        <AlertDialog open={showEmailSuccessDialog} onOpenChange={setShowEmailSuccessDialog}>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Email Sent Successfully!</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Your booking inquiry has been sent. We will contact you at your provided email address to confirm the details.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogAction onClick={() => setShowEmailSuccessDialog(false)}>
-                        Great!
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+    <>
+      <AlertDialog open={showEmailSuccessDialog} onOpenChange={setShowEmailSuccessDialog}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Email Sent Successfully!</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      Your booking inquiry has been sent. We will contact you at your provided email address to confirm the details.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogAction onClick={() => setShowEmailSuccessDialog(false)}>
+                      Great!
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
 
-        <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading || isFlowDisabled}>
-            {isCheckingOut ? (
-                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-            ) : (
-                <CreditCard className="mr-2 h-5 w-5" />
-            )}
-            {isUserLoading ? 'Initializing...' : isFlowDisabled ? 'Please provide all details' : 'Checkout Now'}
-        </Button>
-        <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">
-                    Or book manually
-                </span>
-            </div>
-        </div>
-        <p className="text-center text-sm text-muted-foreground -mb-2">We will reply you in a few minutes.</p>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button
-                className="w-full sm:flex-1"
-                variant="secondary"
-                onClick={() => setReservationType('contact')}
-                disabled={isFlowDisabled}
-            >
-                <Send className="mr-2 h-4 w-4" />
-                Book via Email
-            </Button>
-            <Button
-                className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
-                disabled={!whatsappNumber || isFlowDisabled}
-                onClick={handleWhatsappBooking}
-            >
-                <WhatsappIcon className="mr-2 h-5 w-5" />
-                Book via Whatsapp
-            </Button>
-        </div>
-    </div>
+      {(() => {
+        if (reservationType === 'contact') {
+          if (showEmailSuccess) {
+            return (
+              <div className="text-center p-4 bg-green-50/50 rounded-lg border border-green-200 dark:bg-green-950/20 dark:border-green-800/30">
+                  <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
+                  <h3 className="mt-3 text-lg font-semibold">Message Sent!</h3>
+                  <p className="mt-1 text-muted-foreground">We've received your message and will get back to you shortly.</p>
+                  <Button
+                      className="mt-4"
+                      variant="outline"
+                      onClick={() => {
+                          setShowEmailSuccess(false);
+                          setReservationType(null);
+                      }}
+                  >
+                      Done
+                  </Button>
+              </div>
+            );
+          }
+          return (
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onContactSubmit)} className="space-y-4">
+                <input type="hidden" {...form.register('serviceName')} />
+                <input type="hidden" {...form.register('serviceId')} />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email Address</FormLabel>
+                      <FormControl>
+                        <Input placeholder="you@example.com" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number (Optional)</FormLabel>
+                      <FormControl>
+                        <Input placeholder="+1 (555) 123-4567" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="message"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Message (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Any questions or special requests?"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={() => setReservationType(null)}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="mr-2 h-4 w-4" />
+                    )}
+                    Send Inquiry
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          );
+        }
+
+        return (
+          <div className="space-y-4">
+              <Button size="lg" className="w-full" onClick={handleCheckout} disabled={isCheckingOut || isUserLoading || isFlowDisabled}>
+                  {isCheckingOut ? (
+                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  ) : (
+                      <CreditCard className="mr-2 h-5 w-5" />
+                  )}
+                  {isUserLoading ? 'Initializing...' : isFlowDisabled ? 'Please provide all details' : 'Checkout Now'}
+              </Button>
+              <div className="relative">
+                  <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">
+                          Or book manually
+                      </span>
+                  </div>
+              </div>
+              <p className="text-center text-sm text-muted-foreground -mb-2">We will reply you in a few minutes.</p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Button
+                      className="w-full sm:flex-1"
+                      variant="secondary"
+                      onClick={() => setReservationType('contact')}
+                      disabled={isFlowDisabled}
+                  >
+                      <Send className="mr-2 h-4 w-4" />
+                      Book via Email
+                  </Button>
+                  <Button
+                      className="w-full sm:flex-1 bg-[#25D366] hover:bg-[#25D366]/90 text-white"
+                      disabled={!whatsappNumber || isFlowDisabled}
+                      onClick={handleWhatsappBooking}
+                  >
+                      <WhatsappIcon className="mr-2 h-5 w-5" />
+                      Book via Whatsapp
+                  </Button>
+              </div>
+          </div>
+        );
+      })()}
+    </>
   );
 };
 
