@@ -258,6 +258,11 @@
           "type": "number",
           "description": "Total price of the reservation."
         },
+        "status": {
+          "type": "string",
+          "enum": ["active", "completed", "cancelled"],
+          "description": "The status of the reservation."
+        },
         "paymentStatus": {
           "type": "string",
           "enum": [
@@ -347,6 +352,16 @@
         "totalPrice": {
           "type": "number",
           "description": "Estimated total price of the inquiry."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pending", "completed"],
+          "description": "The status of the inquiry."
+        },
+        "paymentStatus": {
+          "type": "string",
+          "enum": ["unpaid", "paid"],
+          "description": "The payment status of the inquiry."
         },
         "createdAt": {
           "type": "string",
@@ -700,3 +715,4 @@
     "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. User data is stored under `/users/{userId}` ensuring path-based ownership. Reservations made by each user are stored in a subcollection `/users/{userId}/reservations/{reservationId}`. Service Suggestions are similarly organized under `/users/{userId}/serviceSuggestions/{serviceSuggestionId}`, ensuring the suggestions are linked to the correct user.\n\nThe `hotels`, `carRentals`, `transports`, and `exploreTrips` collections store the data for each of those service types. Admin users are managed via the `/roles_admin/{adminId}` collection, which now stores a `role` field for fine-grained access control (admin vs. superadmin). A top-level `reviews` collection is added to store user reviews for all services; this allows for easy querying by service and is secured to allow creation only by authenticated users for themselves.\n\nThis structure achieves Authorization Independence by avoiding hierarchical authorization dependencies. All authorization rules rely on `request.auth.uid` and the document paths. Denormalization is not required in this schema because user-owned data is stored in hierarchical paths. This approach ensures proper QAPs, as listing operations are secure based on path-based ownership.\n\nBy using this schema and appropriate security rules, we can prevent filter-based security and ensure that all listing operations are inherently secure."
   }
 }
+    

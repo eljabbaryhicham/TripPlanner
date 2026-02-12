@@ -157,6 +157,8 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
                 destination: destination || null,
                 totalPrice: totalPrice || null,
                 createdAt: new Date(),
+                status: 'pending',
+                paymentStatus: 'unpaid',
             };
             await docRef.set(inquiryData);
         } catch (dbError) {
@@ -417,3 +419,5 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
         return { success: false, error: result.message };
     }
 }
+
+    

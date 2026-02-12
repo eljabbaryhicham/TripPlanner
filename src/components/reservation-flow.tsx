@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp, doc, setDoc } from 'firebase/firestore';
 
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -189,6 +189,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         origin: origin || null,
         destination: destination || null,
         paymentStatus: 'pending',
+        status: 'active',
         createdAt: serverTimestamp(),
     };
 
@@ -224,7 +225,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const handleWhatsappBooking = async () => {
     if (!firestore || !user) {
         toast({
-            variant: 'destructive',
+            variant: "destructive",
             title: "Action unavailable",
             description: "You must be signed in to perform this action. Please wait for the session to initialize.",
         });
@@ -242,7 +243,8 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         destination: destination || null,
         totalPrice: totalPrice || null,
         createdAt: serverTimestamp(),
-        // Email, phone, and message are not collected in this flow
+        status: 'pending',
+        paymentStatus: 'unpaid',
         email: null,
         phone: null,
         message: null,
@@ -250,8 +252,12 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
     try {
         const inquiriesCol = collection(firestore, 'inquiries');
-        const docRef = await addDoc(inquiriesCol, inquiryPayload);
-        await addDoc(inquiriesCol, { ...inquiryPayload, id: docRef.id });
+        const newDocRef = doc(inquiriesCol);
+        const payloadWithId = {
+            ...inquiryPayload,
+            id: newDocRef.id
+        };
+        await setDoc(newDocRef, payloadWithId);
 
     } catch (error) {
         console.error("Error creating WhatsApp inquiry:", error);
@@ -418,3 +424,5 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 };
 
 export default ReservationFlow;
+
+    

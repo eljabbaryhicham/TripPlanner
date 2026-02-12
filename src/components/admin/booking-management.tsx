@@ -2,19 +2,24 @@
 
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, collectionGroup, query, orderBy } from 'firebase/firestore';
+import { collection, collectionGroup, query, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Inbox } from 'lucide-react';
+import { Loader2, Inbox, ChevronDown, Trash2, CheckCircle, XCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@/components/ui/button';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 const BookingManagement = () => {
     const firestore = useFirestore();
+    const { toast } = useToast();
+    
+    const [selectedBookings, setSelectedBookings] = React.useState<Set<string>>(new Set());
+    const [isUpdating, setIsUpdating] = React.useState(false);
 
-    // The orderBy clause was removed here to prevent a missing-index error.
-    // The client-side sorting in the `allBookings` useMemo hook will handle the ordering.
-    // For production performance, the index should be created in the Firebase console.
     const reservationsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'reservations')) : null, [firestore]);
     const inquiriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'inquiries')) : null, [firestore]);
 
@@ -30,24 +35,62 @@ const BookingManagement = () => {
             combined.push(...inquiries.map(i => ({ ...i, type: 'Inquiry' })));
         }
         
-        // Sort combined array by createdAt timestamp descending
-        combined.sort((a, b) => {
-            const timeA = a.createdAt?.seconds ?? 0;
-            const timeB = b.createdAt?.seconds ?? 0;
-            return timeB - timeA;
-        });
+        combined.sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
         
         return combined;
     }, [reservations, inquiries]);
     
     const isLoading = reservationsLoading || inquiriesLoading;
 
+    const handleBatchAction = async (action: 'paid' | 'completed' | 'delete') => {
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+            return;
+        }
+        if (selectedBookings.size === 0) return;
+
+        setIsUpdating(true);
+        const promises = [];
+        
+        for (const bookingId of selectedBookings) {
+            const booking = allBookings.find(b => b.id === bookingId);
+            if (!booking) continue;
+
+            const isReservation = !!booking.userId;
+            const collectionName = isReservation ? `users/${booking.userId}/reservations` : 'inquiries';
+            const docRef = doc(firestore, collectionName, booking.id);
+
+            if (action === 'delete') {
+                promises.push(deleteDoc(docRef));
+            } else {
+                let dataToUpdate = {};
+                if (action === 'paid') {
+                    dataToUpdate = { paymentStatus: isReservation ? 'completed' : 'paid' };
+                } else if (action === 'completed') {
+                    dataToUpdate = { status: 'completed' };
+                }
+                promises.push(updateDoc(docRef, dataToUpdate));
+            }
+        }
+        
+        try {
+            await Promise.all(promises);
+            toast({ title: 'Success', description: `Action performed on ${selectedBookings.size} item(s).` });
+            setSelectedBookings(new Set());
+        } catch (error) {
+            console.error('Batch action failed:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Could not perform action. Check permissions.';
+            toast({ variant: 'destructive', title: 'Action Failed', description: errorMessage });
+        } finally {
+            setIsUpdating(false);
+        }
+    };
+
     const formatDate = (timestamp: any) => {
         if (!timestamp) return 'N/A';
         try {
             return format(new Date(timestamp.seconds * 1000), 'MMM d, yyyy, h:mm a');
         } catch (e) {
-            // Fallback for potentially non-timestamp values from admin actions
             return 'Invalid Date';
         }
     };
@@ -59,6 +102,23 @@ const BookingManagement = () => {
                 <CardDescription>View all incoming reservations and manual booking inquiries.</CardDescription>
             </CardHeader>
             <CardContent>
+                 <div className="flex items-center py-4 gap-2">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" disabled={selectedBookings.size === 0 || isUpdating}>
+                                Actions ({selectedBookings.size}) <ChevronDown className="ml-2 h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onSelect={() => handleBatchAction('paid')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Paid</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleBatchAction('completed')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Completed</DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onSelect={() => handleBatchAction('delete')} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete Selected</DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                    {isUpdating && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+                </div>
+
                 {isLoading ? (
                     <div className="flex justify-center items-center h-48">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -72,17 +132,43 @@ const BookingManagement = () => {
                     <Table>
                         <TableHeader>
                             <TableRow>
+                                <TableHead className="w-[40px]">
+                                    <Checkbox
+                                        checked={selectedBookings.size > 0 && allBookings.every(b => selectedBookings.has(b.id))}
+                                        onCheckedChange={(checked) => {
+                                            if (checked) {
+                                                setSelectedBookings(new Set(allBookings.map(b => b.id)));
+                                            } else {
+                                                setSelectedBookings(new Set());
+                                            }
+                                        }}
+                                        aria-label="Select all"
+                                    />
+                                </TableHead>
                                 <TableHead>Date</TableHead>
                                 <TableHead>Customer</TableHead>
                                 <TableHead>Service</TableHead>
                                 <TableHead>Method</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead>Payment</TableHead>
                                 <TableHead className="text-right">Price</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {allBookings.map((booking) => (
-                                <TableRow key={booking.id}>
+                                <TableRow key={booking.id} data-state={selectedBookings.has(booking.id) && "selected"}>
+                                    <TableCell>
+                                        <Checkbox
+                                            checked={selectedBookings.has(booking.id)}
+                                            onCheckedChange={(checked) => {
+                                                const newSelected = new Set(selectedBookings);
+                                                if (checked) newSelected.add(booking.id);
+                                                else newSelected.delete(booking.id);
+                                                setSelectedBookings(newSelected);
+                                            }}
+                                            aria-label={`Select booking ${booking.id}`}
+                                        />
+                                    </TableCell>
                                     <TableCell>{formatDate(booking.createdAt)}</TableCell>
                                     <TableCell>
                                         <div className="font-medium">{booking.customerName}</div>
@@ -95,9 +181,17 @@ const BookingManagement = () => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <span className={`font-medium capitalize ${booking.paymentStatus === 'completed' ? 'text-green-500' : booking.paymentStatus === 'pending' ? 'text-orange-500' : ''}`}>
-                                            {booking.paymentStatus || 'Submitted'}
-                                        </span>
+                                        <Badge variant={booking.status === 'completed' ? 'outline' : 'secondary'} className="capitalize">
+                                            {booking.status || (booking.type === 'Inquiry' ? 'pending' : 'active')}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <Badge 
+                                            variant={(booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid') ? 'default' : 'destructive'} 
+                                            className="capitalize bg-opacity-70"
+                                        >
+                                            {booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending')}
+                                        </Badge>
                                     </TableCell>
                                     <TableCell className="text-right font-medium">
                                         {booking.totalPrice != null ? `$${booking.totalPrice.toFixed(2)}` : 'N/A'}
@@ -113,3 +207,5 @@ const BookingManagement = () => {
 };
 
 export default BookingManagement;
+
+    
