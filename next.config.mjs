@@ -1,44 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  /* config options here */
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  images: {
-    remotePatterns: [
-      {
-        protocol: 'https',
-        hostname: 'placehold.co',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'picsum.photos',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'messages-prod.27c852f3500f38c1e7786e2c9ff9e48f.r2.cloudflarestorage.com',
-        port: '',
-        pathname: '/**',
-      },
-      {
-        protocol: 'https',
-        hostname: 'res.cloudinary.com',
-        port: '',
-        pathname: '/**',
-      }
+  // This is a workaround for a known issue with the canary build and some dependencies.
+  // It ensures that server-side components can correctly resolve certain packages.
+  experimental: {
+    serverComponentsExternalPackages: [
+      '@genkit-ai/google-genai',
+      'firebase-admin',
     ],
   },
 };
