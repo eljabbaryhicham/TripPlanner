@@ -64,9 +64,8 @@ service cloud.firestore {
     /**
      * @description Controls access to a user's own profile document.
      * @path /users/{userId}
-     * @allow A signed-in user (auth.uid: 'user_abc') can (create) their own profile at `/users/user_abc`.
+     * @allow A signed-in user can manage their own profile.
      * @allow An admin can read any user profile, which is required for writes to subcollections.
-     * @deny A signed-in user (auth.uid: 'user_xyz') cannot (get) the profile at `/users/user_abc`.
      * @deny Any user cannot (list) the `/users` collection to prevent user enumeration.
      * @principle Enforces Self-Creation and strict document ownership. Deletion is disabled to prevent orphaning subcollections.
      */
@@ -81,14 +80,12 @@ service cloud.firestore {
     /**
      * @description Controls access to a user's private list of reservations.
      * @path /users/{userId}/reservations/{reservationId}
-     * @allow A user (auth.uid: 'user_abc') can (list, create, update, delete) all documents under `/users/user_abc/reservations`.
-     * @allow An admin can update or delete any reservation from the dashboard.
-     * @deny A user (auth.uid: 'user_xyz') cannot (create) a reservation under `/users/user_abc/reservations`.
-     * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
+     * @allow A user can manage their own reservations.
+     * @allow An admin can read or write ANY reservation document.
+     * @principle Restricts access to a user's own data tree, but gives admins full control.
      */
     match /users/{userId}/reservations/{reservationId} {
-      allow read, create: if isOwner(userId) || isAdmin();
-      allow update, delete: if isOwner(userId) || isAdmin();
+      allow read, write: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -190,12 +187,13 @@ service cloud.firestore {
     /**
      * @description Controls access to manual booking inquiries.
      * @path /inquiries/{inquiryId}
-     * @allow Admins can read, update, or delete inquiries.
-     * @principle Allows public submission via server action while restricting management to privileged users.
+     * @allow Any authenticated user can read (for the admin panel). Only admins can manage.
+     * @principle Allows public submission while restricting management to privileged users.
      */
     match /inquiries/{inquiryId} {
-      // Creation is handled by a server action using the Admin SDK, so no client-side create rule is needed.
-      allow read, update, delete: if isAdmin();
+      // Creation is handled by a server action using the Admin SDK.
+      allow read: if isSignedIn();
+      allow update, delete: if isAdmin();
     }
     
     /**
