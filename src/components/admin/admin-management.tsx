@@ -13,6 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Loader2, PlusCircle, Trash2, Crown, ChevronsUpDown } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Skeleton } from '../ui/skeleton';
 
 function SubmitButton({ children, variant = 'default' }: { children: React.ReactNode, variant?: 'default' | 'destructive' | 'secondary' }) {
     const { pending } = useFormStatus();
@@ -111,8 +112,31 @@ function SetSuperAdminForm({ adminId }: { adminId: string }) {
     );
 }
 
+function AdminTableSkeleton() {
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {Array.from({ length: 2 }).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                        <TableCell className="flex justify-end gap-2"><Skeleton className="h-8 w-8" /></TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+}
 
-export default function AdminManagement({ admins, currentUser }: { admins: any[], currentUser: any }) {
+
+export default function AdminManagement({ admins, currentUser, isLoading }: { admins: any[], currentUser: any, isLoading: boolean }) {
     const [isAddFormOpen, setIsAddFormOpen] = React.useState(false);
 
     return (
@@ -122,31 +146,33 @@ export default function AdminManagement({ admins, currentUser }: { admins: any[]
                 <CardDescription>Add, remove, or promote administrators.</CardDescription>
             </CardHeader>
             <CardContent>
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead>Email</TableHead>
-                            <TableHead>Role</TableHead>
-                            <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {admins.map((admin) => (
-                            <TableRow key={admin.id}>
-                                <TableCell>{admin.email}</TableCell>
-                                <TableCell className="capitalize">{admin.role}</TableCell>
-                                <TableCell className="flex justify-end gap-2">
-                                    {admin.id !== currentUser.id && admin.role !== 'superadmin' && (
-                                        <SetSuperAdminForm adminId={admin.id} />
-                                    )}
-                                    {admin.id !== currentUser.id && (
-                                        <RemoveAdminForm adminId={admin.id} />
-                                    )}
-                                </TableCell>
+                {isLoading ? <AdminTableSkeleton /> : (
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Email</TableHead>
+                                <TableHead>Role</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
+                        </TableHeader>
+                        <TableBody>
+                            {admins.map((admin) => (
+                                <TableRow key={admin.id}>
+                                    <TableCell>{admin.email}</TableCell>
+                                    <TableCell className="capitalize">{admin.role}</TableCell>
+                                    <TableCell className="flex justify-end gap-2">
+                                        {admin.id !== currentUser.id && admin.role !== 'superadmin' && (
+                                            <SetSuperAdminForm adminId={admin.id} />
+                                        )}
+                                        {admin.id !== currentUser.id && (
+                                            <RemoveAdminForm adminId={admin.id} />
+                                        )}
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                )}
 
                 <Collapsible open={isAddFormOpen} onOpenChange={setIsAddFormOpen} className="mt-6">
                     <CollapsibleTrigger asChild>

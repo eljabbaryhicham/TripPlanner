@@ -15,8 +15,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { MOROCCAN_CITIES } from '@/lib/constants';
@@ -261,12 +259,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                 onClose();
             })
             .catch((error) => {
-                const permissionError = new FirestorePermissionError({
-                    path: docRef.path,
-                    operation: isEditing ? 'update' : 'create',
-                    requestResourceData: dataToSave,
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                console.error("Save service failed:", error);
                 toast({ variant: 'destructive', title: 'Save Failed', description: 'You may not have the required permissions to save this service.' });
             })
             .finally(() => {

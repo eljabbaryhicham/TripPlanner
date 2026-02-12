@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { useUser, useFirestore, useMemoFirebase, useAuth, errorEmitter, FirestorePermissionError, useDoc } from '@/firebase';
+import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc } from '@/firebase';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -51,12 +51,7 @@ export default function AdminPage() {
                 toast({ title: "Success!", description: "Admin access granted. Welcome. To manage other users, ask a superadmin to promote your account." });
             })
             .catch((error) => {
-                const permissionError = new FirestorePermissionError({
-                    path: adminDocRef.path,
-                    operation: 'create',
-                    requestResourceData: dataToSave,
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                console.error("Grant admin access failed:", error);
                 toast({ variant: 'destructive', title: 'Grant Access Failed', description: 'A permission error occurred. Please check security rules.' });
             });
     };

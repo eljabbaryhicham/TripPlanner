@@ -4,7 +4,7 @@ import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
 import { collection, doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { LogOut, Loader2 } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
@@ -19,8 +19,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import EmailTemplatesManagement from '@/components/admin/email-templates-management';
 import MediaLibrary from '@/components/admin/media-library';
 import { useRouter } from 'next/navigation';
-import { Skeleton } from '../ui/skeleton';
 import BookingManagement from './booking-management';
+import { Skeleton } from '../ui/skeleton';
 
 export default function DashboardContent() {
     const router = useRouter();
@@ -76,6 +76,8 @@ export default function DashboardContent() {
     const { data: exploreTrips, isLoading: exploreLoading } = useCollection(exploreTripsRef);
     const { data: admins, isLoading: adminsLoading } = useCollection(adminsRef);
 
+    const servicesLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading;
+
     const services = React.useMemo(() => {
         const allServices: any[] = [];
         if (carRentals) allServices.push(...carRentals.map(s => ({ ...s, category: 'cars' })));
@@ -101,8 +103,6 @@ export default function DashboardContent() {
         setServiceToEdit(service);
         setEditorOpen(true);
     };
-    
-    const isLoading = isAdminProfileLoading || carsLoading || hotelsLoading || transportsLoading || exploreLoading || adminsLoading || settingsLoading;
 
     return (
         <>
@@ -121,87 +121,100 @@ export default function DashboardContent() {
                 </div>
             </header>
             <main className="p-4 sm:px-6 sm:py-0">
-                {isLoading ? (
-                    <div className="flex flex-col gap-4">
-                        <Skeleton className="h-20 w-full" />
-                        <Skeleton className="h-20 w-full" />
-                        <Skeleton className="h-20 w-full" />
-                    </div>
-                ) : (
-                    <Accordion type="multiple" defaultValue={['services']} className="w-full space-y-4">
-                        <AccordionItem value="services">
-                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                Service Management
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                                <ServiceManagement 
-                                    services={services} 
-                                    onAdd={handleAddService} 
-                                    onEdit={handleEditService} 
-                                />
-                            </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="bookings">
-                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                Booking Management
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                                <BookingManagement />
-                            </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="settings">
-                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                General Settings
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                <Accordion type="multiple" defaultValue={['services']} className="w-full space-y-4">
+                    <AccordionItem value="services">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Service Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            <ServiceManagement 
+                                services={services}
+                                isLoading={servicesLoading}
+                                onAdd={handleAddService} 
+                                onEdit={handleEditService} 
+                            />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="bookings">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Booking Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            <BookingManagement />
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="settings">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            General Settings
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            {settingsLoading ? (
+                                <div className="p-6 space-y-4">
+                                    <Skeleton className="h-10 w-1/2" />
+                                    <Skeleton className="h-20 w-full" />
+                                </div>
+                            ) : (
                                 <SettingsManagement 
                                     currentWhatsappNumber={settings.whatsappNumber}
                                     currentBookingEmailTo={settings.bookingEmailTo || ''}
                                     currentResendEmailFrom={settings.resendEmailFrom || ''}
                                 />
-                            </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="categories">
-                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                Category Management
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="categories">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Category Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                             {settingsLoading ? (
+                                <div className="p-6 space-y-4">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                             ) : (
                                 <CategoryManagement currentSettings={categorySettings} />
-                            </AccordionContent>
-                        </AccordionItem>
-                        <AccordionItem value="email-templates">
-                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                Email Templates
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                             )}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="email-templates">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Email Templates
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            {settingsLoading ? (
+                                <div className="p-6 space-y-4">
+                                    <Skeleton className="h-40 w-full" />
+                                </div>
+                            ) : (
                                 <EmailTemplatesManagement 
                                     currentAdminTemplate={emailTemplate} 
                                     currentClientTemplate={clientEmailTemplate} 
                                 />
+                            )}
+                        </AccordionContent>
+                    </AccordionItem>
+                    {isSuperAdmin && (
+                        <AccordionItem value="admins">
+                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                                Administrator Management
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                                <AdminManagement admins={admins || []} currentUser={adminProfile} isLoading={adminsLoading} />
                             </AccordionContent>
                         </AccordionItem>
-                        {isSuperAdmin && admins && adminProfile && (
-                            <AccordionItem value="admins">
-                                <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                    Administrator Management
-                                </AccordionTrigger>
-                                <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                                    <AdminManagement admins={admins} currentUser={adminProfile} />
-                                </AccordionContent>
-                            </AccordionItem>
-                        )}
-                         {isSuperAdmin && (
-                            <AccordionItem value="media">
-                                <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                    Media Library
-                                </AccordionTrigger>
-                                <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                                    <MediaLibrary />
-                                </AccordionContent>
-                            </AccordionItem>
-                        )}
-                    </Accordion>
-                )}
+                    )}
+                     {isSuperAdmin && (
+                        <AccordionItem value="media">
+                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                                Media Library
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                                <MediaLibrary />
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
+                </Accordion>
             </main>
             <ServiceEditor
                 isOpen={editorOpen}

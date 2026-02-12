@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useFirestore, useUser, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { useFirestore, useUser } from '@/firebase';
 import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 import type { Service } from '@/lib/types';
@@ -197,13 +197,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         const docRef = await addDoc(reservationsCol, reservationPayload);
         router.push(`/checkout/${docRef.id}`);
     } catch (error: any) {
-        const permissionError = new FirestorePermissionError({
-          path: `users/${user.uid}/reservations`,
-          operation: 'create',
-          requestResourceData: reservationPayload,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-
+        console.error("Reservation creation failed:", error);
         toast({
             variant: 'destructive',
             title: 'Reservation Failed',

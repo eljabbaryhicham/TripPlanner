@@ -1,8 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { useUser, useFirestore, errorEmitter, FirestorePermissionError } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useUser, useFirestore } from '@/firebase';
+import { collection, addDoc, serverTimestamp, query, where, onSnapshot, DocumentData, FirestoreError } from 'firebase/firestore';
 import {
   Dialog,
   DialogContent,
@@ -63,13 +63,8 @@ const ReviewForm = ({ serviceId, serviceName, onReviewSubmitted }: { serviceId: 
             onReviewSubmitted(); // Callback to trigger re-fetch in parent
           })
           .catch((error) => {
-            const permissionError = new FirestorePermissionError({
-                path: reviewsCol.path,
-                operation: 'create',
-                requestResourceData: reviewData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
-            toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not submit your review. Please try again.' });
+            console.error("Review submission failed:", error);
+            toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not submit your review. Please check your permissions and try again.' });
           })
           .finally(() => {
             setIsSubmitting(false);
@@ -115,25 +110,56 @@ interface ReviewsPopupProps {
   onClose: () => void;
   serviceId: string;
   serviceName: string;
-  reviews: Review[] | null;
-  averageRating: number;
-  isLoading: boolean;
-  refetch: () => void;
 }
 
-const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averageRating, isLoading, refetch }: ReviewsPopupProps) => {
+const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupProps) => {
   const { user } = useUser();
+  const firestore = useFirestore();
+  const [reviews, setReviews] = React.useState<Review[] | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [error, setError] = React.useState<FirestoreError | null>(null);
+
+  const reviewsQuery = useMemoFirebase(
+    () => serviceId && firestore ? query(collection(firestore, 'reviews'), where('serviceId', '==', serviceId)) : null,
+    [firestore, serviceId]
+  );
+  
+  React.useEffect(() => {
+    if (!reviewsQuery) {
+        setIsLoading(false);
+        return;
+    }
+    
+    setIsLoading(true);
+    const unsubscribe = onSnapshot(reviewsQuery, 
+        (snapshot) => {
+            const fetchedReviews = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Review[];
+            setReviews(fetchedReviews);
+            setIsLoading(false);
+        },
+        (err) => {
+            console.error("Error fetching reviews:", err);
+            setError(err);
+            setIsLoading(false);
+        }
+    );
+
+    return () => unsubscribe();
+  }, [reviewsQuery]);
+
+  const { averageRating, totalReviews } = React.useMemo(() => {
+    if (!reviews || reviews.length === 0) return { averageRating: 0, totalReviews: 0 };
+    const total = reviews.reduce((acc, review) => acc + review.rating, 0);
+    return {
+        averageRating: total / reviews.length,
+        totalReviews: reviews.length
+    };
+  }, [reviews]);
   
   const sortedReviews = React.useMemo(() => {
     if (!reviews) return [];
-    // Create a mutable copy before sorting
-    return [...reviews].sort((a, b) => {
-      const timeA = a.createdAt?.seconds ?? 0;
-      const timeB = b.createdAt?.seconds ?? 0;
-      return timeB - timeA; // Sort descending
-    });
+    return [...reviews].sort((a, b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
   }, [reviews]);
-
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -141,13 +167,13 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averag
         <DialogHeader>
           <DialogTitle className="font-headline text-2xl">Reviews for {serviceName}</DialogTitle>
           <DialogDescription asChild>
-             {sortedReviews && sortedReviews.length > 0 ? (
+             {totalReviews > 0 ? (
                 <span className="flex items-center gap-2 text-sm text-muted-foreground">
                     <span className="flex items-center text-amber-400">
                         <Star className="h-4 w-4 mr-1 fill-current" />
                         <span>{averageRating.toFixed(1)}</span>
                     </span>
-                    <span>({sortedReviews.length} {sortedReviews.length === 1 ? 'review' : 'reviews'})</span>
+                    <span>({totalReviews} {totalReviews === 1 ? 'review' : 'reviews'})</span>
                 </span>
             ) : (
                 <span>No reviews yet. Be the first!</span>
@@ -157,7 +183,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averag
         <div className="py-4 space-y-6 max-h-[60vh] overflow-y-auto pr-2">
             {user && (
               <>
-                <ReviewForm serviceId={serviceId} serviceName={serviceName} onReviewSubmitted={refetch} />
+                <ReviewForm serviceId={serviceId} serviceName={serviceName} onReviewSubmitted={() => { /* re-fetch is now automatic */ }} />
                 <Separator />
               </>
             )}
@@ -176,8 +202,10 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averag
                 ))}
               </div>
             )}
+            
+            {error && <p className="text-center text-destructive">Could not load reviews.</p>}
 
-            {!isLoading && sortedReviews && sortedReviews.length > 0 && (
+            {!isLoading && !error && sortedReviews.length > 0 && (
                 sortedReviews.map((review, index) => (
                   <React.Fragment key={review.id}>
                     {index > 0 && <Separator className="my-6" />}
@@ -211,7 +239,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName, reviews, averag
                 ))
             )}
 
-            {!isLoading && (!sortedReviews || sortedReviews.length === 0) && (
+            {!isLoading && !error && sortedReviews.length === 0 && (
                 <div className="text-center py-8">
                     <p className="text-muted-foreground">No reviews have been submitted for this service yet.</p>
                 </div>

@@ -220,7 +220,7 @@ const ServiceDetailModal = ({
                 {service.description}
               </DialogDescription>
               <Button variant="link" size="sm" className="p-0 h-auto text-primary" onClick={() => setReviewsOpen(true)}>
-                Show Reviews
+                {reviewsLoading ? 'Loading reviews...' : `Show ${totalReviews > 0 ? totalReviews : ''} Reviews`}
               </Button>
             </div>
           </div>
@@ -396,9 +396,6 @@ const ServiceDetailModal = ({
           onClose={() => setReviewsOpen(false)}
           serviceId={service.id}
           serviceName={service.name}
-          reviews={reviews}
-          averageRating={averageRating}
-          isLoading={reviewsLoading}
         />
       )}
     </>
@@ -406,5 +403,3 @@ const ServiceDetailModal = ({
 };
 
 export default ServiceDetailModal;
-
-    

@@ -11,8 +11,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
 import { doc, deleteDoc, setDoc } from 'firebase/firestore';
-import { errorEmitter } from '@/firebase/error-emitter';
-import { FirestorePermissionError } from '@/firebase/errors';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +23,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
+import { Skeleton } from '../ui/skeleton';
 
 const getCollectionPath = (category: ServiceCategory) => {
     switch(category) {
@@ -61,12 +60,7 @@ function ServiceStatusToggle({ service }: { service: Service }) {
             toast({ title: "Status Updated" });
         })
         .catch(error => {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'update',
-                requestResourceData: dataToUpdate,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+            console.error("Service status update failed:", error);
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update service status. Check permissions.' });
         })
         .finally(() => {
@@ -112,12 +106,7 @@ function BestOfferToggle({ service }: { service: Service }) {
             toast({ title: "Best Offer Updated" });
         })
         .catch(error => {
-            const permissionError = new FirestorePermissionError({
-                path: docRef.path,
-                operation: 'update',
-                requestResourceData: dataToUpdate,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+            console.error("Best offer update failed:", error);
             toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update best offer status. Check permissions.' });
         })
         .finally(() => {
@@ -162,11 +151,7 @@ function DeleteServiceMenuItem({ service }: { service: Service }) {
                 toast({ title: 'Service Deleted', description: 'The service has been successfully removed.' });
             })
             .catch(error => {
-                const permissionError = new FirestorePermissionError({
-                    path: docRef.path,
-                    operation: 'delete',
-                });
-                errorEmitter.emit('permission-error', permissionError);
+                console.error("Delete service failed:", error);
                 toast({ variant: 'destructive', title: 'Delete Failed', description: 'You may not have the required permissions.' });
             });
         
@@ -198,12 +183,41 @@ function DeleteServiceMenuItem({ service }: { service: Service }) {
     );
 }
 
+function ServiceTableSkeleton() {
+    return (
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Price</TableHead>
+                    <TableHead>Active</TableHead>
+                    <TableHead>Best Offer</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {Array.from({ length: 3 }).map((_, i) => (
+                    <TableRow key={i}>
+                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-11" /></TableCell>
+                        <TableCell><Skeleton className="h-6 w-11" /></TableCell>
+                        <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                    </TableRow>
+                ))}
+            </TableBody>
+        </Table>
+    );
+}
+
 export default function ServiceManagement({ 
     services,
+    isLoading,
     onAdd,
     onEdit 
 }: { 
     services: Service[],
+    isLoading: boolean,
     onAdd: () => void,
     onEdit: (service: Service) => void,
 }) {
@@ -279,26 +293,28 @@ export default function ServiceManagement({
                 </div>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue="cars" className="w-full">
-                    <TabsList className="grid w-full grid-cols-4">
-                        <TabsTrigger value="cars"><Car className="mr-2 h-4 w-4" />Cars</TabsTrigger>
-                        <TabsTrigger value="hotels"><BedDouble className="mr-2 h-4 w-4" />Hotels</TabsTrigger>
-                        <TabsTrigger value="transport"><Briefcase className="mr-2 h-4 w-4" />Transport</TabsTrigger>
-                        <TabsTrigger value="explore"><Compass className="mr-2 h-4 w-4" />Explore</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="cars" className="mt-4">
-                        {renderTable(carServices)}
-                    </TabsContent>
-                    <TabsContent value="hotels" className="mt-4">
-                        {renderTable(hotelServices)}
-                    </TabsContent>
-                    <TabsContent value="transport" className="mt-4">
-                        {renderTable(transportServices)}
-                    </TabsContent>
-                    <TabsContent value="explore" className="mt-4">
-                        {renderTable(exploreServices)}
-                    </TabsContent>
-                </Tabs>
+                {isLoading ? <ServiceTableSkeleton /> : (
+                    <Tabs defaultValue="cars" className="w-full">
+                        <TabsList className="grid w-full grid-cols-4">
+                            <TabsTrigger value="cars"><Car className="mr-2 h-4 w-4" />Cars</TabsTrigger>
+                            <TabsTrigger value="hotels"><BedDouble className="mr-2 h-4 w-4" />Hotels</TabsTrigger>
+                            <TabsTrigger value="transport"><Briefcase className="mr-2 h-4 w-4" />Transport</TabsTrigger>
+                            <TabsTrigger value="explore"><Compass className="mr-2 h-4 w-4" />Explore</TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="cars" className="mt-4">
+                            {renderTable(carServices)}
+                        </TabsContent>
+                        <TabsContent value="hotels" className="mt-4">
+                            {renderTable(hotelServices)}
+                        </TabsContent>
+                        <TabsContent value="transport" className="mt-4">
+                            {renderTable(transportServices)}
+                        </TabsContent>
+                        <TabsContent value="explore" className="mt-4">
+                            {renderTable(exploreServices)}
+                        </TabsContent>
+                    </Tabs>
+                )}
             </CardContent>
         </Card>
     );
