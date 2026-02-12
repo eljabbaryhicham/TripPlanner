@@ -208,6 +208,7 @@ const generalSettingsSchema = z.object({
     whatsappNumber: z.string().min(1, { message: 'WhatsApp number cannot be empty.' }),
     bookingEmailTo: z.string().email({ message: 'A valid recipient email is required.' }),
     resendEmailFrom: z.string().min(1, { message: 'A "from" email is required for Resend.' }),
+    logoUrl: z.string().url({ message: "Invalid URL" }).or(z.literal("")).optional(),
 });
 
 export async function updateGeneralSettings(prevState: any, formData: FormData) {
@@ -217,15 +218,14 @@ export async function updateGeneralSettings(prevState: any, formData: FormData) 
         return { error: parsed.error.errors[0].message, success: false };
     }
 
-    const { whatsappNumber, bookingEmailTo, resendEmailFrom } = parsed.data;
-    
     try {
         const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
         const currentConfig = JSON.parse(configRaw);
-        const newSettings = JSON.stringify({ ...currentConfig, whatsappNumber, bookingEmailTo, resendEmailFrom }, null, 2);
-        await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
+        const newConfig = { ...currentConfig, ...parsed.data };
+        await fs.writeFile(settingsFilePath, JSON.stringify(newConfig, null, 2), 'utf-8');
         
         revalidatePath('/admin');
+        revalidatePath('/'); // Revalidate homepage for logo
         
         return { error: null, success: true };
     } catch (error) {

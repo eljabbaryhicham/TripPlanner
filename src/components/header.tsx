@@ -1,6 +1,8 @@
+
 'use client';
 
 import Link from 'next/link';
+import Image from 'next/image';
 import { BedDouble, Car, Briefcase, Mountain, Compass } from 'lucide-react';
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
@@ -47,7 +49,7 @@ const NavLink = ({
 const Header = () => {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const { categories: categorySettings } = useSettings();
+  const { categories: categorySettings, logoUrl } = useSettings();
 
   React.useEffect(() => {
     // If auth is ready, and we're done checking, and there's no user, sign in anonymously.
@@ -60,7 +62,11 @@ const Header = () => {
     <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
       <nav className="flex h-20 items-start justify-center gap-4 rounded-3xl border bg-background/50 p-3 shadow-lg backdrop-blur-md">
         <NavLink href="/" label="Home">
-          <Mountain className="h-7 w-7 text-foreground" />
+          {logoUrl ? (
+            <Image src={logoUrl} alt="TriPlanner Logo" width={40} height={40} className="object-contain" />
+          ) : (
+            <Mountain className="h-7 w-7 text-foreground" />
+          )}
         </NavLink>
         <div className="mx-1 h-10 self-center w-px bg-border" />
         {categorySettings?.cars && (

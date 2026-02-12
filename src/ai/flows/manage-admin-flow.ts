@@ -13,7 +13,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, applicationDefault } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
@@ -21,9 +21,11 @@ import { getFirestore, Firestore } from 'firebase-admin/firestore';
 // This is a stateless function, making it robust for serverless environments.
 function getAdminServices(): { adminAuth: Auth; adminFirestore: Firestore } {
     if (getApps().length === 0) {
-        // In a managed Google Cloud environment, initializeApp() with no arguments
+        // In a managed Google Cloud environment, initializeApp() with applicationDefault
         // automatically discovers service account credentials.
-        initializeApp();
+        initializeApp({
+            credential: applicationDefault(),
+        });
     }
     
     const adminApp = getApp();

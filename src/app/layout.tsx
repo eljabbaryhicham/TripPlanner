@@ -1,3 +1,4 @@
+
 import type {Metadata} from 'next';
 import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
@@ -13,6 +14,7 @@ export const metadata: Metadata = {
 
 // Define a default settings structure
 const defaultSettings = {
+  logoUrl: "",
   whatsappNumber: "",
   bookingEmailTo: "",
   resendEmailFrom: "TriPlanner <onboarding@resend.dev>",

@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -155,6 +156,7 @@ export default function DashboardContent() {
                                 </div>
                             ) : (
                                 <SettingsManagement 
+                                    currentLogoUrl={settings.logoUrl}
                                     currentWhatsappNumber={settings.whatsappNumber}
                                     currentBookingEmailTo={settings.bookingEmailTo || ''}
                                     currentResendEmailFrom={settings.resendEmailFrom || ''}

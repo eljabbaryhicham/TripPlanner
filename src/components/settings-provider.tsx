@@ -1,8 +1,10 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode } from 'react';
 
 export interface AppSettings {
+    logoUrl?: string;
     whatsappNumber: string;
     bookingEmailTo: string;
     resendEmailFrom: string;
