@@ -85,11 +85,11 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
      */
     match /users/{userId}/reservations/{reservationId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isOwner(userId) || isAdmin();
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId);
     }
 
     /**
@@ -203,11 +203,11 @@ service cloud.firestore {
     /**
      * @description Allows admins to query across all user reservations for the dashboard.
      * @path /{path=**}/reservations/{reservationId}
-     * @allow An admin can list documents across all `reservations` subcollections.
-     * @principle Enables collection group queries for administrative purposes.
+     * @allow An admin can read and write (update/delete) all documents across all `reservations` subcollections.
+     * @principle Enables collection group queries and management for administrative purposes.
      */
     match /{path=**}/reservations/{reservationId} {
-      allow get, list: if isAdmin();
+      allow read, write: if isAdmin();
     }
     
     // ------------------------------------------------------------------------
