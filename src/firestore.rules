@@ -85,11 +85,11 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
      */
     match /users/{userId}/reservations/{reservationId} {
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if isOwner(userId) || isAdmin();
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isOwner(userId);
+      allow update: if isOwner(userId) || isAdmin();
+      allow delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -224,11 +224,8 @@ service cloud.firestore {
     match /roles_admin/{adminId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      // Allow a user to create/update their own doc to the 'admin' role.
-      // This prevents errors on a failed first attempt.
-      // A user cannot promote themselves because the role is validated.
-      // A user cannot demote themselves from 'superadmin' because of the second condition.
-      allow write: if isSuperAdmin() || (isOwner(adminId) && request.resource.data.role == 'admin' && (resource == null || resource.data.role != 'superadmin'));
+      allow create: if isOwner(adminId);
+      allow update: if isSuperAdmin();
       allow delete: if isSuperAdmin() && request.auth.uid != adminId;
     }
   }
