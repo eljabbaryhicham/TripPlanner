@@ -2,10 +2,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     experimental: {
-        serverComponentsExternalPackages: [
-            'genkit',
-            'firebase-admin'
-        ],
+        serverComponentsExternalPackages: ['genkit', 'firebase-admin'],
     },
 };
 
