@@ -134,7 +134,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
       totalPrice: totalPrice,
       createdAt: serverTimestamp(),
       status: 'pending',
-      paymentStatus: 'pending',
+      paymentStatus: 'unpaid',
     };
 
     try {
@@ -284,7 +284,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         email: '', // Not collected for WhatsApp booking
         createdAt: serverTimestamp(),
         status: 'pending',
-        paymentStatus: 'pending',
+        paymentStatus: 'unpaid',
     };
 
     try {
@@ -293,7 +293,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         
         // Only open WhatsApp after successful save
         if (whatsappNumber && !isFlowDisabled) {
-            window.open(`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
+            window.open(`https://wa.me/${whatsappNumber.replace('+', '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
         }
     } catch (error) {
         console.error("Failed to save WhatsApp inquiry:", error);
@@ -461,3 +461,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 export default ReservationFlow;
 
 
+
+
+    

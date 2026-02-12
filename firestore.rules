@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -24,10 +25,6 @@ service cloud.firestore {
     // ------------------------------------------------------------------------
     // Global Admin Override
     // ------------------------------------------------------------------------
-
-    // This rule allows any administrator to perform any action on any document.
-    // Because Firestore rules are OR'd, if a user is an admin, this is the only rule
-    // that needs to pass. Subsequent rules are for non-admin users.
     match /{path=**} {
       allow read, write: if isAdmin();
     }
@@ -96,3 +93,5 @@ service cloud.firestore {
     }
   }
 }
+
+    
