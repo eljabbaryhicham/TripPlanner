@@ -17,18 +17,14 @@ const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'clie
 
 
 // Lazy-initialize Firebase Admin
-let adminFirestore: ReturnType<typeof getFirestore> | null = null;
 function getAdminFirestore() {
-    if (adminFirestore) {
-        return adminFirestore;
+    if (getApps().length) {
+        return getFirestore(getApp());
     }
-    if (getApps().length === 0) {
-        // In a managed Google Cloud environment, initializeApp() with no arguments
-        // automatically discovers credentials.
-        initializeApp();
-    }
-    adminFirestore = getFirestore(getApp());
-    return adminFirestore;
+    // In a managed Google Cloud environment, initializeApp() with no arguments
+    // automatically discovers credentials.
+    const app = initializeApp();
+    return getFirestore(app);
 }
 
 // --- Helper Functions ---
