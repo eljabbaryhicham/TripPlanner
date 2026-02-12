@@ -17,20 +17,17 @@ const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'clie
 
 
 // --- Robust Firebase Admin Initialization ---
-let adminApp: App | null = null;
-let adminDb: Firestore | null = null;
-
-function getAdminFirestore() {
-    if (adminDb) {
-        return adminDb;
+function getAdminFirestore(): Firestore {
+    // If the app is already initialized, return the existing firestore instance.
+    if (getApps().length > 0) {
+        return getFirestore(getApp());
     }
-    if (getApps().length === 0) {
-        adminApp = initializeApp();
-    } else {
-        adminApp = getApp();
-    }
-    adminDb = getFirestore(adminApp);
-    return adminDb;
+    
+    // Otherwise, initialize the app and return the firestore instance.
+    // In a managed Google Cloud environment, initializeApp() with no arguments
+    // automatically discovers service account credentials.
+    const app = initializeApp();
+    return getFirestore(app);
 }
 
 // --- Helper Functions ---
@@ -78,9 +75,10 @@ export async function createInquiry(data: InquiryData): Promise<{ success: boole
           id: docRef.id,
           createdAt: new Date(),
           status: 'pending',
-          paymentStatus: 'pending',
+          paymentStatus: 'pending', // Inquiries via email/whatsapp always start as pending
         };
         await docRef.set(inquiryData);
+        revalidatePath('/admin');
         return { success: true, inquiryId: docRef.id };
     } catch (dbError: any) {
         console.error("CRITICAL: Failed to save inquiry to Firestore:", dbError);
@@ -406,5 +404,4 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
         return { success: false, error: result.message };
     }
 }
-
     
