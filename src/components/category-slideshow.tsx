@@ -93,7 +93,7 @@ const CategorySlideshow = () => {
           const tweenValue = tweenValues[index] || 0;
           const tweenStyle = {
             transform: `rotateY(${tweenValue * -30}deg) scale(${1 - Math.abs(tweenValue) * 0.15})`,
-            opacity: 1 - Math.abs(tweenValue),
+            opacity: 1 - Math.abs(tweenValue) || 0,
           };
 
           return (

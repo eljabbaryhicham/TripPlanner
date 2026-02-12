@@ -77,7 +77,7 @@ export default function Home() {
           }}
         >
           <div className="absolute inset-0 bg-black/70" />
-          <div className="container relative mx-auto px-4 text-center z-10 pt-24 pb-12">
+          <div className="container relative mx-auto px-4 text-center z-10 pt-24 pb-8">
             <h1 className="font-headline text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
               TriPlanner
             </h1>
@@ -88,7 +88,7 @@ export default function Home() {
           <div className="relative w-full z-10 flex-1 flex items-center">
             <CategorySlideshow />
           </div>
-           <div className="absolute bottom-10 z-10 animate-bounce">
+           <div className="absolute bottom-16 z-10 animate-bounce">
             <Link href="#best-services" scroll={true}>
               <Button
                 variant="outline"
