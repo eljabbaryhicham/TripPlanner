@@ -12,8 +12,11 @@ import { format } from 'date-fns';
 const BookingManagement = () => {
     const firestore = useFirestore();
 
-    const reservationsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'reservations'), orderBy('createdAt', 'desc')) : null, [firestore]);
-    const inquiriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'inquiries'), orderBy('createdAt', 'desc')) : null, [firestore]);
+    // The orderBy clause was removed here to prevent a missing-index error.
+    // The client-side sorting in the `allBookings` useMemo hook will handle the ordering.
+    // For production performance, the index should be created in the Firebase console.
+    const reservationsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'reservations')) : null, [firestore]);
+    const inquiriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'inquiries')) : null, [firestore]);
 
     const { data: reservations, isLoading: reservationsLoading } = useCollection(reservationsQuery);
     const { data: inquiries, isLoading: inquiriesLoading } = useCollection(inquiriesQuery);
