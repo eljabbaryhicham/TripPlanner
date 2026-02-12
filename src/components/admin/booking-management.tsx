@@ -59,9 +59,7 @@ const BookingManagement = () => {
             if (!booking) continue;
 
             let docRef;
-            if (booking.type === 'Checkout' && booking._path) {
-                docRef = doc(firestore, booking._path);
-            } else if (booking.type === 'Inquiry' && booking._path) {
+            if (booking._path) { // Use the captured path
                 docRef = doc(firestore, booking._path);
             } else {
                 toast({ variant: 'destructive', title: 'Action Failed', description: `Could not identify path for booking ID ${booking.id}.` });
@@ -177,77 +175,79 @@ const BookingManagement = () => {
                         <p className="mt-4 text-muted-foreground">No bookings or inquiries found yet.</p>
                     </div>
                 ) : (
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead className="w-[40px]">
-                                    <Checkbox
-                                        checked={selectedBookings.size > 0 && allBookings.every(b => selectedBookings.has(b.id))}
-                                        onCheckedChange={(checked) => {
-                                            if (checked) {
-                                                setSelectedBookings(new Set(allBookings.map(b => b.id)));
-                                            } else {
-                                                setSelectedBookings(new Set());
-                                            }
-                                        }}
-                                        aria-label="Select all"
-                                    />
-                                </TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Customer</TableHead>
-                                <TableHead>Service</TableHead>
-                                <TableHead>Method</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Payment</TableHead>
-                                <TableHead className="text-right">Price</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {allBookings.map((booking) => (
-                                <TableRow key={booking.id} data-state={selectedBookings.has(booking.id) && "selected"}>
-                                    <TableCell>
+                    <div className="relative max-h-[560px] overflow-y-auto rounded-lg border">
+                        <Table>
+                            <TableHeader className="sticky top-0 z-10 bg-card">
+                                <TableRow>
+                                    <TableHead className="w-[40px]">
                                         <Checkbox
-                                            checked={selectedBookings.has(booking.id)}
+                                            checked={selectedBookings.size > 0 && allBookings.every(b => selectedBookings.has(b.id))}
                                             onCheckedChange={(checked) => {
-                                                const newSelected = new Set(selectedBookings);
-                                                if (checked) newSelected.add(booking.id);
-                                                else newSelected.delete(booking.id);
-                                                setSelectedBookings(newSelected);
+                                                if (checked) {
+                                                    setSelectedBookings(new Set(allBookings.map(b => b.id)));
+                                                } else {
+                                                    setSelectedBookings(new Set());
+                                                }
                                             }}
-                                            aria-label={`Select booking ${booking.id}`}
+                                            aria-label="Select all"
                                         />
-                                    </TableCell>
-                                    <TableCell>{formatDate(booking.createdAt)}</TableCell>
-                                    <TableCell>
-                                        <div className="font-medium">{booking.customerName}</div>
-                                        {booking.email && <div className="text-xs text-muted-foreground">{booking.email}</div>}
-                                    </TableCell>
-                                    <TableCell>{booking.serviceName}</TableCell>
-                                    <TableCell>
-                                        <Badge variant={booking.type === 'Checkout' ? 'default' : 'secondary'} className="capitalize">
-                                            {booking.bookingMethod || booking.type}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant={booking.status === 'completed' ? 'outline' : 'secondary'} className="capitalize">
-                                            {booking.status || (booking.type === 'Inquiry' ? 'pending' : 'active')}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge 
-                                            variant={(booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid') ? 'default' : 'destructive'} 
-                                            className="capitalize bg-opacity-70"
-                                        >
-                                            {booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending')}
-                                        </Badge>
-                                    </TableCell>
-                                    <TableCell className="text-right font-medium">
-                                        {booking.totalPrice != null ? `$${booking.totalPrice.toFixed(2)}` : 'N/A'}
-                                    </TableCell>
+                                    </TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Customer</TableHead>
+                                    <TableHead>Service</TableHead>
+                                    <TableHead>Method</TableHead>
+                                    <TableHead>Status</TableHead>
+                                    <TableHead>Payment</TableHead>
+                                    <TableHead className="text-right">Price</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {allBookings.map((booking) => (
+                                    <TableRow key={booking.id} data-state={selectedBookings.has(booking.id) && "selected"}>
+                                        <TableCell>
+                                            <Checkbox
+                                                checked={selectedBookings.has(booking.id)}
+                                                onCheckedChange={(checked) => {
+                                                    const newSelected = new Set(selectedBookings);
+                                                    if (checked) newSelected.add(booking.id);
+                                                    else newSelected.delete(booking.id);
+                                                    setSelectedBookings(newSelected);
+                                                }}
+                                                aria-label={`Select booking ${booking.id}`}
+                                            />
+                                        </TableCell>
+                                        <TableCell>{formatDate(booking.createdAt)}</TableCell>
+                                        <TableCell>
+                                            <div className="font-medium">{booking.customerName}</div>
+                                            {booking.email && <div className="text-xs text-muted-foreground">{booking.email}</div>}
+                                        </TableCell>
+                                        <TableCell>{booking.serviceName}</TableCell>
+                                        <TableCell>
+                                            <Badge variant={booking.type === 'Checkout' ? 'default' : 'secondary'} className="capitalize">
+                                                {booking.bookingMethod || booking.type}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge variant={booking.status === 'completed' ? 'outline' : 'secondary'} className="capitalize">
+                                                {booking.status || (booking.type === 'Inquiry' ? 'pending' : 'active')}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge 
+                                                variant={(booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid') ? 'default' : 'destructive'} 
+                                                className="capitalize bg-opacity-70"
+                                            >
+                                                {booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending')}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-right font-medium">
+                                            {booking.totalPrice != null ? `$${booking.totalPrice.toFixed(2)}` : 'N/A'}
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
                 )}
             </CardContent>
         </Card>
