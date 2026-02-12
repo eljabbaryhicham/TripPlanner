@@ -1,4 +1,3 @@
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   typescript: {
@@ -6,7 +5,6 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: [
-      'genkit',
       '@genkit-ai/google-genai',
       'firebase-admin',
     ],
