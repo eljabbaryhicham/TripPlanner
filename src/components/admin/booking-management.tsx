@@ -56,18 +56,25 @@ const BookingManagement = () => {
             const booking = allBookings.find(b => b.id === bookingId);
             if (!booking) continue;
 
-            const isReservation = booking.type === 'Checkout';
-            if (isReservation && !booking.userId) {
-                toast({ variant: 'destructive', title: 'Action Failed', description: `This booking is missing a user ID and cannot be modified.` });
+            let docRef;
+            if (booking.type === 'Checkout' && booking._path) {
+                docRef = doc(firestore, booking._path);
+            } else if (booking.type === 'Checkout' && booking.userId) {
+                // Fallback for any old data that might not have _path
+                const collectionName = `users/${booking.userId}/reservations`;
+                docRef = doc(firestore, collectionName, booking.id);
+            } else if (booking.type === 'Inquiry') {
+                docRef = doc(firestore, 'inquiries', booking.id);
+            } else {
+                toast({ variant: 'destructive', title: 'Action Failed', description: `Could not identify path for booking ID ${booking.id}.` });
                 continue;
             }
-            const collectionName = isReservation ? `users/${booking.userId}/reservations` : 'inquiries';
-            const docRef = doc(firestore, collectionName, booking.id);
 
             if (action === 'delete') {
                 promises.push(deleteDoc(docRef));
             } else {
                 let dataToUpdate = {};
+                const isReservation = booking.type === 'Checkout';
                 if (action === 'paid') {
                     dataToUpdate = { paymentStatus: isReservation ? 'completed' : 'paid' };
                 } else if (action === 'completed') {
