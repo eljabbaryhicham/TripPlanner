@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -7,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp, doc, setDoc } from 'firebase/firestore';
 
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -116,7 +117,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
     const inquiryData = {
       ...data,
       customerName: fullName,
-      bookingMethod: 'email',
+      bookingMethod: 'email' as 'email' | 'whatsapp',
       startDate: dates?.from,
       endDate: dates?.to,
       origin,
@@ -182,33 +183,35 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         setIsCheckingOut(false);
         return;
     }
-    
-    const reservationPayload = {
-        userId: user.uid,
-        customerName: fullName,
-        serviceType: service.category,
-        serviceId: service.id,
-        serviceName: service.name,
-        price: service.price,
-        priceUnit: service.priceUnit,
-        totalPrice: totalPrice ?? service.price,
-        startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
-        endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
-        origin: origin || null,
-        destination: destination || null,
-        paymentStatus: 'pending',
-        status: 'active',
-        createdAt: serverTimestamp(),
-    };
 
     try {
         const reservationsCol = collection(firestore, 'users', user.uid, 'reservations');
-        const docRef = await addDoc(reservationsCol, reservationPayload);
+        // Create a reference with a new ID first.
+        const newReservationRef = doc(reservationsCol);
         
-        // Also update the document with its own ID for easier reference
-        await addDoc(reservationsCol, { ...reservationPayload, id: docRef.id });
+        const reservationPayload = {
+            id: newReservationRef.id, // Use the generated ID in the document data.
+            userId: user.uid,
+            customerName: fullName,
+            serviceType: service.category,
+            serviceId: service.id,
+            serviceName: service.name,
+            price: service.price,
+            priceUnit: service.priceUnit,
+            totalPrice: totalPrice ?? service.price,
+            startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+            endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+            origin: origin || null,
+            destination: destination || null,
+            paymentStatus: 'pending',
+            status: 'active',
+            createdAt: serverTimestamp(),
+        };
 
-        router.push(`/checkout/${docRef.id}`);
+        // Use setDoc with the new ref to create the document.
+        await setDoc(newReservationRef, reservationPayload);
+
+        router.push(`/checkout/${newReservationRef.id}`);
     } catch (error: any) {
         console.error("Reservation creation failed:", error);
         toast({
@@ -239,12 +242,13 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         customerName: fullName,
         serviceId: service.id,
         serviceName: service.name,
-        bookingMethod: 'whatsapp',
+        bookingMethod: 'whatsapp' as 'email' | 'whatsapp',
         startDate: dates?.from,
         endDate: dates?.to,
         origin,
         destination,
         totalPrice,
+        email: '', // Not collected for WhatsApp booking
     };
     
     const result = await createInquiry(inquiryData);
@@ -417,3 +421,4 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 };
 
 export default ReservationFlow;
+

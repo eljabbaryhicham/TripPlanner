@@ -7,8 +7,8 @@ import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
-import { initializeApp, getApps, getApp } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
 // --- File paths for settings that can be written to ---
 const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
@@ -16,14 +16,21 @@ const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-temp
 const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
 
 
-// Lazy-initialize Firebase Admin
+// --- Robust Firebase Admin Initialization ---
+let adminApp: App | null = null;
+let adminDb: Firestore | null = null;
+
 function getAdminFirestore() {
-    if (getApps().length === 0) {
-        // In a managed Google Cloud environment, initializeApp() with no arguments
-        // automatically discovers credentials.
-        initializeApp();
+    if (adminDb) {
+        return adminDb;
     }
-    return getFirestore(getApp());
+    if (getApps().length === 0) {
+        adminApp = initializeApp();
+    } else {
+        adminApp = getApp();
+    }
+    adminDb = getFirestore(adminApp);
+    return adminDb;
 }
 
 // --- Helper Functions ---
@@ -71,7 +78,7 @@ export async function createInquiry(data: InquiryData): Promise<{ success: boole
           id: docRef.id,
           createdAt: new Date(),
           status: 'pending',
-          paymentStatus: 'unpaid',
+          paymentStatus: 'pending',
         };
         await docRef.set(inquiryData);
         return { success: true, inquiryId: docRef.id };
