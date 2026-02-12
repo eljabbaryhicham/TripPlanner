@@ -90,9 +90,10 @@ const CategorySlideshow = () => {
     <div className="embla" ref={emblaRef}>
       <div className="embla__container">
         {activeCategories.map((category, index) => {
+          const tweenValue = tweenValues[index] || 0;
           const tweenStyle = {
-            transform: `rotateY(${tweenValues[index] * -30}deg) scale(${1 - Math.abs(tweenValues[index]) * 0.15})`,
-            opacity: 1 - Math.abs(tweenValues[index]),
+            transform: `rotateY(${tweenValue * -30}deg) scale(${1 - Math.abs(tweenValue) * 0.15})`,
+            opacity: 1 - Math.abs(tweenValue),
           };
 
           return (
