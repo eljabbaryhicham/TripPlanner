@@ -13,30 +13,24 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { initializeApp, getApps, getApp } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
 import { getAuth, Auth } from 'firebase-admin/auth';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
-// Define a local, lazy-initialized getter for Firebase Admin services
-// to ensure it's only initialized when the flow is invoked.
-let adminServices: { adminAuth: Auth; adminFirestore: Firestore } | null = null;
-function getAdminServices() {
-    if (adminServices) {
-        return adminServices;
-    }
-    
-    // In a managed Google Cloud environment, initializeApp() with no arguments
-    // automatically discovers credentials.
+// Gets the initialized Firebase Admin services, creating them if necessary.
+// This is a stateless function, making it robust for serverless environments.
+function getAdminServices(): { adminAuth: Auth; adminFirestore: Firestore } {
     if (getApps().length === 0) {
+        // In a managed Google Cloud environment, initializeApp() with no arguments
+        // automatically discovers service account credentials.
         initializeApp();
     }
     
     const adminApp = getApp();
-    adminServices = {
+    return {
         adminAuth: getAuth(adminApp),
         adminFirestore: getFirestore(adminApp),
     };
-    return adminServices;
 }
 
 
