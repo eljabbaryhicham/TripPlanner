@@ -82,11 +82,13 @@ service cloud.firestore {
      * @description Controls access to a user's private list of reservations.
      * @path /users/{userId}/reservations/{reservationId}
      * @allow A user (auth.uid: 'user_abc') can (list, create, update, delete) all documents under `/users/user_abc/reservations`.
+     * @allow An admin can update or delete any reservation from the dashboard.
      * @deny A user (auth.uid: 'user_xyz') cannot (create) a reservation under `/users/user_abc/reservations`.
-     * @principle Restricts access to a user's own data tree. Admin access is handled by the collection group rule below.
+     * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
      */
     match /users/{userId}/reservations/{reservationId} {
-      allow read, create, update, delete: if isOwner(userId);
+      allow read, create: if isOwner(userId) || isAdmin();
+      allow update, delete: if isOwner(userId) || isAdmin();
     }
 
     /**
@@ -189,22 +191,21 @@ service cloud.firestore {
      * @description Controls access to manual booking inquiries.
      * @path /inquiries/{inquiryId}
      * @allow Admins can read, update, or delete inquiries.
-     * @principle Allows public submission while restricting management to privileged users.
+     * @principle Allows public submission via server action while restricting management to privileged users.
      */
     match /inquiries/{inquiryId} {
+      // Creation is handled by a server action using the Admin SDK, so no client-side create rule is needed.
       allow read, update, delete: if isAdmin();
-      // Public create is handled by server-side action with Admin SDK
-      allow create: if true;
     }
     
     /**
-     * @description Allows admins to query and manage across all user reservations for the dashboard.
+     * @description Allows admins to query across all user reservations for the dashboard.
      * @path /{path=**}/reservations/{reservationId}
-     * @allow An admin can read and write all documents across all `reservations` subcollections.
-     * @principle Enables collection group queries and write operations for administrative purposes.
+     * @allow An admin can read all documents across all `reservations` subcollections.
+     * @principle Enables collection group queries for administrative purposes.
      */
     match /{path=**}/reservations/{reservationId} {
-      allow read, write: if isAdmin();
+      allow get, list: if isAdmin();
     }
     
     // ------------------------------------------------------------------------

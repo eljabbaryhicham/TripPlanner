@@ -47,65 +47,56 @@ function fillTemplate(template: string, data: Record<string, any>): string {
 }
 
 
-// --- Reservation Action ---
-const reservationSchema = z.object({
-  name: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
-  email: z.string().email({ message: 'Please enter a valid email address.' }),
+// --- Inquiry and Reservation Actions ---
+
+const inquirySchema = z.object({
+  customerName: z.string().min(2, { message: 'Name must be at least 2 characters.' }),
+  email: z.string().email({ message: 'Please enter a valid email address.' }).optional(),
   phone: z.string().optional(),
   message: z.string().optional(),
   serviceName: z.string(),
   serviceId: z.string(),
+  bookingMethod: z.enum(['email', 'whatsapp']),
   totalPrice: z.number().nullable(),
-  startDate: z.string().optional(),
-  endDate: z.string().optional(),
+  startDate: z.date().optional(),
+  endDate: z.date().optional(),
   origin: z.string().optional(),
   destination: z.string().optional(),
 });
 
-type ReservationFormValues = z.infer<typeof reservationSchema>;
+type InquiryData = z.infer<typeof inquirySchema>;
 
-export async function submitReservation(data: ReservationFormValues): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
-  const parsed = reservationSchema.safeParse(data);
+export async function createInquiry(data: InquiryData): Promise<{ success: boolean; error?: string | null; inquiryId?: string; }> {
+    const parsed = inquirySchema.safeParse(data);
+    if (!parsed.success) {
+        return { success: false, error: 'Invalid inquiry data provided.' };
+    }
 
-  if (!parsed.success) {
-    return { success: false, error: 'Invalid form data provided.' };
-  }
-  
-  const { name, email, phone, message, serviceName, serviceId, startDate, endDate, origin, destination, totalPrice } = parsed.data;
-
-  // --- Step 1: Save the inquiry to Firestore FIRST ---
-  // This guarantees that the booking is logged in the system.
-  try {
-      const db = getAdminFirestore();
-      const docRef = db.collection('inquiries').doc();
-      const inquiryData = {
+    try {
+        const db = getAdminFirestore();
+        const docRef = db.collection('inquiries').doc();
+        const inquiryData = {
+          ...parsed.data,
           id: docRef.id,
-          customerName: name,
-          email,
-          phone: phone || null,
-          message: message || null,
-          serviceId,
-          serviceName,
-          bookingMethod: 'email',
-          startDate: startDate ? new Date(startDate) : null,
-          endDate: endDate ? new Date(endDate) : null,
-          origin: origin || null,
-          destination: destination || null,
-          totalPrice: totalPrice || null,
           createdAt: new Date(),
           status: 'pending',
           paymentStatus: 'unpaid',
-      };
-      await docRef.set(inquiryData);
-  } catch (dbError: any) {
-      console.error("CRITICAL: Failed to save email inquiry to Firestore:", dbError);
-      return {
-          success: false,
-          error: "Your inquiry could not be saved to our system. Please try again later.",
-      };
-  }
+        };
+        await docRef.set(inquiryData);
+        return { success: true, inquiryId: docRef.id };
+    } catch (dbError: any) {
+        console.error("CRITICAL: Failed to save inquiry to Firestore:", dbError);
+        return {
+            success: false,
+            error: "Your inquiry could not be saved to our system. Please try again later.",
+        };
+    }
+}
 
-  // --- Step 2: Attempt to send notification emails ---
+
+export async function submitInquiryEmail(data: InquiryData): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
+  const { customerName, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = data;
+
   try {
     const appSettings = require('@/lib/app-config.json');
     const adminTemplateConfig = require('@/lib/email-template.json');
@@ -127,11 +118,11 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     
     const detailsHtml = [
         { label: 'Service', value: serviceName },
-        { label: 'Name', value: name },
+        { label: 'Name', value: customerName },
         { label: 'Email', value: email },
         { label: 'Phone', value: phone },
-        { label: 'Pickup', value: startDate && !endDate ? startDate : undefined },
-        { label: 'Dates', value: (startDate && endDate) ? `${startDate} - ${endDate}` : undefined },
+        { label: 'Pickup', value: startDate && !endDate ? startDate.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' }) : undefined },
+        { label: 'Dates', value: (startDate && endDate) ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}` : undefined },
         { label: 'Origin', value: origin },
         { label: 'Destination', value: destination },
         { label: 'Estimated Price', value: totalPrice ? `$${totalPrice.toFixed(2)}` : undefined },
@@ -145,7 +136,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         detailsList: detailsHtml,
         serviceName: serviceName,
         email: email,
-        name: name
+        name: customerName
     };
     
     const adminHtmlBody = fillTemplate(adminTemplate, templateData);
@@ -160,12 +151,12 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         html: adminHtmlBody,
         reply_to: email,
       }),
-      resend.emails.send({
+      email ? resend.emails.send({ // Only send to client if email is provided
         from: fromEmail,
         to: [email],
         subject: `Your Booking Inquiry for ${serviceName}`,
         html: clientHtmlBody,
-      })
+      }) : Promise.resolve({ status: 'fulfilled' })
     ]);
 
     let warningMessage = null;
@@ -174,7 +165,7 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
         warningMessage = "Your inquiry was saved, but we couldn't notify the administrator. They will follow up as soon as possible.";
     }
     if (clientResult.status === 'rejected') {
-        console.error('Resend error (to client):', clientResult.reason);
+        console.error('Resend error (to client):', (clientResult as PromiseRejectedResult).reason);
         warningMessage = (warningMessage || "Your inquiry was saved,") + " but the confirmation email could not be delivered to you. Please check your email address.";
     }
 

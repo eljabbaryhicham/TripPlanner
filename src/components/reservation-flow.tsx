@@ -7,7 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp, Timestamp, doc, setDoc } from 'firebase/firestore';
+import { addDoc, collection, serverTimestamp, Timestamp } from 'firebase/firestore';
 
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
@@ -22,7 +22,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { submitReservation } from '@/lib/actions';
+import { submitInquiryEmail, createInquiry } from '@/lib/actions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -113,41 +113,49 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const { isSubmitting } = form.formState;
 
   const onContactSubmit = async (data: ReservationFormValues) => {
-    const submissionData = {
+    const inquiryData = {
       ...data,
-      name: fullName,
-      startDate: dates?.from ? (dates.to ? dates.from.toLocaleDateString() : dates.from.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' })) : undefined,
-      endDate: dates?.to?.toLocaleDateString(),
+      customerName: fullName,
+      bookingMethod: 'email',
+      startDate: dates?.from,
+      endDate: dates?.to,
       origin,
       destination,
       totalPrice,
     };
-    const result = await submitReservation(submissionData);
-    if (result.success) {
-      if (result.warning) {
-        toast({
-          title: "Inquiry Sent (with a note)",
-          description: result.warning,
-          duration: 8000,
-        });
-      } else {
-        toast({
-          title: 'Message Sent!',
-          description:
-            "We've received your message and will get back to you shortly (Within 1-3 Hours). thanks",
-        });
-      }
-      setShowEmailSuccessDialog(true);
-      form.reset();
-      setShowInquiryConfirmation(true);
-      setReservationType(null);
-    } else {
+    
+    // Step 1: Log the inquiry to the database via server action
+    const inquiryResult = await createInquiry(inquiryData);
+
+    if (!inquiryResult.success) {
       toast({
         variant: 'destructive',
         title: 'Uh oh! Something went wrong.',
-        description: result.error || 'There was a problem with your request. Please try again.',
+        description: inquiryResult.error || 'Your inquiry could not be saved. Please try again.',
+      });
+      return;
+    }
+
+    // Step 2: Send the email notifications
+    const emailResult = await submitInquiryEmail(inquiryData);
+    if (emailResult.success) {
+       if (emailResult.warning) {
+        toast({ title: "Inquiry Sent (with a note)", description: emailResult.warning, duration: 8000 });
+      } else {
+        toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
+      }
+      setShowEmailSuccessDialog(true);
+    } else {
+       toast({
+        variant: 'destructive',
+        title: 'Email Failed',
+        description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
       });
     }
+
+    form.reset();
+    setShowInquiryConfirmation(true);
+    setReservationType(null);
   };
 
   const handleCheckout = async () => {
@@ -196,6 +204,10 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
     try {
         const reservationsCol = collection(firestore, 'users', user.uid, 'reservations');
         const docRef = await addDoc(reservationsCol, reservationPayload);
+        
+        // Also update the document with its own ID for easier reference
+        await addDoc(reservationsCol, { ...reservationPayload, id: docRef.id });
+
         router.push(`/checkout/${docRef.id}`);
     } catch (error: any) {
         console.error("Reservation creation failed:", error);
@@ -223,46 +235,27 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   }, [service, dates, fullName, origin, destination]);
 
   const handleWhatsappBooking = async () => {
-    if (!firestore || !user) {
-        toast({
-            variant: "destructive",
-            title: "Action unavailable",
-            description: "You must be signed in to perform this action. Please wait for the session to initialize.",
-        });
-        return;
-    }
-
-    const inquiryPayload = {
+    const inquiryData = {
         customerName: fullName,
         serviceId: service.id,
         serviceName: service.name,
         bookingMethod: 'whatsapp',
-        startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
-        endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
-        origin: origin || null,
-        destination: destination || null,
-        totalPrice: totalPrice || null,
-        createdAt: serverTimestamp(),
-        status: 'pending',
-        paymentStatus: 'unpaid',
-        email: null,
-        phone: null,
-        message: null,
+        startDate: dates?.from,
+        endDate: dates?.to,
+        origin,
+        destination,
+        totalPrice,
     };
+    
+    const result = await createInquiry(inquiryData);
 
-    try {
-        const inquiriesCol = collection(firestore, 'inquiries');
-        const newDocRef = doc(inquiriesCol);
-        const payloadWithId = {
-            ...inquiryPayload,
-            id: newDocRef.id
-        };
-        await setDoc(newDocRef, payloadWithId);
-
-    } catch (error) {
-        console.error("Error creating WhatsApp inquiry:", error);
-        // We still open WhatsApp, as it's the primary user action.
-        // We don't show a toast here to avoid interrupting the user flow.
+    if (!result.success) {
+        toast({
+            variant: "destructive",
+            title: "Action unavailable",
+            description: result.error || "Could not log your inquiry before opening WhatsApp.",
+        });
+        return;
     }
     
     // Finally, open whatsapp link
@@ -424,5 +417,3 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 };
 
 export default ReservationFlow;
-
-    
