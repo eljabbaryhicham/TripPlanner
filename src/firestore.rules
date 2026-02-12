@@ -1,3 +1,4 @@
+
 /**
  * This ruleset enforces a security model with a clear separation between public and private data.
  *
@@ -64,12 +65,13 @@ service cloud.firestore {
      * @description Controls access to a user's own profile document.
      * @path /users/{userId}
      * @allow A signed-in user (auth.uid: 'user_abc') can (create) their own profile at `/users/user_abc`.
+     * @allow An admin can read any user profile, which is required for writes to subcollections.
      * @deny A signed-in user (auth.uid: 'user_xyz') cannot (get) the profile at `/users/user_abc`.
      * @deny Any user cannot (list) the `/users` collection to prevent user enumeration.
      * @principle Enforces Self-Creation and strict document ownership. Deletion is disabled to prevent orphaning subcollections.
      */
     match /users/{userId} {
-      allow get: if isOwner(userId);
+      allow get: if isOwner(userId) || isAdmin();
       allow list: if false;
       allow create: if isOwner(userId) && request.resource.data.id == userId;
       allow update: if isOwner(userId);
@@ -79,17 +81,12 @@ service cloud.firestore {
     /**
      * @description Controls access to a user's private list of reservations.
      * @path /users/{userId}/reservations/{reservationId}
-     * @allow A user (auth.uid: 'user_abc') can (list) all documents under `/users/user_abc/reservations`.
-     * @allow A user (auth.uid: 'user_abc') can (create) a new reservation with `userId: 'user_abc'` in the document data.
+     * @allow A user (auth.uid: 'user_abc') can (list, create, update, delete) all documents under `/users/user_abc/reservations`.
      * @deny A user (auth.uid: 'user_xyz') cannot (create) a reservation under `/users/user_abc/reservations`.
-     * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
+     * @principle Restricts access to a user's own data tree. Admin access is handled by the collection group rule below.
      */
     match /users/{userId}/reservations/{reservationId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId) && request.resource.data.userId == userId;
-      allow update: if isOwner(userId) || isAdmin();
-      allow delete: if isOwner(userId) || isAdmin();
+      allow read, create, update, delete: if isOwner(userId);
     }
 
     /**
@@ -191,23 +188,23 @@ service cloud.firestore {
     /**
      * @description Controls access to manual booking inquiries.
      * @path /inquiries/{inquiryId}
-     * @allow Any user can create an inquiry.
-     * @allow Only admins can read, update, or delete inquiries.
+     * @allow Admins can read, update, or delete inquiries.
      * @principle Allows public submission while restricting management to privileged users.
      */
     match /inquiries/{inquiryId} {
-      allow create: if true;
       allow read, update, delete: if isAdmin();
+      // Public create is handled by server-side action with Admin SDK
+      allow create: if true;
     }
     
     /**
-     * @description Allows admins to query across all user reservations for the dashboard.
+     * @description Allows admins to query and manage across all user reservations for the dashboard.
      * @path /{path=**}/reservations/{reservationId}
-     * @allow An admin can list documents across all `reservations` subcollections.
-     * @principle Enables collection group queries for administrative purposes.
+     * @allow An admin can read and write all documents across all `reservations` subcollections.
+     * @principle Enables collection group queries and write operations for administrative purposes.
      */
     match /{path=**}/reservations/{reservationId} {
-      allow get, list: if isAdmin();
+      allow read, write: if isAdmin();
     }
     
     // ------------------------------------------------------------------------
@@ -224,7 +221,7 @@ service cloud.firestore {
     match /roles_admin/{adminId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if isOwner(adminId);
+      allow create: if isOwner(adminId) || isSuperAdmin();
       allow update: if isSuperAdmin();
       allow delete: if isSuperAdmin() && request.auth.uid != adminId;
     }

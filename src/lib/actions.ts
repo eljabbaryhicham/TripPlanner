@@ -1,3 +1,4 @@
+
 'use server';
 
 import { z } from 'zod';
@@ -22,10 +23,11 @@ function getAdminFirestore() {
         return adminFirestore;
     }
     if (getApps().length === 0) {
+        // In a deployed environment (like Vercel), service account keys are stored in env variables
         const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
         const credential = serviceAccountKey 
             ? cert(JSON.parse(serviceAccountKey)) 
-            : undefined;
+            : undefined; // Will use Application Default Credentials if not set
 
         initializeApp({ credential, projectId: process.env.GCLOUD_PROJECT });
     }
@@ -71,6 +73,39 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
   
   const { name, email, phone, message, serviceName, serviceId, startDate, endDate, origin, destination, totalPrice } = parsed.data;
 
+  // --- Step 1: Save the inquiry to Firestore FIRST ---
+  // This guarantees that the booking is logged in the system.
+  try {
+      const db = getAdminFirestore();
+      const docRef = db.collection('inquiries').doc();
+      const inquiryData = {
+          id: docRef.id,
+          customerName: name,
+          email,
+          phone: phone || null,
+          message: message || null,
+          serviceId,
+          serviceName,
+          bookingMethod: 'email',
+          startDate: startDate ? new Date(startDate) : null,
+          endDate: endDate ? new Date(endDate) : null,
+          origin: origin || null,
+          destination: destination || null,
+          totalPrice: totalPrice || null,
+          createdAt: new Date(),
+          status: 'pending',
+          paymentStatus: 'unpaid',
+      };
+      await docRef.set(inquiryData);
+  } catch (dbError: any) {
+      console.error("CRITICAL: Failed to save email inquiry to Firestore:", dbError);
+      return {
+          success: false,
+          error: "Your inquiry could not be saved to our system. Please try again later.",
+      };
+  }
+
+  // --- Step 2: Attempt to send notification emails ---
   try {
     const appSettings = require('@/lib/app-config.json');
     const adminTemplateConfig = require('@/lib/email-template.json');
@@ -82,10 +117,10 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     const fromEmail = appSettings?.resendEmailFrom;
     
     if (!process.env.RESEND_API_KEY) {
-        return { success: false, error: 'Server configuration error: Resend API Key is missing.' };
+        return { success: true, warning: 'Inquiry saved, but server is not configured to send emails (Resend API Key is missing).' };
     }
     if (!recipientEmail || !fromEmail) {
-        return { success: false, error: 'Server configuration error: Recipient or "From" email address is missing in app-config.json.' };
+        return { success: true, warning: 'Inquiry saved, but server is not configured to send emails (Recipient or "From" email is missing).' };
     }
     
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -114,77 +149,40 @@ export async function submitReservation(data: ReservationFormValues): Promise<{ 
     };
     
     const adminHtmlBody = fillTemplate(adminTemplate, templateData);
-
-    const { error: adminError } = await resend.emails.send({
-      from: fromEmail,
-      to: [recipientEmail],
-      subject: `New Booking Inquiry for ${serviceName}`,
-      html: adminHtmlBody,
-      reply_to: email,
-    });
-
-    if (adminError) {
-      console.error('Resend error (to admin):', adminError);
-      return { success: false, error: `Failed to send admin notification: ${adminError.message}` };
-    }
-
     const clientHtmlBody = fillTemplate(clientTemplate, templateData);
-    
-    const { error: clientError } = await resend.emails.send({
+
+    // Send both emails concurrently
+    const [adminResult, clientResult] = await Promise.allSettled([
+      resend.emails.send({
+        from: fromEmail,
+        to: [recipientEmail],
+        subject: `New Booking Inquiry for ${serviceName}`,
+        html: adminHtmlBody,
+        reply_to: email,
+      }),
+      resend.emails.send({
         from: fromEmail,
         to: [email],
         subject: `Your Booking Inquiry for ${serviceName}`,
         html: clientHtmlBody,
-    });
-    
-    // Save to Firestore after emails are sent successfully (before returning)
-     if (!clientError) {
-        try {
-            const db = getAdminFirestore();
-            const docRef = db.collection('inquiries').doc();
-            const inquiryData = {
-                id: docRef.id,
-                customerName: name,
-                email,
-                phone: phone || null,
-                message: message || null,
-                serviceId,
-                serviceName,
-                bookingMethod: 'email',
-                startDate: startDate ? new Date(startDate) : null,
-                endDate: endDate ? new Date(endDate) : null,
-                origin: origin || null,
-                destination: destination || null,
-                totalPrice: totalPrice || null,
-                createdAt: new Date(),
-                status: 'pending',
-                paymentStatus: 'unpaid',
-            };
-            await docRef.set(inquiryData);
-        } catch (dbError) {
-            console.error("Failed to save email inquiry to Firestore:", dbError);
-            // Don't fail the whole operation, just log it. The user's email was sent.
-            return {
-                success: true,
-                warning: "Your inquiry was sent, but there was an issue saving it to our system. Please contact support if you don't hear back."
-            };
-        }
+      })
+    ]);
+
+    let warningMessage = null;
+    if (adminResult.status === 'rejected') {
+        console.error('Resend error (to admin):', adminResult.reason);
+        warningMessage = "Your inquiry was saved, but we couldn't notify the administrator. They will follow up as soon as possible.";
     }
-    
-    if (clientError) {
-        console.error('Resend error (to client):', clientError);
-        return { 
-            success: true, 
-            warning: "Your inquiry was sent, but the confirmation email could not be delivered to you. Please check your email address."
-        };
+    if (clientResult.status === 'rejected') {
+        console.error('Resend error (to client):', clientResult.reason);
+        warningMessage = (warningMessage || "Your inquiry was saved,") + " but the confirmation email could not be delivered to you. Please check your email address.";
     }
 
-    return { success: true };
+    return { success: true, warning: warningMessage };
 
-  } catch (error) {
-    console.error('A critical error occurred during email submission:', error);
-    const errorMessage = error instanceof Error ? error.message : 'An unknown exception occurred.';
-    return { success: false, error: `An unexpected server error occurred: ${errorMessage}` };
+  } catch (emailError) {
+    console.error('A critical error occurred during email submission:', emailError);
+    return { success: true, warning: 'Your inquiry was saved, but an unexpected error occurred while sending notification emails.' };
   }
 }
 
@@ -419,5 +417,3 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
         return { success: false, error: result.message };
     }
 }
-
-    
