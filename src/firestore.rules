@@ -2,97 +2,58 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // ------------------------------------------------------------------------
-    // Helper Functions
-    // ------------------------------------------------------------------------
-    function isSignedIn() {
-      return request.auth != null;
-    }
+    // --- Helper Functions ---
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
+    function isSuperAdmin() { return isAdmin() && get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'superadmin'; }
 
-    function isOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
-    }
-    
-    function isSuperAdmin() {
-      return isAdmin() && get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'superadmin';
-    }
-
-    // ------------------------------------------------------------------------
-    // Global Admin Override
-    // ------------------------------------------------------------------------
-
-    // This rule allows any administrator to perform any action on any document.
-    // Because Firestore rules are OR'd, if a user is an admin, this is the only rule
-    // that needs to pass. Subsequent rules are for non-admin users.
-    match /{path=**} {
-      allow read, write: if isAdmin();
-    }
-    
-    // ------------------------------------------------------------------------
-    // Public Read Rules (for non-admins and anonymous users)
-    // ------------------------------------------------------------------------
-    match /hotels/{hotelId} { allow read: if true; }
-    match /carRentals/{carRentalId} { allow read: if true; }
-    match /transports/{transportId} { allow read: if true; }
-    match /exploreTrips/{tripId} { allow read: if true; }
-    match /reviews/{reviewId} { allow read: if true; }
-
-    // ------------------------------------------------------------------------
-    // User-Specific Rules (for non-admins)
-    // ------------------------------------------------------------------------
-    match /users/{userId} {
-      // A non-admin can only get or update their own profile.
-      allow get, update: if isOwner(userId);
-      // A non-admin can only create their own profile document.
-      allow create: if isOwner(userId) && request.resource.data.id == userId;
-      // Listing all users or deleting profiles is disallowed for non-admins.
-      allow list, delete: if false;
-    }
-
-    match /users/{userId}/reservations/{reservationId} {
-      // A non-admin can only manage their own reservations.
-      allow read, write: if isOwner(userId);
-    }
-    
-    match /users/{userId}/serviceSuggestions/{serviceSuggestionId} {
-      // A non-admin can only manage their own suggestions.
-      allow read, write: if isOwner(userId);
-    }
-
-    // ------------------------------------------------------------------------
-    // Public Create Rules (for non-admins)
-    // ------------------------------------------------------------------------
-    
-    // Any user can submit an inquiry. It will be managed by admins.
+    // --- Inquiries (Manual Bookings) ---
     match /inquiries/{inquiryId} {
-      allow create: if true;
-      // Reads and writes for non-admins are disallowed. They are handled by the global admin rule.
-      allow read, update, delete: if false; 
+      // Anyone can create an inquiry (including anonymous users)
+      allow create: if isSignedIn();
+      // Only admins can read or modify inquiries
+      allow read, update, delete: if isAdmin();
     }
 
-    // Any signed-in user can create a review for themselves.
+    // --- Public Collections (Readable by all, Writable by Admins) ---
+    match /hotels/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /carRentals/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /transports/{docId} { allow read: if true; allow write: if isAdmin(); }
+    match /exploreTrips/{docId} { allow read: if true; allow write: if isAdmin(); }
+
+    // --- Publicly readable reviews ---
     match /reviews/{reviewId} {
-      allow create: if isSignedIn()
-                    && request.resource.data.userId == request.auth.uid
-                    && request.resource.data.rating >= 1 && request.resource.data.rating <= 5;
-      // A non-admin user can only update/delete their own review.
-      allow update, delete: if isOwner(resource.data.userId);
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+    }
+    
+    // --- User-specific data ---
+    match /users/{userId} {
+      // User can create, read, and update their own doc
+      allow create, get, update: if isOwner(userId);
+      // Admin can read any user doc (needed for subcollection writes)
+      allow get: if isAdmin();
+      // Only admins can list/delete users
+      allow list, delete: if isAdmin();
     }
 
-    // ------------------------------------------------------------------------
-    // Admin Role Creation (Self-Service for First Admin)
-    // ------------------------------------------------------------------------
+    // --- User Reservations (subcollection) ---
+    match /users/{userId}/reservations/{reservationId} {
+      // A user can manage their own reservations.
+      // An admin can manage any user's reservations.
+      allow read, write: if isOwner(userId) || isAdmin();
+    }
+    
+    // --- Admin Roles ---
     match /roles_admin/{adminId} {
-      // A non-admin can only create their own initial 'admin' role document.
+      // Superadmins can manage all admin roles
+      allow read, write: if isSuperAdmin();
+      // A user can create their own doc to request admin access
       allow create: if isOwner(adminId);
-      // Non-admins can't read other admin docs.
+      // An admin can read their own role document
       allow get: if isOwner(adminId);
-      // Non-admins can't list admins, update roles, or delete admins.
-      allow list, update, delete: if false;
     }
   }
 }
