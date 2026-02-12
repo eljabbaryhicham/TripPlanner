@@ -85,8 +85,8 @@ service cloud.firestore {
      * @principle Restricts access to a user's own data tree and validates relational integrity on creation.
      */
     match /users/{userId}/reservations/{reservationId} {
-      allow get: if isOwner(userId) || isAdmin();
-      allow list: if isOwner(userId) || isAdmin();
+      allow get: if isOwner(userId);
+      allow list: if isOwner(userId);
       allow create: if isOwner(userId) && request.resource.data.userId == userId;
       allow update: if isOwner(userId) && request.resource.data.userId == resource.data.userId;
       allow delete: if isOwner(userId);
@@ -223,8 +223,8 @@ service cloud.firestore {
      * @deny Users cannot delete themselves.
      */
     match /roles_admin/{adminId} {
-      allow get: if isOwner(adminId) || isAdmin();
-      allow list: if isAdmin();
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
       allow create: if isOwner(adminId);
       allow update: if isSuperAdmin();
       allow delete: if isSuperAdmin() && request.auth.uid != adminId;
