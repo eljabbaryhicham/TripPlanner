@@ -207,7 +207,7 @@ service cloud.firestore {
      * @principle Enables collection group queries for administrative purposes.
      */
     match /{path=**}/reservations/{reservationId} {
-      allow list: if isAdmin();
+      allow get, list: if isAdmin();
     }
     
     // ------------------------------------------------------------------------
