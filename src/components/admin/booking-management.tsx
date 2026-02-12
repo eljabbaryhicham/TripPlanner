@@ -5,13 +5,15 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, doc, deleteDoc, updateDoc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Inbox, ChevronDown, Trash2, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, Inbox, ChevronDown, Trash2, CheckCircle, XCircle, Download } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
 const BookingManagement = () => {
     const firestore = useFirestore();
@@ -59,12 +61,8 @@ const BookingManagement = () => {
             let docRef;
             if (booking.type === 'Checkout' && booking._path) {
                 docRef = doc(firestore, booking._path);
-            } else if (booking.type === 'Checkout' && booking.userId) {
-                // Fallback for any old data that might not have _path
-                const collectionName = `users/${booking.userId}/reservations`;
-                docRef = doc(firestore, collectionName, booking.id);
-            } else if (booking.type === 'Inquiry') {
-                docRef = doc(firestore, 'inquiries', booking.id);
+            } else if (booking.type === 'Inquiry' && booking._path) {
+                docRef = doc(firestore, booking._path);
             } else {
                 toast({ variant: 'destructive', title: 'Action Failed', description: `Could not identify path for booking ID ${booking.id}.` });
                 continue;
@@ -105,6 +103,37 @@ const BookingManagement = () => {
             return 'Invalid Date';
         }
     };
+
+    const handleDownloadPdf = () => {
+        const doc = new jsPDF();
+        
+        doc.text("Bookings & Inquiries", 14, 16);
+
+        const tableColumns = ["Date", "Customer", "Service", "Method", "Status", "Payment", "Price"];
+        const tableRows: (string | number)[][] = [];
+
+        allBookings.forEach(booking => {
+            const bookingData = [
+                formatDate(booking.createdAt),
+                booking.customerName,
+                booking.serviceName,
+                booking.bookingMethod || booking.type,
+                booking.status || (booking.type === 'Inquiry' ? 'pending' : 'active'),
+                booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid' ? 'Paid' : 'Unpaid',
+                booking.totalPrice != null ? `$${booking.totalPrice.toFixed(2)}` : 'N/A'
+            ];
+            tableRows.push(bookingData);
+        });
+
+        // The 'any' cast is to work around TypeScript issues with the jspdf-autotable plugin.
+        (doc as any).autoTable({
+            head: [tableColumns],
+            body: tableRows,
+            startY: 20,
+        });
+
+        doc.save('bookings_and_inquiries.pdf');
+    };
     
     return (
         <Card>
@@ -127,6 +156,14 @@ const BookingManagement = () => {
                             <DropdownMenuItem onSelect={() => handleBatchAction('delete')} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete Selected</DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
+                    <Button
+                        variant="outline"
+                        onClick={handleDownloadPdf}
+                        disabled={isLoading || allBookings.length === 0}
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        Download as PDF
+                    </Button>
                     {isUpdating && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                 </div>
 
