@@ -139,7 +139,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
     try {
       const inquiriesCol = collection(firestore, 'inquiries');
-      const docRef = await addDoc(inquiriesCol, { ...inquiryDataForDb });
+      await addDoc(inquiriesCol, { ...inquiryDataForDb });
       
       // Now that it's saved, send the email.
       const emailResult = await submitInquiryEmail({
@@ -261,7 +261,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
     return encodeURIComponent(message);
   }, [service, dates, fullName, origin, destination]);
 
-  const handleWhatsappBooking = async () => {
+  const handleWhatsappBooking = () => {
     if (!firestore) {
       toast({
         variant: 'destructive',
@@ -287,22 +287,22 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         paymentStatus: 'unpaid',
     };
 
-    try {
-        const inquiriesCol = collection(firestore, 'inquiries');
-        await addDoc(inquiriesCol, inquiryData);
-        
-        // Only open WhatsApp after successful save
-        if (whatsappNumber && !isFlowDisabled) {
-            window.open(`https://wa.me/${whatsappNumber.replace('+', '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
-        }
-    } catch (error) {
-        console.error("Failed to save WhatsApp inquiry:", error);
-        toast({
-            variant: "destructive",
-            title: "Action unavailable",
-            description: "Could not log your inquiry before opening WhatsApp.",
+    const inquiriesCol = collection(firestore, 'inquiries');
+    addDoc(inquiriesCol, inquiryData)
+        .then(() => {
+            // Only open WhatsApp after successful save
+            if (whatsappNumber && !isFlowDisabled) {
+                window.open(`https://wa.me/${whatsappNumber.replace('+', '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
+            }
+        })
+        .catch((error) => {
+            console.error("Failed to save WhatsApp inquiry:", error);
+            toast({
+                variant: "destructive",
+                title: "Action unavailable",
+                description: "Could not log your inquiry before opening WhatsApp.",
+            });
         });
-    }
   };
 
 

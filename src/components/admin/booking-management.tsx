@@ -56,7 +56,11 @@ const BookingManagement = () => {
             const booking = allBookings.find(b => b.id === bookingId);
             if (!booking) continue;
 
-            const isReservation = !!booking.userId;
+            const isReservation = booking.type === 'Checkout';
+            if (isReservation && !booking.userId) {
+                toast({ variant: 'destructive', title: 'Action Failed', description: `This booking is missing a user ID and cannot be modified.` });
+                continue;
+            }
             const collectionName = isReservation ? `users/${booking.userId}/reservations` : 'inquiries';
             const docRef = doc(firestore, collectionName, booking.id);
 
@@ -207,5 +211,3 @@ const BookingManagement = () => {
 };
 
 export default BookingManagement;
-
-    
