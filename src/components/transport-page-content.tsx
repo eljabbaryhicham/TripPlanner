@@ -262,9 +262,6 @@ export default function TransportPageContent({ service }: { service: Service }) 
         onClose={() => setReviewsOpen(false)}
         serviceId={service.id}
         serviceName={service.name}
-        reviews={reviews}
-        averageRating={averageRating}
-        isLoading={reviewsLoading}
       />
     </>
   );
