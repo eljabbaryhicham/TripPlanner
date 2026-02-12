@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -89,7 +90,7 @@ const ServiceDetailModal = ({
         const from = new Date(startDate);
         const to = new Date(endDate);
 
-        if (to <= from) return { days: null, dateRangeTotalPrice: null };
+        if (to < from) return { days: null, dateRangeTotalPrice: null };
 
         const timeDiff = to.getTime() - from.getTime();
         const dayDifference = Math.round(timeDiff / (1000 * 3600 * 24));
@@ -132,7 +133,7 @@ const ServiceDetailModal = ({
       try {
         const from = new Date(startDate);
         const to = new Date(endDate);
-        if (to > from) return { from, to };
+        if (to >= from) return { from, to };
       } catch {
         return undefined;
       }

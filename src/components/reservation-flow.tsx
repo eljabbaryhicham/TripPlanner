@@ -23,7 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { submitInquiryEmail, createInquiry } from '@/lib/actions';
+import { submitInquiryEmail } from '@/lib/actions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -114,50 +114,74 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const { isSubmitting } = form.formState;
 
   const onContactSubmit = async (data: ReservationFormValues) => {
-    const inquiryData = {
-      ...data,
-      customerName: fullName,
-      bookingMethod: 'email' as 'email' | 'whatsapp',
-      startDate: dates?.from,
-      endDate: dates?.to,
-      origin,
-      destination,
-      totalPrice,
-    };
-    
-    // Step 1: Log the inquiry to the database via server action
-    const inquiryResult = await createInquiry(inquiryData);
-
-    if (!inquiryResult.success) {
+    if (!firestore) {
       toast({
         variant: 'destructive',
-        title: 'Uh oh! Something went wrong.',
-        description: inquiryResult.error || 'Your inquiry could not be saved. Please try again.',
+        title: 'Database Error',
+        description: 'Firestore is not initialized. Please try again later.',
       });
       return;
     }
 
-    // Step 2: Send the email notifications
-    const emailResult = await submitInquiryEmail(inquiryData);
-    if (emailResult.success) {
-       if (emailResult.warning) {
-        toast({ title: "Inquiry Sent (with a note)", description: emailResult.warning, duration: 8000 });
-      } else {
-        toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
-      }
-      setShowEmailSuccessDialog(true);
-    } else {
-       toast({
-        variant: 'destructive',
-        title: 'Email Failed',
-        description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
-      });
-    }
+    const inquiryDataForDb = {
+      ...data,
+      customerName: fullName,
+      bookingMethod: 'email' as 'email' | 'whatsapp',
+      startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+      endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+      origin: origin || null,
+      destination: destination || null,
+      totalPrice: totalPrice,
+      createdAt: serverTimestamp(),
+      status: 'pending',
+      paymentStatus: 'pending',
+    };
 
-    form.reset();
-    setShowInquiryConfirmation(true);
-    setReservationType(null);
+    try {
+      const inquiriesCol = collection(firestore, 'inquiries');
+      const docRef = await addDoc(inquiriesCol, { ...inquiryDataForDb });
+      
+      // Now that it's saved, send the email.
+      const emailResult = await submitInquiryEmail({
+        ...data,
+        customerName: fullName,
+        bookingMethod: 'email',
+        startDate: dates?.from,
+        endDate: dates?.to,
+        origin,
+        destination,
+        totalPrice,
+      });
+
+      if (emailResult.success) {
+         if (emailResult.warning) {
+          toast({ title: "Inquiry Sent (with a note)", description: emailResult.warning, duration: 8000 });
+        } else {
+          toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
+        }
+        setShowEmailSuccessDialog(true);
+      } else {
+         toast({
+          variant: 'destructive',
+          title: 'Email Failed',
+          description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
+        });
+      }
+
+      form.reset();
+      setShowInquiryConfirmation(true);
+      setReservationType(null);
+
+    } catch (error) {
+        console.error("Failed to save inquiry to Firestore:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Uh oh! Something went wrong.',
+            description: "Your inquiry could not be saved to our system. Please try again later.",
+        });
+    }
   };
+
 
   const handleCheckout = async () => {
     setIsCheckingOut(true);
@@ -238,35 +262,49 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   }, [service, dates, fullName, origin, destination]);
 
   const handleWhatsappBooking = async () => {
+    if (!firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'Database Error',
+        description: 'Firestore is not initialized. Please try again later.',
+      });
+      return;
+    }
+
     const inquiryData = {
         customerName: fullName,
         serviceId: service.id,
         serviceName: service.name,
-        bookingMethod: 'whatsapp' as 'email' | 'whatsapp',
-        startDate: dates?.from,
-        endDate: dates?.to,
-        origin,
-        destination,
-        totalPrice,
+        bookingMethod: 'whatsapp' as const,
+        startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+        endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+        origin: origin || null,
+        destination: destination || null,
+        totalPrice: totalPrice,
         email: '', // Not collected for WhatsApp booking
+        createdAt: serverTimestamp(),
+        status: 'pending',
+        paymentStatus: 'pending',
     };
-    
-    const result = await createInquiry(inquiryData);
 
-    if (!result.success) {
+    try {
+        const inquiriesCol = collection(firestore, 'inquiries');
+        await addDoc(inquiriesCol, inquiryData);
+        
+        // Only open WhatsApp after successful save
+        if (whatsappNumber && !isFlowDisabled) {
+            window.open(`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
+        }
+    } catch (error) {
+        console.error("Failed to save WhatsApp inquiry:", error);
         toast({
             variant: "destructive",
             title: "Action unavailable",
-            description: result.error || "Could not log your inquiry before opening WhatsApp.",
+            description: "Could not log your inquiry before opening WhatsApp.",
         });
-        return;
     }
-    
-    // Finally, open whatsapp link
-    if (whatsappNumber && !isFlowDisabled) {
-        window.open(`https://wa.me/${whatsappNumber.replace(/\\+/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
-    }
-};
+  };
+
 
 
   if (showInquiryConfirmation) {
@@ -421,4 +459,5 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 };
 
 export default ReservationFlow;
+
 

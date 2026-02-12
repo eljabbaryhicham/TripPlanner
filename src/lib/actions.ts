@@ -61,35 +61,6 @@ const inquirySchema = z.object({
 
 type InquiryData = z.infer<typeof inquirySchema>;
 
-export async function createInquiry(data: InquiryData): Promise<{ success: boolean; error?: string | null; inquiryId?: string; }> {
-    const parsed = inquirySchema.safeParse(data);
-    if (!parsed.success) {
-        return { success: false, error: 'Invalid inquiry data provided.' };
-    }
-
-    try {
-        const db = getAdminFirestore();
-        const docRef = db.collection('inquiries').doc();
-        const inquiryData = {
-          ...parsed.data,
-          id: docRef.id,
-          createdAt: new Date(),
-          status: 'pending',
-          paymentStatus: 'pending', // Inquiries via email/whatsapp always start as pending
-        };
-        await docRef.set(inquiryData);
-        revalidatePath('/admin');
-        return { success: true, inquiryId: docRef.id };
-    } catch (dbError: any) {
-        console.error("CRITICAL: Failed to save inquiry to Firestore:", dbError);
-        return {
-            success: false,
-            error: "Your inquiry could not be saved to our system. Please try again later.",
-        };
-    }
-}
-
-
 export async function submitInquiryEmail(data: InquiryData): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
   const { customerName, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = data;
 
