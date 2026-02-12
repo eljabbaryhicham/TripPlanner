@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 9002",
+    "dev": "next dev",
     "genkit:dev": "genkit start -- tsx src/ai/dev.ts",
     "genkit:watch": "genkit start -- tsx --watch src/ai/dev.ts",
     "build": "NODE_ENV=production next build",
@@ -51,7 +51,6 @@
     "genkit": "^1.20.0",
     "lucide-react": "^0.475.0",
     "next": "canary",
-    "patch-package": "^8.0.0",
     "plyr-react": "^5.3.0",
     "react": "canary",
     "react-dom": "canary",
@@ -70,5 +69,12 @@
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
+  },
+  "overrides": {
+    "react": "canary",
+    "react-dom": "canary",
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "next": "canary"
   }
 }
