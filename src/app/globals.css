@@ -108,7 +108,7 @@ body {
 .embla__container {
   backface-visibility: hidden;
   display: flex;
-  touch-action: pan-y;
+  touch-action: pan-x;
   height: 500px;
   perspective: 2000px;
   transform-style: preserve-3d;

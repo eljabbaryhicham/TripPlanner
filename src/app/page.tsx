@@ -1,6 +1,7 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 
@@ -11,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useSettings } from '@/components/settings-provider';
 import Footer from '@/components/footer';
 import CategorySlideshow from '@/components/category-slideshow';
+import { Button } from '@/components/ui/button';
+import { ArrowDown } from 'lucide-react';
 
 export default function Home() {
   const firestore = useFirestore();
@@ -84,6 +87,17 @@ export default function Home() {
           </div>
           <div className="relative w-full z-10 flex-1 flex items-center">
             <CategorySlideshow />
+          </div>
+           <div className="absolute bottom-10 z-10 animate-bounce">
+            <Link href="#best-services" scroll={true}>
+              <Button
+                variant="outline"
+                className="rounded-full h-14 w-14 p-0 bg-white/10 border-white/20 hover:bg-white/20 backdrop-blur-sm"
+              >
+                <span className="sr-only">Scroll to next section</span>
+                <ArrowDown className="h-6 w-6" />
+              </Button>
+            </Link>
           </div>
         </section>
 
