@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -81,6 +80,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const { toast } = useToast();
 
   const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
+  const [showEmailSuccess, setShowEmailSuccess] = React.useState(false);
   const [showEmailSuccessDialog, setShowEmailSuccessDialog] = React.useState(false);
   const [whatsappNumber, setWhatsappNumber] = React.useState<string>('');
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
@@ -113,15 +113,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const { isSubmitting } = form.formState;
 
   const onContactSubmit = async (data: ReservationFormValues) => {
-    if (!firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Database Error',
-        description: 'Firestore is not initialized. Please try again later.',
-      });
-      return;
-    }
-
     const inquiryDataForDb = {
       ...data,
       customerName: fullName,
@@ -137,10 +128,12 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
     };
 
     try {
+      if (!firestore) {
+        throw new Error('Firestore is not initialized.');
+      }
       const inquiriesCol = collection(firestore, 'inquiries');
       await addDoc(inquiriesCol, { ...inquiryDataForDb });
-      
-      // Now that it's saved, send the email.
+
       const emailResult = await submitInquiryEmail({
         ...data,
         customerName: fullName,
@@ -153,14 +146,15 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
       });
 
       if (emailResult.success) {
-         if (emailResult.warning) {
-          toast({ title: "Inquiry Sent (with a note)", description: emailResult.warning, duration: 8000 });
+        if (emailResult.warning) {
+          toast({ title: 'Inquiry Sent (with a note)', description: emailResult.warning, duration: 8000 });
         } else {
           toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
         }
+        setShowEmailSuccess(true);
         setShowEmailSuccessDialog(true);
       } else {
-         toast({
+        toast({
           variant: 'destructive',
           title: 'Email Failed',
           description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
@@ -168,7 +162,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
       }
 
       form.reset();
-      setReservationType(null);
 
     } catch (error) {
         console.error("Failed to save inquiry to Firestore:", error);
@@ -208,11 +201,10 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
     try {
         const reservationsCol = collection(firestore, 'users', user.uid, 'reservations');
-        // Create a reference with a new ID first.
         const newReservationRef = doc(reservationsCol);
         
         const reservationPayload = {
-            id: newReservationRef.id, // Use the generated ID in the document data.
+            id: newReservationRef.id,
             userId: user.uid,
             customerName: fullName,
             serviceType: service.category,
@@ -230,7 +222,6 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
             createdAt: serverTimestamp(),
         };
 
-        // Use setDoc with the new ref to create the document.
         await setDoc(newReservationRef, reservationPayload);
 
         router.push(`/checkout/${newReservationRef.id}`);
@@ -268,6 +259,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
       });
       return;
     }
+    if (isFlowDisabled) return;
 
     const inquiryData = {
         customerName: fullName,
@@ -279,32 +271,47 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         origin: origin || null,
         destination: destination || null,
         totalPrice: totalPrice,
-        email: '', // Not collected for WhatsApp booking
+        email: '',
         createdAt: serverTimestamp(),
         status: 'pending',
         paymentStatus: 'unpaid',
     };
+    
+    const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`;
+    window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
     const inquiriesCol = collection(firestore, 'inquiries');
-    addDoc(inquiriesCol, inquiryData)
-        .then(() => {
-            // Only open WhatsApp after successful save
-            if (whatsappNumber && !isFlowDisabled) {
-                window.open(`https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`, '_blank', 'noopener,noreferrer');
-            }
-        })
-        .catch((error) => {
-            console.error("Failed to save WhatsApp inquiry:", error);
-            toast({
-                variant: "destructive",
-                title: "Action unavailable",
-                description: "Could not log your inquiry before opening WhatsApp.",
-            });
+    addDoc(inquiriesCol, inquiryData).catch((error) => {
+        console.error("Failed to save WhatsApp inquiry:", error);
+        toast({
+            variant: "destructive",
+            title: "Logging unavailable",
+            description: "Your inquiry could not be logged in our system. Please ensure the agent confirms your booking manually.",
         });
+    });
   };
 
 
   if (reservationType === 'contact') {
+    if (showEmailSuccess) {
+      return (
+        <div className="text-center p-4 bg-green-50/50 rounded-lg border border-green-200 dark:bg-green-950/20 dark:border-green-800/30">
+            <CheckCircle className="mx-auto h-10 w-10 text-green-500" />
+            <h3 className="mt-3 text-lg font-semibold">Message Sent!</h3>
+            <p className="mt-1 text-muted-foreground">We've received your message and will get back to you shortly.</p>
+            <Button
+                className="mt-4"
+                variant="outline"
+                onClick={() => {
+                    setShowEmailSuccess(false);
+                    setReservationType(null);
+                }}
+            >
+                Done
+            </Button>
+        </div>
+      )
+    }
     return (
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onContactSubmit)} className="space-y-4">
