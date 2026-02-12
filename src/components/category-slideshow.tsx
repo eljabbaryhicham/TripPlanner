@@ -41,7 +41,7 @@ const categories = [
 
 const CategorySlideshow = () => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' }, [
-    Autoplay({ delay: 4000, stopOnInteraction: true, stopOnMouseEnter: true }),
+    Autoplay({ delay: 4000, stopOnInteraction: false }),
   ]);
   const { categories: categorySettings } = useSettings();
 

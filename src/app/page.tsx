@@ -67,7 +67,7 @@ export default function Home() {
       <Header />
       <main>
         <section
-          className="relative flex min-h-screen snap-start flex-col items-center justify-center text-white"
+          className="relative flex min-h-screen snap-start flex-col items-center justify-start pt-24 text-white"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
@@ -77,7 +77,7 @@ export default function Home() {
           }}
         >
           <div className="absolute inset-0 bg-black/70" />
-          <div className="container relative mx-auto px-4 text-center z-10 pt-20 pb-4">
+          <div className="container relative mx-auto px-4 text-center z-10 pb-4">
             <h1 className="font-headline text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
               TriPlanner
             </h1>
@@ -88,7 +88,7 @@ export default function Home() {
           <div className="relative w-full z-10 flex-1 flex items-center">
             <CategorySlideshow />
           </div>
-           <div className="absolute bottom-24 z-10 animate-bounce">
+           <div className="absolute bottom-32 z-10 animate-bounce">
             <Link href="#best-services" scroll={true}>
               <Button
                 variant="outline"
