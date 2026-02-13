@@ -195,8 +195,8 @@ const ServiceDetailModal = ({
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-10 h-12 w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
-                <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-10 h-12 w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
+                <CarouselPrevious className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-20 h-8 w-8 sm:h-12 sm:w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
+                <CarouselNext className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-20 h-8 w-8 sm:h-12 sm:w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
               </Carousel>
             </div>
           </DialogHeader>
