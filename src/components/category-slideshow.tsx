@@ -80,15 +80,9 @@ const CategorySlideshow = () => {
   }, [emblaApi, onScroll]);
 
   const slides = React.useMemo(() => {
-    const active = categories.filter(
+    return categories.filter(
       (cat) => categorySettings[cat.setting as keyof typeof categorySettings] !== false
     );
-    if (active.length === 0) {
-      return [];
-    }
-    // To create a seamless loop, we need to provide enough slides.
-    // Repeating the set of active categories multiple times is a robust way to do this.
-    return Array(5).fill(active).flat();
   }, [categorySettings]);
 
 
@@ -103,7 +97,7 @@ const CategorySlideshow = () => {
           const tweenValue = tweenValues[index] || 0;
           const tweenStyle = {
             transform: `rotateY(${tweenValue * -30}deg) scale(${1 - Math.abs(tweenValue) * 0.15})`,
-            opacity: 1 - Math.abs(tweenValue) || 0,
+            opacity: 1 - Math.abs(tweenValue) / 1.5,
           };
 
           return (
