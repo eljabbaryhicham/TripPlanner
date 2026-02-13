@@ -37,6 +37,8 @@ service cloud.firestore {
     match /transports/{transportId} { allow read: if true; }
     match /exploreTrips/{tripId} { allow read: if true; }
     match /reviews/{reviewId} { allow read: if true; }
+    match /app_settings/{settingsId} { allow read: if true; allow write: if isAdmin(); }
+    match /email_templates/{templateId} { allow read: if true; allow write: if isAdmin(); }
 
     // ------------------------------------------------------------------------
     // User-Specific Rules (for non-admins)
@@ -93,5 +95,7 @@ service cloud.firestore {
     }
   }
 }
+
+    
 
     

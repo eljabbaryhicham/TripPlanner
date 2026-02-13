@@ -1,16 +1,28 @@
 
 import { NextResponse } from 'next/server';
-import fs from 'fs/promises';
-import path from 'path';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
+
+function getAdminFirestore(): Firestore {
+    if (getApps().length > 0) {
+        return getFirestore(getApp());
+    }
+    const app = initializeApp();
+    return getFirestore(app);
+}
 
 export async function GET() {
   try {
-    const filePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
-    const data = await fs.readFile(filePath, 'utf-8');
-    const config = JSON.parse(data);
-    return NextResponse.json(config);
+    const db = getAdminFirestore();
+    const doc = await db.collection('app_settings').doc('general').get();
+    if (!doc.exists) {
+      return NextResponse.json({ error: 'Settings not found in Firestore.' }, { status: 404 });
+    }
+    return NextResponse.json(doc.data());
   } catch (error) {
-    console.error('Failed to read settings:', error);
-    return NextResponse.json({ error: 'Could not load settings.' }, { status: 500 });
+    console.error('Failed to read settings from Firestore:', error);
+    return NextResponse.json({ error: 'Could not load settings from Firestore.' }, { status: 500 });
   }
 }
+
+    

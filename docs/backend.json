@@ -533,6 +533,48 @@
         "createdAt",
         "authorName"
       ]
+    },
+    "AppSettings": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AppSettings",
+      "type": "object",
+      "description": "Stores application-wide settings.",
+      "properties": {
+        "logoUrl": { "type": "string", "format": "uri" },
+        "whatsappNumber": { "type": "string" },
+        "bookingEmailTo": { "type": "string", "format": "email" },
+        "resendEmailFrom": { "type": "string" },
+        "heroBackgroundImageUrl": { "type": "string", "format": "uri" },
+        "suggestionsBackgroundImageUrl": { "type": "string", "format": "uri" },
+        "categories": {
+          "type": "object",
+          "properties": {
+            "cars": { "type": "boolean" },
+            "hotels": { "type": "boolean" },
+            "transport": { "type": "boolean" },
+            "explore": { "type": "boolean" }
+          }
+        },
+        "categoryImages": {
+          "type": "object",
+          "properties": {
+            "cars": { "type": "string", "format": "uri" },
+            "hotels": { "type": "string", "format": "uri" },
+            "transport": { "type": "string", "format": "uri" },
+            "explore": { "type": "string", "format": "uri" }
+          }
+        }
+      }
+    },
+    "EmailTemplate": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "EmailTemplate",
+      "type": "object",
+      "description": "Stores an HTML email template.",
+      "properties": {
+        "template": { "type": "string" }
+      },
+      "required": ["template"]
     }
   },
   "auth": {
@@ -710,9 +752,42 @@
             }
           ]
         }
+      },
+      {
+        "path": "/app_settings/{settingsId}",
+        "definition": {
+          "entityName": "AppSettings",
+          "schema": {
+            "$ref": "#/backend/entities/AppSettings"
+          },
+          "description": "Stores global application settings. There should only be one document with a fixed ID like 'general'.",
+          "params": [
+            {
+              "name": "settingsId",
+              "description": "The unique identifier for the settings document, e.g., 'general'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/email_templates/{templateId}",
+        "definition": {
+          "entityName": "EmailTemplate",
+          "schema": {
+            "$ref": "#/backend/entities/EmailTemplate"
+          },
+          "description": "Stores HTML email templates. Use fixed IDs like 'admin_notification' and 'client_confirmation'.",
+          "params": [
+            {
+              "name": "templateId",
+              "description": "The unique ID for the template."
+            }
+          ]
+        }
       }
     ],
     "reasoning": "The Firestore structure is designed to ensure Authorization Independence, DBAC, and QAPs. User data is stored under `/users/{userId}` ensuring path-based ownership. Reservations made by each user are stored in a subcollection `/users/{userId}/reservations/{reservationId}`. Service Suggestions are similarly organized under `/users/{userId}/serviceSuggestions/{serviceSuggestionId}`, ensuring the suggestions are linked to the correct user.\n\nThe `hotels`, `carRentals`, `transports`, and `exploreTrips` collections store the data for each of those service types. Admin users are managed via the `/roles_admin/{adminId}` collection, which now stores a `role` field for fine-grained access control (admin vs. superadmin). A top-level `reviews` collection is added to store user reviews for all services; this allows for easy querying by service and is secured to allow creation only by authenticated users for themselves.\n\nThis structure achieves Authorization Independence by avoiding hierarchical authorization dependencies. All authorization rules rely on `request.auth.uid` and the document paths. Denormalization is not required in this schema because user-owned data is stored in hierarchical paths. This approach ensures proper QAPs, as listing operations are secure based on path-based ownership.\n\nBy using this schema and appropriate security rules, we can prevent filter-based security and ensure that all listing operations are inherently secure."
   }
 }
+
     

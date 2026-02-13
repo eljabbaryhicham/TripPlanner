@@ -4,8 +4,8 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { SettingsProvider } from '@/components/settings-provider';
-import fs from 'fs/promises';
-import path from 'path';
+import { getFirestore, Firestore } from 'firebase-admin/firestore';
+import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
 
 export const metadata: Metadata = {
   title: 'TriPlanner',
@@ -34,32 +34,43 @@ const defaultSettings = {
   }
 };
 
+function getAdminFirestore(): Firestore {
+    if (getApps().length > 0) {
+        return getFirestore(getApp());
+    }
+    const app = initializeApp();
+    return getFirestore(app);
+}
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let settings = defaultSettings;
+  let settings = { ...defaultSettings }; // Start with defaults
   try {
-    const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
-    const settingsJson = await fs.readFile(settingsFilePath, 'utf-8');
-    // Important: Merging to avoid errors if the file is missing some keys
-    const fileSettings = JSON.parse(settingsJson);
-    settings = {
-      ...defaultSettings,
-      ...fileSettings,
-      categories: {
-        ...defaultSettings.categories,
-        ...(fileSettings.categories || {})
-      },
-      categoryImages: {
-        ...defaultSettings.categoryImages,
-        ...(fileSettings.categoryImages || {})
-      }
-    };
+    const db = getAdminFirestore();
+    const settingsDoc = await db.collection('app_settings').doc('general').get();
+    if (settingsDoc.exists) {
+        const firestoreSettings = settingsDoc.data();
+        // Deep merge with defaults to ensure all keys are present
+        settings = {
+          ...defaultSettings,
+          ...firestoreSettings,
+          categories: {
+            ...defaultSettings.categories,
+            ...(firestoreSettings?.categories || {})
+          },
+          categoryImages: {
+            ...defaultSettings.categoryImages,
+            ...(firestoreSettings?.categoryImages || {})
+          }
+        };
+    } else {
+        console.log("No settings document found in Firestore, using defaults. First save in admin dashboard will create it.");
+    }
   } catch (error) {
-    console.error("Could not load app-config.json, using defaults:", error);
-    // settings is already defaultSettings
+    console.error("Could not load settings from Firestore, using defaults:", error);
   }
 
   return (
@@ -82,3 +93,5 @@ export default async function RootLayout({
     </html>
   );
 }
+
+    

@@ -2,19 +2,11 @@
 'use server';
 
 import { z } from 'zod';
-import fs from 'fs/promises';
-import path from 'path';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
 import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
-
-// --- File paths for settings that can be written to ---
-const settingsFilePath = path.join(process.cwd(), 'src', 'lib', 'app-config.json');
-const emailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'email-template.json');
-const clientEmailTemplateFilePath = path.join(process.cwd(), 'src', 'lib', 'client-email-template.json');
-
 
 // --- Robust Firebase Admin Initialization ---
 function getAdminFirestore(): Firestore {
@@ -65,11 +57,16 @@ export async function submitInquiryEmail(data: InquiryData): Promise<{ success: 
   const { customerName, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = data;
 
   try {
-    const appSettings = require('@/lib/app-config.json');
-    const adminTemplateConfig = require('@/lib/email-template.json');
-    const clientTemplateConfig = require('@/lib/client-email-template.json');
-    const adminTemplate = adminTemplateConfig.template;
-    const clientTemplate = clientTemplateConfig.template;
+    const db = getAdminFirestore();
+    const settingsPromise = db.collection('app_settings').doc('general').get();
+    const adminTemplatePromise = db.collection('email_templates').doc('admin_notification').get();
+    const clientTemplatePromise = db.collection('email_templates').doc('client_confirmation').get();
+
+    const [settingsDoc, adminTemplateDoc, clientTemplateDoc] = await Promise.all([settingsPromise, adminTemplatePromise, clientTemplatePromise]);
+    
+    const appSettings = settingsDoc.data();
+    const adminTemplate = adminTemplateDoc.data()?.template || `<h3>New Booking Inquiry for {{serviceName}}</h3><p><strong>Name:</strong> {{name}}</p><p><strong>Email:</strong> {{email}}</p>`;
+    const clientTemplate = clientTemplateDoc.data()?.template || `<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>`;
     
     const recipientEmail = appSettings?.bookingEmailTo;
     const fromEmail = appSettings?.resendEmailFrom;
@@ -162,9 +159,12 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
   }
   
   try {
-    const appSettings = require('@/lib/app-config.json');
-    const recipientEmail = appSettings.bookingEmailTo;
-    const fromEmail = appSettings.resendEmailFrom || 'TriPlanner Contact <onboarding@resend.dev>';
+    const db = getAdminFirestore();
+    const settingsDoc = await db.collection('app_settings').doc('general').get();
+    const appSettings = settingsDoc.data();
+
+    const recipientEmail = appSettings?.bookingEmailTo;
+    const fromEmail = appSettings?.resendEmailFrom || 'TriPlanner Contact <onboarding@resend.dev>';
     
     if (!process.env.RESEND_API_KEY || !recipientEmail) {
       console.error('Resend API Key or recipient email is not configured.');
@@ -235,17 +235,21 @@ export async function updateGeneralSettings(prevState: any, formData: FormData) 
 
     const settingsUpdate = {
         ...rest,
-        categoryImages: { cars, hotels, transport, explore }
+        categoryImages: { 
+            cars: cars || "", 
+            hotels: hotels || "", 
+            transport: transport || "", 
+            explore: explore || "" 
+        }
     };
 
     try {
-        const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
-        const currentConfig = JSON.parse(configRaw);
-        const newConfig = { ...currentConfig, ...settingsUpdate };
-        await fs.writeFile(settingsFilePath, JSON.stringify(newConfig, null, 2), 'utf-8');
+        const db = getAdminFirestore();
+        const settingsRef = db.collection('app_settings').doc('general');
+        await settingsRef.set(settingsUpdate, { merge: true });
         
         revalidatePath('/admin');
-        revalidatePath('/'); // Revalidate homepage for logo, backgrounds, and slideshow
+        revalidatePath('/');
         
         return { error: null, success: true };
     } catch (error) {
@@ -265,18 +269,16 @@ export async function updateCategorySettings(prevState: any, formData: FormData)
     };
     
     try {
-        const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
-        const currentConfig = JSON.parse(configRaw);
-        currentConfig.categories = categoryStates;
-        const newSettings = JSON.stringify(currentConfig, null, 2);
-        await fs.writeFile(settingsFilePath, newSettings, 'utf-8');
+        const db = getAdminFirestore();
+        const settingsRef = db.collection('app_settings').doc('general');
+        await settingsRef.set({ categories: categoryStates }, { merge: true });
         
         revalidatePath('/admin');
         revalidatePath('/services/cars');
         revalidatePath('/services/hotels');
         revalidatePath('/services/transport');
         revalidatePath('/services/explore');
-        revalidatePath('/'); // For header and homepage
+        revalidatePath('/');
         
         return { error: null, success: true };
     } catch (error) {
@@ -298,8 +300,10 @@ export async function updateEmailTemplate(prevState: any, formData: FormData) {
     }
     
     try {
-        const newTemplate = JSON.stringify({ template: parsed.data.template }, null, 2);
-        await fs.writeFile(emailTemplateFilePath, newTemplate, 'utf-8');
+        const db = getAdminFirestore();
+        const templateRef = db.collection('email_templates').doc('admin_notification');
+        await templateRef.set({ template: parsed.data.template });
+
         revalidatePath('/admin');
         return { error: null, success: true };
     } catch (error) {
@@ -316,8 +320,10 @@ export async function updateClientEmailTemplate(prevState: any, formData: FormDa
     }
     
     try {
-        const newTemplate = JSON.stringify({ template: parsed.data.template }, null, 2);
-        await fs.writeFile(clientEmailTemplateFilePath, newTemplate, 'utf-8');
+        const db = getAdminFirestore();
+        const templateRef = db.collection('email_templates').doc('client_confirmation');
+        await templateRef.set({ template: parsed.data.template });
+
         revalidatePath('/admin');
         return { error: null, success: true };
     } catch (error) {
@@ -395,4 +401,6 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
         return { success: false, error: result.message };
     }
 }
+    
+
     
