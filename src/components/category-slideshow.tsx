@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -5,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Car, BedDouble, Briefcase, Compass } from 'lucide-react';
 import { useSettings } from './settings-provider';
+import { Skeleton } from './ui/skeleton';
 
 const baseCategories = [
   {
@@ -34,7 +36,7 @@ const baseCategories = [
 ];
 
 const CategorySlideshow = () => {
-  const { categories: categorySettings, categoryImages } = useSettings();
+  const { categories: categorySettings, categoryImages, isSettingsLoading } = useSettings();
 
   const activeCategories = React.useMemo(() => {
     return baseCategories
@@ -44,6 +46,20 @@ const CategorySlideshow = () => {
         image: categoryImages?.[cat.setting as keyof typeof categoryImages] || ''
       }));
   }, [categorySettings, categoryImages]);
+
+  if (isSettingsLoading) {
+    return (
+      <div className="scroller">
+        <div className="scroller__inner">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <div className="scroller__slide" key={index}>
+              <Skeleton className="h-full w-full rounded-2xl" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   if (activeCategories.length === 0) {
     return null;

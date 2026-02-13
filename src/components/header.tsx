@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -8,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, initiateAnonymousSignIn } from '@/firebase';
 import { useSettings } from './settings-provider';
+import { Skeleton } from './ui/skeleton';
 
 const NavLink = ({
   href,
@@ -48,7 +50,7 @@ const NavLink = ({
 const Header = () => {
   const { user, isUserLoading } = useUser();
   const auth = useAuth();
-  const { categories: categorySettings, logoUrl } = useSettings();
+  const { categories: categorySettings, logoUrl, isSettingsLoading } = useSettings();
 
   React.useEffect(() => {
     // If auth is ready, and we're done checking, and there's no user, sign in anonymously.
@@ -57,35 +59,43 @@ const Header = () => {
     }
   }, [auth, isUserLoading, user]);
 
+  if (isSettingsLoading) {
+    return (
+      <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 sm:bottom-6">
+        <Skeleton className="h-16 w-[280px] rounded-2xl sm:w-[380px] sm:rounded-3xl" />
+      </div>
+    );
+  }
+
   return (
-    <div className="fixed bottom-4 sm:bottom-6 left-1/2 z-50 -translate-x-1/2">
-      <nav className="flex h-16 items-center justify-center gap-2 sm:gap-4 rounded-2xl sm:rounded-3xl border bg-background/50 p-2 sm:p-3 shadow-lg backdrop-blur-md">
+    <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 sm:bottom-6">
+      <nav className="flex h-16 items-center justify-center gap-2 rounded-2xl border bg-background/50 p-2 shadow-lg backdrop-blur-md sm:gap-4 sm:rounded-3xl sm:p-3">
         <NavLink href="/" label="Home">
           {logoUrl ? (
-            <Image src={logoUrl} alt="TriPlanner Logo" width={32} height={32} className="sm:w-10 sm:h-10 object-contain" />
+            <Image src={logoUrl} alt="TriPlanner Logo" width={32} height={32} className="object-contain sm:h-10 sm:w-10" />
           ) : (
-            <Mountain className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
+            <Mountain className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
           )}
         </NavLink>
-        <div className="mx-1 h-8 sm:h-10 self-center w-px bg-border" />
+        <div className="mx-1 h-8 self-center w-px bg-border sm:h-10" />
         {categorySettings?.cars && (
           <NavLink href="/services/cars" label="Cars">
-            <Car className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
+            <Car className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
           </NavLink>
         )}
         {categorySettings?.hotels && (
           <NavLink href="/services/hotels" label="Hotels">
-            <BedDouble className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
+            <BedDouble className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
           </NavLink>
         )}
         {categorySettings?.transport && (
           <NavLink href="/services/transport" label="Pickup">
-            <Briefcase className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
+            <Briefcase className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
           </NavLink>
         )}
         {categorySettings?.explore && (
           <NavLink href="/services/explore" label="Explore">
-            <Compass className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
+            <Compass className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
           </NavLink>
         )}
       </nav>

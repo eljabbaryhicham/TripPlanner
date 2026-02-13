@@ -26,17 +26,22 @@ export interface AppSettings {
     };
 }
 
-const SettingsContext = createContext<AppSettings | null>(null);
+interface SettingsContextType extends AppSettings {
+  isSettingsLoading: boolean;
+}
+
+
+const SettingsContext = createContext<SettingsContextType | null>(null);
 
 export function SettingsProvider({ defaultSettings, children }: { defaultSettings: AppSettings, children: ReactNode }) {
   const firestore = useFirestore();
   const settingsRef = useMemoFirebase(() => (firestore ? doc(firestore, 'app_settings', 'general') : null), [firestore]);
-  const { data: firestoreSettings } = useDoc<Partial<AppSettings>>(settingsRef);
+  const { data: firestoreSettings, isLoading: isSettingsLoading } = useDoc<Partial<AppSettings>>(settingsRef);
 
   const settings = useMemo(() => {
     if (firestoreSettings) {
         // Exclude properties like 'id' from the merge to match AppSettings type.
-        const { id, ...restOfFirestoreSettings } = firestoreSettings;
+        const { id, ...restOfFirestoreSettings } = firestoreSettings as any;
 
         // Deep merge fetched settings with defaults
         return {
@@ -56,14 +61,20 @@ export function SettingsProvider({ defaultSettings, children }: { defaultSetting
     return defaultSettings;
   }, [firestoreSettings, defaultSettings]);
 
+  const contextValue = useMemo(() => ({
+    ...settings,
+    isSettingsLoading,
+  }), [settings, isSettingsLoading]);
+
+
   return (
-    <SettingsContext.Provider value={settings}>
+    <SettingsContext.Provider value={contextValue}>
       {children}
     </SettingsContext.Provider>
   )
 }
 
-export function useSettings() {
+export function useSettings(): SettingsContextType {
   const context = useContext(SettingsContext);
   if (context === null) {
     throw new Error('useSettings must be used within a SettingsProvider. Make sure it is wrapping your app in the root layout.');

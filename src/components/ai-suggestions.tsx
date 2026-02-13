@@ -2,11 +2,19 @@
 'use client';
 
 import * as React from 'react';
-import { Compass } from 'lucide-react';
+import { Compass, Loader2 } from 'lucide-react';
 import { useSettings } from './settings-provider';
 
 const AiSuggestions = () => {
   const settings = useSettings();
+
+  if (settings.isSettingsLoading) {
+    return (
+      <div className="absolute inset-0 bg-background flex items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div
