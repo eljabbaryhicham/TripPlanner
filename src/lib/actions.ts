@@ -396,3 +396,37 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
     }
 }
     
+
+export async function getAdminEmailTemplate(): Promise<{ template?: string; error?: string }> {
+    try {
+        const { adminFirestore } = getAdminServices();
+        const doc = await adminFirestore.collection('email_templates').doc('admin_notification').get();
+        if (!doc.exists) {
+            const defaultTemplate = `<h3>New Booking Inquiry for {{serviceName}}</h3>
+<p><strong>Name:</strong> {{name}}</p>
+<p><strong>Email:</strong> {{email}}</p>`;
+            return { template: defaultTemplate };
+        }
+        return { template: doc.data()?.template };
+    } catch (error) {
+        console.error('Failed to read email template from Firestore:', error);
+        const message = error instanceof Error ? error.message : 'Could not load email template from Firestore.';
+        return { error: message };
+    }
+}
+
+export async function getClientEmailTemplate(): Promise<{ template?: string; error?: string }> {
+    try {
+        const { adminFirestore } = getAdminServices();
+        const doc = await adminFirestore.collection('email_templates').doc('client_confirmation').get();
+        if (!doc.exists) {
+            const defaultTemplate = `<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>`;
+            return { template: defaultTemplate };
+        }
+        return { template: doc.data()?.template };
+    } catch (error) {
+        console.error('Failed to read client email template from Firestore:', error);
+        const message = error instanceof Error ? error.message : 'Could not load client email template from Firestore.';
+        return { error: message };
+    }
+}

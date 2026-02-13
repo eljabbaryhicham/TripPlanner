@@ -22,6 +22,7 @@ import MediaLibrary from '@/components/admin/media-library';
 import { useRouter } from 'next/navigation';
 import BookingManagement from './booking-management';
 import { Skeleton } from '../ui/skeleton';
+import { getAdminEmailTemplate, getClientEmailTemplate } from '@/lib/actions';
 
 export default function DashboardContent() {
     const router = useRouter();
@@ -49,14 +50,18 @@ export default function DashboardContent() {
         setCategorySettings(settings.categories);
         setSettingsLoading(true);
         Promise.all([
-            fetch('/api/email-template').then(res => res.json()),
-            fetch('/api/client-email-template').then(res => res.json())
+            getAdminEmailTemplate(),
+            getClientEmailTemplate()
         ]).then(([templateData, clientTemplateData]) => {
             if (templateData.template) {
                 setEmailTemplate(templateData.template);
+            } else if (templateData.error) {
+                console.error("Failed to load admin template:", templateData.error);
             }
             if (clientTemplateData.template) {
                 setClientEmailTemplate(clientTemplateData.template);
+            } else if (clientTemplateData.error) {
+                console.error("Failed to load client template:", clientTemplateData.error);
             }
         }).catch(console.error)
           .finally(() => setSettingsLoading(false));

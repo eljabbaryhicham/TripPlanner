@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -32,6 +33,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { useSettings } from '@/components/settings-provider';
 
 
 const reservationSchema = z.object({
@@ -82,22 +84,13 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
   const [reservationType, setReservationType] = React.useState<'contact' | null>(null);
   const [showEmailSuccess, setShowEmailSuccess] = React.useState(false);
   const [showEmailSuccessDialog, setShowEmailSuccessDialog] = React.useState(false);
-  const [whatsappNumber, setWhatsappNumber] = React.useState<string>('');
   const [isCheckingOut, setIsCheckingOut] = React.useState(false);
+
+  const settings = useSettings();
+  const whatsappNumber = settings.whatsappNumber;
 
   const isDateRequired = service.category === 'cars' || service.category === 'hotels' || service.category === 'transport';
   const isFlowDisabled = !fullName || (isDateRequired && !dates) || (service.category === 'transport' && !totalPrice);
-
-    React.useEffect(() => {
-        fetch('/api/settings')
-        .then(res => res.json())
-        .then(data => {
-            if (data.whatsappNumber) {
-            setWhatsappNumber(data.whatsappNumber);
-            }
-        })
-        .catch(console.error);
-    }, []);
 
   const form = useForm<ReservationFormValues>({
     resolver: zodResolver(reservationSchema),
