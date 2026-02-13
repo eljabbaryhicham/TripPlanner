@@ -18,15 +18,15 @@ export default function AdminPage() {
     const auth = useAuth();
     const { toast } = useToast();
 
-    // This effect handles the redirection for non-authenticated users.
+    // This effect handles the redirection for non-authenticated or anonymous users.
     React.useEffect(() => {
-        if (!isUserLoading && !user) {
+        if (!isUserLoading && (!user || user.isAnonymous)) {
             router.push('/login');
         }
     }, [user, isUserLoading, router]);
 
-    // Check for admin status only if a user exists.
-    const adminProfileRef = useMemoFirebase(() => (user && firestore) ? doc(firestore, 'roles_admin', user.uid) : null, [user, firestore]);
+    // Check for admin status only if a non-anonymous user exists.
+    const adminProfileRef = useMemoFirebase(() => (user && !user.isAnonymous && firestore) ? doc(firestore, 'roles_admin', user.uid) : null, [user, firestore]);
     const { data: adminProfile, isLoading: isAdminProfileLoading } = useDoc(adminProfileRef);
     const isAdmin = !!adminProfile;
 
@@ -38,8 +38,8 @@ export default function AdminPage() {
     };
     
     const grantAdminAccess = () => {
-        if (!user || !firestore) {
-            toast({ variant: 'destructive', title: 'Error', description: 'User or database not available.' });
+        if (!user || user.isAnonymous || !firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'A valid user or database is not available.' });
             return;
         }
 
@@ -56,8 +56,8 @@ export default function AdminPage() {
             });
     };
 
-    // Consolidate loading states: true if user is loading, OR if we have a user and are checking their admin profile.
-    const isLoading = isUserLoading || (user && isAdminProfileLoading);
+    // Consolidate loading states: true if user is loading, OR if we have a non-anonymous user and are checking their admin profile.
+    const isLoading = isUserLoading || (user && !user.isAnonymous && isAdminProfileLoading);
 
     // Primary loading state for the entire page.
     if (isLoading) {
@@ -68,9 +68,9 @@ export default function AdminPage() {
         )
     }
 
-    // After loading, if there's no user, we are in the process of redirecting.
+    // After loading, if there's no user or user is anonymous, we are in the process of redirecting.
     // Showing a spinner here prevents any content flash while router.push works.
-    if (!user) {
+    if (!user || user.isAnonymous) {
         return (
              <div className="flex min-h-screen items-center justify-center p-4">
                 <Loader2 className="h-12 w-12 animate-spin text-primary" />
