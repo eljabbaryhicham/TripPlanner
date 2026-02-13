@@ -109,7 +109,7 @@ export default function Home() {
 
         <section
           id="best-services"
-          className="flex min-h-screen snap-start flex-col items-center justify-center py-16 md:py-24"
+          className="flex min-h-screen snap-start flex-col items-center justify-center py-32 md:py-40"
         >
           {renderBestServices()}
         </section>
