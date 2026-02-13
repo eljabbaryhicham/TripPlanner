@@ -4,8 +4,7 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { SettingsProvider } from '@/components/settings-provider';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, getApp, App, applicationDefault } from 'firebase-admin/app';
+import { adminFirestore } from '@/firebase/admin';
 
 export const metadata: Metadata = {
   title: 'TriPlanner',
@@ -34,16 +33,6 @@ const defaultSettings = {
   }
 };
 
-function getAdminFirestore(): Firestore {
-    if (getApps().length > 0) {
-        return getFirestore(getApp());
-    }
-    const app = initializeApp({
-        credential: applicationDefault()
-    });
-    return getFirestore(app);
-}
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -51,7 +40,7 @@ export default async function RootLayout({
 }>) {
   let settings = { ...defaultSettings }; // Start with defaults
   try {
-    const db = getAdminFirestore();
+    const db = adminFirestore;
     const settingsDoc = await db.collection('app_settings').doc('general').get();
     if (settingsDoc.exists) {
         const firestoreSettings = settingsDoc.data();

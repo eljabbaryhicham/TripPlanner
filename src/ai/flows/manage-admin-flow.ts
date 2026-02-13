@@ -13,28 +13,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { initializeApp, getApps, getApp, applicationDefault } from 'firebase-admin/app';
-import { getAuth, Auth } from 'firebase-admin/auth';
-import { getFirestore, Firestore } from 'firebase-admin/firestore';
-
-// Gets the initialized Firebase Admin services, creating them if necessary.
-// This is a stateless function, making it robust for serverless environments.
-function getAdminServices(): { adminAuth: Auth; adminFirestore: Firestore } {
-    if (getApps().length === 0) {
-        // In a managed Google Cloud environment, initializeApp() with applicationDefault
-        // automatically discovers service account credentials.
-        initializeApp({
-            credential: applicationDefault(),
-        });
-    }
-    
-    const adminApp = getApp();
-    return {
-        adminAuth: getAuth(adminApp),
-        adminFirestore: getFirestore(adminApp),
-    };
-}
-
+import { adminAuth, adminFirestore } from '@/firebase/admin';
 
 const ManageAdminInputSchema = z.object({
   action: z.enum(['add', 'remove', 'promote']),
@@ -63,8 +42,6 @@ const manageAdminFlow = ai.defineFlow(
   },
   async (input) => {
     try {
-      const { adminAuth, adminFirestore } = getAdminServices();
-
       switch (input.action) {
         case 'add':
           if (!input.email || !input.password) {
