@@ -1,4 +1,5 @@
-import { initializeApp, getApps, getApp, applicationDefault, App } from 'firebase-admin/app';
+
+import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
 
@@ -15,7 +16,10 @@ interface AdminServices {
  * @returns An object containing the initialized admin services.
  */
 export function getAdminServices(): AdminServices {
-    const app = getApps().length === 0 ? initializeApp({ credential: applicationDefault() }) : getApp();
+    // In a Google Cloud environment (like App Hosting), initializeApp() with no arguments
+    // automatically uses the project's default service account credentials.
+    // This is the most robust method for this environment.
+    const app = getApps().length === 0 ? initializeApp() : getApp();
     
     return {
         adminApp: app,
