@@ -1,9 +1,10 @@
 
 import { NextResponse } from 'next/server';
-import { adminFirestore } from '@/firebase/admin';
+import { getAdminServices } from '@/firebase/admin';
 
 export async function GET() {
   try {
+    const { adminFirestore } = getAdminServices();
     const db = adminFirestore;
     const doc = await db.collection('email_templates').doc('admin_notification').get();
     if (!doc.exists) {
