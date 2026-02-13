@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useCallback, useEffect } from 'react';
@@ -78,19 +79,18 @@ const CategorySlideshow = () => {
     emblaApi.on('reInit', onScroll);
   }, [emblaApi, onScroll]);
 
-  const activeCategories = categories.filter(
-    (cat) => categorySettings[cat.setting as keyof typeof categorySettings] !== false
-  );
-  
-  // To ensure the loop works seamlessly, we duplicate the slides.
-  // Embla's loop needs enough slides to fill the viewport plus one for smooth looping.
-  let slides = [...activeCategories];
-  if (slides.length > 0 && slides.length < 10) {
-      const originalSlides = [...slides];
-      while (slides.length < 10) {
-          slides = slides.concat(originalSlides);
-      }
-  }
+  const slides = React.useMemo(() => {
+    const active = categories.filter(
+      (cat) => categorySettings[cat.setting as keyof typeof categorySettings] !== false
+    );
+    if (active.length === 0) {
+      return [];
+    }
+    // To create a seamless loop, we need to provide enough slides.
+    // Repeating the set of active categories multiple times is a robust way to do this.
+    return Array(5).fill(active).flat();
+  }, [categorySettings]);
+
 
   if (slides.length === 0) {
     return null;
