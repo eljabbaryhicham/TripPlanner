@@ -46,10 +46,10 @@ interface SettingsManagementProps {
     currentHeroBackgroundImageUrl?: string;
     currentSuggestionsBackgroundImageUrl?: string;
     currentCategoryImages?: {
-        cars: string;
-        hotels: string;
-        transport: string;
-        explore: string;
+        cars?: string;
+        hotels?: string;
+        transport?: string;
+        explore?: string;
     };
 }
 
