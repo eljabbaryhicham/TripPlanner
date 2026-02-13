@@ -79,7 +79,6 @@ export default function Home() {
               backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              backgroundAttachment: 'fixed',
             }}
           >
             <div className="absolute inset-0 bg-black/70" />

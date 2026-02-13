@@ -23,7 +23,6 @@ const AiSuggestions = () => {
         backgroundImage: `url('${settings.suggestionsBackgroundImageUrl}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-        backgroundAttachment: 'fixed',
       }}
     >
       <div className="absolute inset-0 bg-black/90" />
