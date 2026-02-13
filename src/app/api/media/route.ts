@@ -18,13 +18,13 @@ export async function GET() {
 
         if (r.resource_type === 'image') {
             optimizedUrl = cloudinary.url(r.public_id, {
-                transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto' }]
+                transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto:good' }]
             });
             thumbnailUrl = cloudinary.url(r.public_id, {
                 resource_type: 'image',
                 transformation: [
                     {width: 300, height: 300, crop: 'thumb', gravity: 'auto'},
-                    {quality: 'auto', fetch_format: 'auto'}
+                    {quality: 'auto:eco', fetch_format: 'auto'}
                 ]
             });
         } else if (r.resource_type === 'video') {

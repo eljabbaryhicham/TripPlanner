@@ -47,13 +47,13 @@ export async function POST(request: Request) {
 
         if (uploadResult.resource_type === 'image') {
             optimizedUrl = cloudinary.url(uploadResult.public_id, {
-                transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto' }]
+                transformation: [{ width: 'auto', crop: 'scale', fetch_format: 'auto', quality: 'auto:good' }]
             });
             thumbnailUrl = cloudinary.url(uploadResult.public_id, {
                 resource_type: 'image',
                 transformation: [
                     {width: 300, height: 300, crop: 'thumb', gravity: 'auto'},
-                    {quality: 'auto', fetch_format: 'auto'}
+                    {quality: 'auto:eco', fetch_format: 'auto'}
                 ]
             });
         } else if (uploadResult.resource_type === 'video') {

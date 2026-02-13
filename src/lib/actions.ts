@@ -38,90 +38,88 @@ type InquiryData = z.infer<typeof inquirySchema>;
 export async function submitInquiryEmail(data: InquiryData): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
   const { customerName, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = data;
 
-  try {
-    const { adminFirestore } = getAdminServices();
-    const db = adminFirestore;
-    const settingsPromise = db.collection('app_settings').doc('general').get();
-    const adminTemplatePromise = db.collection('email_templates').doc('admin_notification').get();
-    const clientTemplatePromise = db.collection('email_templates').doc('client_confirmation').get();
+  // Run email sending in the background, do not await it from the client's perspective
+  (async () => {
+    try {
+      const { adminFirestore } = getAdminServices();
+      const db = adminFirestore;
+      const settingsPromise = db.collection('app_settings').doc('general').get();
+      const adminTemplatePromise = db.collection('email_templates').doc('admin_notification').get();
+      const clientTemplatePromise = db.collection('email_templates').doc('client_confirmation').get();
 
-    const [settingsDoc, adminTemplateDoc, clientTemplateDoc] = await Promise.all([settingsPromise, adminTemplatePromise, clientTemplatePromise]);
-    
-    const appSettings = settingsDoc.data();
-    const adminTemplate = adminTemplateDoc.data()?.template || `<h3>New Booking Inquiry for {{serviceName}}</h3><p><strong>Name:</strong> {{name}}</p><p><strong>Email:</strong> {{email}}</p>`;
-    const clientTemplate = clientTemplateDoc.data()?.template || `<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>`;
-    
-    const recipientEmail = appSettings?.bookingEmailTo;
-    const fromEmail = appSettings?.resendEmailFrom;
-    
-    if (!process.env.RESEND_API_KEY) {
-        return { success: true, warning: 'Inquiry saved, but server is not configured to send emails (Resend API Key is missing).' };
+      const [settingsDoc, adminTemplateDoc, clientTemplateDoc] = await Promise.all([settingsPromise, adminTemplatePromise, clientTemplatePromise]);
+      
+      const appSettings = settingsDoc.data();
+      const adminTemplate = adminTemplateDoc.data()?.template || `<h3>New Booking Inquiry for {{serviceName}}</h3><p><strong>Name:</strong> {{name}}</p><p><strong>Email:</strong> {{email}}</p>`;
+      const clientTemplate = clientTemplateDoc.data()?.template || `<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>`;
+      
+      const recipientEmail = appSettings?.bookingEmailTo;
+      const fromEmail = appSettings?.resendEmailFrom;
+      
+      if (!process.env.RESEND_API_KEY || !recipientEmail || !fromEmail) {
+          console.warn('Email sending is not configured. RESEND_API_KEY, recipient, or from-email is missing.');
+          return; // Exit if not configured
+      }
+      
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      
+      const detailsHtml = [
+          { label: 'Service', value: serviceName },
+          { label: 'Name', value: customerName },
+          { label: 'Email', value: email },
+          { label: 'Phone', value: phone },
+          { label: 'Pickup', value: startDate && !endDate ? startDate.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' }) : undefined },
+          { label: 'Dates', value: (startDate && endDate) ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}` : undefined },
+          { label: 'Origin', value: origin },
+          { label: 'Destination', value: destination },
+          { label: 'Estimated Price', value: totalPrice ? `$${totalPrice.toFixed(2)}` : undefined },
+          { label: 'Message', value: message },
+      ]
+      .filter(item => item.value)
+      .map(item => `<li><strong>${item.label}:</strong> <span>${item.value}</span></li>`)
+      .join('');
+
+      const templateData = {
+          detailsList: detailsHtml,
+          serviceName: serviceName,
+          email: email,
+          name: customerName
+      };
+      
+      const adminHtmlBody = fillTemplate(adminTemplate, templateData);
+      const clientHtmlBody = fillTemplate(clientTemplate, templateData);
+
+      // Send both emails concurrently
+      const [adminResult, clientResult] = await Promise.allSettled([
+        resend.emails.send({
+          from: fromEmail,
+          to: [recipientEmail],
+          subject: `New Booking Inquiry for ${serviceName}`,
+          html: adminHtmlBody,
+          reply_to: email,
+        }),
+        email ? resend.emails.send({ // Only send to client if email is provided
+          from: fromEmail,
+          to: [email],
+          subject: `Your Booking Inquiry for ${serviceName}`,
+          html: clientHtmlBody,
+        }) : Promise.resolve({ status: 'fulfilled' as const })
+      ]);
+
+      if (adminResult.status === 'rejected') {
+          console.error('Resend error (to admin):', adminResult.reason);
+      }
+      if (clientResult.status === 'rejected') {
+          console.error('Resend error (to client):', (clientResult as PromiseRejectedResult).reason);
+      }
+
+    } catch (emailError) {
+      console.error('A critical error occurred during background email submission:', emailError);
     }
-    if (!recipientEmail || !fromEmail) {
-        return { success: true, warning: 'Inquiry saved, but server is not configured to send emails (Recipient or "From" email is missing).' };
-    }
-    
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    
-    const detailsHtml = [
-        { label: 'Service', value: serviceName },
-        { label: 'Name', value: customerName },
-        { label: 'Email', value: email },
-        { label: 'Phone', value: phone },
-        { label: 'Pickup', value: startDate && !endDate ? startDate.toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' }) : undefined },
-        { label: 'Dates', value: (startDate && endDate) ? `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}` : undefined },
-        { label: 'Origin', value: origin },
-        { label: 'Destination', value: destination },
-        { label: 'Estimated Price', value: totalPrice ? `$${totalPrice.toFixed(2)}` : undefined },
-        { label: 'Message', value: message },
-    ]
-    .filter(item => item.value)
-    .map(item => `<li><strong>${item.label}:</strong> <span>${item.value}</span></li>`)
-    .join('');
-
-    const templateData = {
-        detailsList: detailsHtml,
-        serviceName: serviceName,
-        email: email,
-        name: customerName
-    };
-    
-    const adminHtmlBody = fillTemplate(adminTemplate, templateData);
-    const clientHtmlBody = fillTemplate(clientTemplate, templateData);
-
-    // Send both emails concurrently
-    const [adminResult, clientResult] = await Promise.allSettled([
-      resend.emails.send({
-        from: fromEmail,
-        to: [recipientEmail],
-        subject: `New Booking Inquiry for ${serviceName}`,
-        html: adminHtmlBody,
-        reply_to: email,
-      }),
-      email ? resend.emails.send({ // Only send to client if email is provided
-        from: fromEmail,
-        to: [email],
-        subject: `Your Booking Inquiry for ${serviceName}`,
-        html: clientHtmlBody,
-      }) : Promise.resolve({ status: 'fulfilled' })
-    ]);
-
-    let warningMessage = null;
-    if (adminResult.status === 'rejected') {
-        console.error('Resend error (to admin):', adminResult.reason);
-        warningMessage = "Your inquiry was saved, but we couldn't notify the administrator. They will follow up as soon as possible.";
-    }
-    if (clientResult.status === 'rejected') {
-        console.error('Resend error (to client):', (clientResult as PromiseRejectedResult).reason);
-        warningMessage = (warningMessage || "Your inquiry was saved,") + " but the confirmation email could not be delivered to you. Please check your email address.";
-    }
-
-    return { success: true, warning: warningMessage };
-
-  } catch (emailError) {
-    console.error('A critical error occurred during email submission:', emailError);
-    return { success: true, warning: 'Your inquiry was saved, but an unexpected error occurred while sending notification emails.' };
-  }
+  })();
+  
+  // Return immediately to the client
+  return { success: true, warning: null };
 }
 
 // --- Contact Form Action ---
