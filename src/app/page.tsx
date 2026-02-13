@@ -93,7 +93,7 @@ export default function Home() {
           </div>
 
           {/* Bottom group */}
-          <div className="relative z-10 text-center pb-24">
+          <div className="relative z-10 text-center pb-32 sm:pb-36">
             <p className="mb-4 font-handwriting text-2xl sm:text-3xl text-white/90">Explore Our Best Services</p>
             <Link href="#best-services" scroll={true}>
               <Button
@@ -116,11 +116,11 @@ export default function Home() {
           </div>
         </section>
         
-        <section
+         <section
           className="relative flex min-h-screen snap-start flex-col text-white"
         >
-          <div className="flex-grow">
-            <AiSuggestions />
+          <div className="flex-grow flex items-center justify-center">
+             <AiSuggestions />
           </div>
           <div className="relative z-10">
             <Footer />
