@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -68,7 +67,7 @@ export default function Home() {
       <Header />
       <main>
         <section
-          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-32 sm:pb-48 text-white"
+          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 text-white"
           style={{
             backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
             backgroundSize: 'cover',
@@ -94,7 +93,7 @@ export default function Home() {
           </div>
 
           {/* Bottom group */}
-          <div className="relative z-10 text-center">
+          <div className="relative z-10 text-center pb-24">
             <p className="mb-4 font-handwriting text-2xl sm:text-3xl text-white/90">Explore Our Best Services</p>
             <Link href="#best-services" scroll={true}>
               <Button
