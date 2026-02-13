@@ -68,7 +68,7 @@ export default function Home() {
       <Header />
       <main>
         <section
-          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-32 text-white"
+          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-24 text-white"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
@@ -96,7 +96,7 @@ export default function Home() {
 
           {/* Bottom group */}
           <div className="relative z-10 text-center">
-            <p className="mb-2 text-sm text-white/80">Explore Our Best Services</p>
+            <p className="mb-4 font-handwriting text-3xl text-white/90">Explore Our Best Services</p>
             <Link href="#best-services" scroll={true}>
               <Button
                 variant="outline"

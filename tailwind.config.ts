@@ -19,6 +19,7 @@ export default {
       fontFamily: {
         body: ['PT Sans', 'sans-serif'],
         headline: ['Inter', 'sans-serif'],
+        handwriting: ['"Dancing Script"', 'cursive'],
         code: ['monospace'],
       },
       colors: {
