@@ -1,13 +1,15 @@
 
 import { NextResponse } from 'next/server';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
-import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, App, applicationDefault } from 'firebase-admin/app';
 
 function getAdminFirestore(): Firestore {
     if (getApps().length > 0) {
         return getFirestore(getApp());
     }
-    const app = initializeApp();
+    const app = initializeApp({
+        credential: applicationDefault()
+    });
     return getFirestore(app);
 }
 
@@ -24,5 +26,3 @@ export async function GET() {
     return NextResponse.json({ error: 'Could not load settings from Firestore.' }, { status: 500 });
   }
 }
-
-    

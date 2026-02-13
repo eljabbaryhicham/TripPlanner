@@ -5,20 +5,18 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
-import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
+import { initializeApp, getApps, getApp, App, applicationDefault } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 
 // --- Robust Firebase Admin Initialization ---
 function getAdminFirestore(): Firestore {
-    // If the app is already initialized, return the existing firestore instance.
     if (getApps().length > 0) {
         return getFirestore(getApp());
     }
     
-    // Otherwise, initialize the app and return the firestore instance.
-    // In a managed Google Cloud environment, initializeApp() with no arguments
-    // automatically discovers service account credentials.
-    const app = initializeApp();
+    const app = initializeApp({
+        credential: applicationDefault()
+    });
     return getFirestore(app);
 }
 
@@ -401,6 +399,4 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
         return { success: false, error: result.message };
     }
 }
-    
-
     
