@@ -1,0 +1,19 @@
+
+import { NextResponse } from 'next/server';
+import { getAdminServices } from '@/firebase/admin';
+
+export async function GET() {
+  try {
+    const { adminFirestore } = getAdminServices();
+    const db = adminFirestore;
+    const doc = await db.collection('email_templates').doc('client_confirmation').get();
+    if (!doc.exists) {
+      const defaultTemplate = `<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>`;
+      return NextResponse.json({ template: defaultTemplate });
+    }
+    return NextResponse.json(doc.data());
+  } catch (error) {
+    console.error('Failed to read client email template from Firestore:', error);
+    return NextResponse.json({ error: 'Could not load client email template from Firestore.' }, { status: 500 });
+  }
+}

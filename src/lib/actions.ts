@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
-import { adminFirestore } from '@/firebase/admin';
+import { getAdminServices } from '@/firebase/admin';
 
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
@@ -40,6 +40,7 @@ export async function submitInquiryEmail(data: InquiryData): Promise<{ success: 
   const { customerName, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = data;
 
   try {
+    const { adminFirestore } = getAdminServices();
     const db = adminFirestore;
     const settingsPromise = db.collection('app_settings').doc('general').get();
     const adminTemplatePromise = db.collection('email_templates').doc('admin_notification').get();
@@ -142,6 +143,7 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
   }
   
   try {
+    const { adminFirestore } = getAdminServices();
     const db = adminFirestore;
     const settingsDoc = await db.collection('app_settings').doc('general').get();
     const appSettings = settingsDoc.data();
@@ -227,6 +229,7 @@ export async function updateGeneralSettings(prevState: any, formData: FormData) 
     };
 
     try {
+        const { adminFirestore } = getAdminServices();
         const db = adminFirestore;
         const settingsRef = db.collection('app_settings').doc('general');
         await settingsRef.set(settingsUpdate, { merge: true });
@@ -252,6 +255,7 @@ export async function updateCategorySettings(prevState: any, formData: FormData)
     };
     
     try {
+        const { adminFirestore } = getAdminServices();
         const db = adminFirestore;
         const settingsRef = db.collection('app_settings').doc('general');
         await settingsRef.set({ categories: categoryStates }, { merge: true });
@@ -283,6 +287,7 @@ export async function updateEmailTemplate(prevState: any, formData: FormData) {
     }
     
     try {
+        const { adminFirestore } = getAdminServices();
         const db = adminFirestore;
         const templateRef = db.collection('email_templates').doc('admin_notification');
         await templateRef.set({ template: parsed.data.template });
@@ -303,6 +308,7 @@ export async function updateClientEmailTemplate(prevState: any, formData: FormDa
     }
     
     try {
+        const { adminFirestore } = getAdminServices();
         const db = adminFirestore;
         const templateRef = db.collection('email_templates').doc('client_confirmation');
         await templateRef.set({ template: parsed.data.template });

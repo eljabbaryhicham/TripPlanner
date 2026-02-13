@@ -13,7 +13,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import { adminAuth, adminFirestore } from '@/firebase/admin';
+import { getAdminServices } from '@/firebase/admin';
 
 const ManageAdminInputSchema = z.object({
   action: z.enum(['add', 'remove', 'promote']),
@@ -42,6 +42,7 @@ const manageAdminFlow = ai.defineFlow(
   },
   async (input) => {
     try {
+      const { adminAuth, adminFirestore } = getAdminServices();
       switch (input.action) {
         case 'add':
           if (!input.email || !input.password) {
