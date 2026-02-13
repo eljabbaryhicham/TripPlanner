@@ -1,9 +1,6 @@
-
 'use client';
 
-import React, { useCallback, useEffect } from 'react';
-import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
+import React from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Car, BedDouble, Briefcase, Compass } from 'lucide-react';
@@ -41,87 +38,45 @@ const categories = [
 ];
 
 const CategorySlideshow = () => {
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' }, [
-    Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true }),
-  ]);
   const { categories: categorySettings } = useSettings();
 
-  const [tweenValues, setTweenValues] = React.useState<number[]>([]);
-
-  const onScroll = useCallback(() => {
-    if (!emblaApi) return;
-
-    const engine = emblaApi.internalEngine();
-    const scrollProgress = emblaApi.scrollProgress();
-
-    const styles = emblaApi.scrollSnapList().map((scrollSnap, index) => {
-      let diffToTarget = scrollSnap - scrollProgress;
-
-      if (engine.options.loop) {
-        engine.slideLooper.loopPoints.forEach((loopItem) => {
-          const target = loopItem.target();
-          if (index === loopItem.index && target !== 0) {
-            const sign = Math.sign(target);
-            if (sign === -1) diffToTarget = scrollSnap - (1 + scrollProgress);
-            if (sign === 1) diffToTarget = scrollSnap + (1 - scrollProgress);
-          }
-        });
-      }
-      return diffToTarget;
-    });
-    setTweenValues(styles);
-  }, [emblaApi, setTweenValues]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onScroll();
-    emblaApi.on('scroll', onScroll);
-    emblaApi.on('reInit', onScroll);
-  }, [emblaApi, onScroll]);
-
-  const slides = React.useMemo(() => {
+  const activeSlides = React.useMemo(() => {
     return categories.filter(
       (cat) => categorySettings[cat.setting as keyof typeof categorySettings] !== false
     );
   }, [categorySettings]);
 
-
-  if (slides.length === 0) {
+  if (activeSlides.length === 0) {
     return null;
   }
+  
+  // Duplicate slides for seamless animation
+  const slides = [...activeSlides, ...activeSlides];
 
   return (
-    <div className="embla" ref={emblaRef}>
-      <div className="embla__container">
-        {slides.map((category, index) => {
-          const tweenValue = tweenValues[index] || 0;
-          const tweenStyle = {
-            transform: `rotateY(${tweenValue * -30}deg) scale(${1 - Math.abs(tweenValue) * 0.15})`,
-            opacity: 1 - Math.abs(tweenValue) / 1.5,
-          };
-
-          return (
-            <div className="embla__slide" key={`${category.href}-${index}`} style={tweenStyle}>
-              <Link href={category.href}>
-                <div className="relative aspect-[3/4] h-full overflow-hidden rounded-2xl shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-2xl">
-                  <Image
-                    src={category.image}
-                    alt={category.name}
-                    fill
-                    className="object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
-                  <div className="absolute bottom-0 left-0 p-6 text-white">
-                    <category.icon className="h-8 w-8 mb-2 opacity-90 drop-shadow-lg" />
-                    <h3 className="font-headline text-3xl font-bold drop-shadow-lg">
-                      {category.name}
-                    </h3>
-                  </div>
+    <div className="scroller" data-animated="true">
+      <div className="scroller__inner">
+        {slides.map((category, index) => (
+          <div className="scroller__slide" key={`${category.href}-${index}`}>
+            <Link href={category.href}>
+              <div className="relative aspect-[3/4] h-full overflow-hidden rounded-2xl shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-2xl">
+                <Image
+                  src={category.image}
+                  alt={category.name}
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+                <div className="absolute bottom-0 left-0 p-6 text-white">
+                  <category.icon className="h-8 w-8 mb-2 opacity-90 drop-shadow-lg" />
+                  <h3 className="font-headline text-3xl font-bold drop-shadow-lg">
+                    {category.name}
+                  </h3>
                 </div>
-              </Link>
-            </div>
-          );
-        })}
+              </div>
+            </Link>
+          </div>
+        ))}
       </div>
     </div>
   );
