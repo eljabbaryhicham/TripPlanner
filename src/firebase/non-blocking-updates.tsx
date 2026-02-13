@@ -22,12 +22,11 @@ export function setDocumentNonBlocking(docRef: DocumentReference, data: any, opt
       'permission-error',
       new FirestorePermissionError({
         path: docRef.path,
-        operation: 'write', // or 'create'/'update' based on options
+        operation: 'merge' in options || 'mergeFields' in options ? 'update' : 'create',
         requestResourceData: data,
       })
     )
   })
-  // Execution continues immediately
 }
 
 

@@ -3,13 +3,14 @@
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc } from '@/firebase';
-import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, serverTimestamp } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, ShieldCheck, Loader2 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import DashboardContent from '@/components/admin/dashboard-content';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -46,14 +47,11 @@ export default function AdminPage() {
         const adminDocRef = doc(firestore, 'roles_admin', user.uid);
         const dataToSave = { email: user.email, createdAt: serverTimestamp(), role: 'admin', id: user.uid };
 
-        setDoc(adminDocRef, dataToSave)
-            .then(() => {
-                toast({ title: "Success!", description: "Admin access granted. Welcome. To manage other users, ask a superadmin to promote your account." });
-            })
-            .catch((error) => {
-                console.error("Grant admin access failed:", error);
-                toast({ variant: 'destructive', title: 'Grant Access Failed', description: 'A permission error occurred. Please check security rules.' });
-            });
+        // Optimistically show the toast
+        toast({ title: "Success!", description: "Admin access granted. Welcome. To manage other users, ask a superadmin to promote your account." });
+        
+        // Perform the non-blocking write. If it fails, the FirebaseErrorListener will catch it.
+        setDocumentNonBlocking(adminDocRef, dataToSave, {});
     };
 
     // Consolidate loading states: true if user is loading, OR if we have a non-anonymous user and are checking their admin profile.

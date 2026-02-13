@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
-import { collection, collectionGroup, query, doc, deleteDoc, updateDoc } from 'firebase/firestore';
+import { collection, collectionGroup, query, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Loader2, Inbox, ChevronDown, Trash2, CheckCircle, XCircle, Download } from 'lucide-react';
@@ -12,6 +12,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 
@@ -20,7 +21,6 @@ const BookingManagement = () => {
     const { toast } = useToast();
     
     const [selectedBookings, setSelectedBookings] = React.useState<Set<string>>(new Set());
-    const [isUpdating, setIsUpdating] = React.useState(false);
 
     const reservationsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'reservations')) : null, [firestore]);
     const inquiriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'inquiries')) : null, [firestore]);
@@ -50,24 +50,18 @@ const BookingManagement = () => {
             return;
         }
         if (selectedBookings.size === 0) return;
-
-        setIsUpdating(true);
-        const promises = [];
         
         for (const bookingId of selectedBookings) {
             const booking = allBookings.find(b => b.id === bookingId);
-            if (!booking) continue;
-
-            let docRef;
-            if (booking._path) { // Use the captured path
-                docRef = doc(firestore, booking._path);
-            } else {
-                toast({ variant: 'destructive', title: 'Action Failed', description: `Could not identify path for booking ID ${booking.id}.` });
+            if (!booking || !booking._path) {
+                 toast({ variant: 'destructive', title: 'Action Failed', description: `Could not identify path for booking ID ${bookingId}.` });
                 continue;
-            }
+            };
+
+            const docRef = doc(firestore, booking._path);
 
             if (action === 'delete') {
-                promises.push(deleteDoc(docRef));
+                deleteDocumentNonBlocking(docRef);
             } else {
                 let dataToUpdate = {};
                 const isReservation = booking.type === 'Checkout';
@@ -76,21 +70,12 @@ const BookingManagement = () => {
                 } else if (action === 'completed') {
                     dataToUpdate = { status: 'completed' };
                 }
-                promises.push(updateDoc(docRef, dataToUpdate));
+                updateDocumentNonBlocking(docRef, dataToUpdate);
             }
         }
         
-        try {
-            await Promise.all(promises);
-            toast({ title: 'Success', description: `Action performed on ${selectedBookings.size} item(s).` });
-            setSelectedBookings(new Set());
-        } catch (error) {
-            console.error('Batch action failed:', error);
-            const errorMessage = error instanceof Error ? error.message : 'Could not perform action. Check permissions.';
-            toast({ variant: 'destructive', title: 'Action Failed', description: errorMessage });
-        } finally {
-            setIsUpdating(false);
-        }
+        toast({ title: 'Success', description: `Action initiated for ${selectedBookings.size} item(s).` });
+        setSelectedBookings(new Set());
     };
 
     const formatDate = (timestamp: any) => {
@@ -143,7 +128,7 @@ const BookingManagement = () => {
                  <div className="flex items-center py-4 gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                            <Button variant="outline" disabled={selectedBookings.size === 0 || isUpdating}>
+                            <Button variant="outline" disabled={selectedBookings.size === 0}>
                                 Actions ({selectedBookings.size}) <ChevronDown className="ml-2 h-4 w-4" />
                             </Button>
                         </DropdownMenuTrigger>
@@ -162,7 +147,6 @@ const BookingManagement = () => {
                         <Download className="mr-2 h-4 w-4" />
                         Download as PDF
                     </Button>
-                    {isUpdating && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
                 </div>
 
                 {isLoading ? (

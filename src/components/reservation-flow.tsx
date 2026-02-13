@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -8,8 +7,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Send, Loader2, CheckCircle, CreditCard } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useFirestore, useUser } from '@/firebase';
-import { addDoc, collection, serverTimestamp, Timestamp, doc, setDoc } from 'firebase/firestore';
-
+import { collection, serverTimestamp, Timestamp, doc } from 'firebase/firestore';
+import { addDocumentNonBlocking, setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import type { Service } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -107,61 +106,53 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
   const onContactSubmit = async (data: ReservationFormValues) => {
     
-    // This is a client-side only action, we save directly to firestore
-    try {
-        if (!firestore) {
-            throw new Error("Firestore is not initialized.");
-        }
+    if (!firestore) {
+        toast({ variant: 'destructive', title: 'Database not available' });
+        return;
+    }
 
-        const inquiryDataForDb = {
-            ...data,
-            customerName: fullName,
-            bookingMethod: 'email' as 'email' | 'whatsapp',
-            startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
-            endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
-            origin: origin || null,
-            destination: destination || null,
-            totalPrice: totalPrice,
-            createdAt: serverTimestamp(),
-            status: 'pending',
-            paymentStatus: 'unpaid',
-        };
+    const inquiryDataForDb = {
+        ...data,
+        customerName: fullName,
+        bookingMethod: 'email' as 'email' | 'whatsapp',
+        startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+        endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+        origin: origin || null,
+        destination: destination || null,
+        totalPrice: totalPrice,
+        createdAt: serverTimestamp(),
+        status: 'pending',
+        paymentStatus: 'unpaid',
+    };
+    
+    // Save to DB (non-blocking)
+    addDocumentNonBlocking(collection(firestore, 'inquiries'), inquiryDataForDb);
 
-        const inquiriesCol = collection(firestore, 'inquiries');
-        await addDoc(inquiriesCol, { ...inquiryDataForDb });
+    // Send email (blocking, as we need the result)
+    const emailResult = await submitInquiryEmail({
+        ...data,
+        customerName: fullName,
+        bookingMethod: 'email',
+        startDate: dates?.from,
+        endDate: dates?.to,
+        origin,
+        destination,
+        totalPrice,
+    });
 
-        const emailResult = await submitInquiryEmail({
-            ...data,
-            customerName: fullName,
-            bookingMethod: 'email',
-            startDate: dates?.from,
-            endDate: dates?.to,
-            origin,
-            destination,
-            totalPrice,
-        });
-
-        if (emailResult.success) {
-             if (emailResult.warning) {
-                toast({ title: 'Inquiry Sent (with a note)', description: emailResult.warning, duration: 8000 });
-            } else {
-                toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
-            }
-            setShowEmailSuccess(true);
-            setShowEmailSuccessDialog(true);
+    if (emailResult.success) {
+         if (emailResult.warning) {
+            toast({ title: 'Inquiry Sent (with a note)', description: emailResult.warning, duration: 8000 });
         } else {
-             toast({
-                variant: 'destructive',
-                title: 'Email Failed',
-                description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
-            });
+            toast({ title: 'Message Sent!', description: "We've received your message and will get back to you shortly (Within 1-3 Hours)." });
         }
-    } catch (error) {
-         console.error("Failed to save inquiry to Firestore:", error);
-        toast({
+        setShowEmailSuccess(true);
+        setShowEmailSuccessDialog(true);
+    } else {
+         toast({
             variant: 'destructive',
-            title: 'Uh oh! Something went wrong.',
-            description: "Your inquiry could not be saved to our system. Please try again later.",
+            title: 'Email Failed',
+            description: emailResult.error || 'The inquiry was saved, but the email could not be sent.',
         });
     }
   };
@@ -192,42 +183,32 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         return;
     }
 
-    try {
-        const reservationsCol = collection(firestore, 'users', user.uid, 'reservations');
-        const newReservationRef = doc(reservationsCol);
-        
-        const reservationPayload = {
-            id: newReservationRef.id,
-            userId: user.uid,
-            customerName: fullName,
-            serviceType: service.category,
-            serviceId: service.id,
-            serviceName: service.name,
-            price: service.price,
-            priceUnit: service.priceUnit,
-            totalPrice: totalPrice ?? service.price,
-            startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
-            endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
-            origin: origin || null,
-            destination: destination || null,
-            paymentStatus: 'pending',
-            status: 'active',
-            createdAt: serverTimestamp(),
-        };
+    const reservationsCol = collection(firestore, 'users', user.uid, 'reservations');
+    const newReservationRef = doc(reservationsCol);
+    
+    const reservationPayload = {
+        id: newReservationRef.id,
+        userId: user.uid,
+        customerName: fullName,
+        serviceType: service.category,
+        serviceId: service.id,
+        serviceName: service.name,
+        price: service.price,
+        priceUnit: service.priceUnit,
+        totalPrice: totalPrice ?? service.price,
+        startDate: dates?.from ? Timestamp.fromDate(dates.from) : null,
+        endDate: dates?.to ? Timestamp.fromDate(dates.to) : null,
+        origin: origin || null,
+        destination: destination || null,
+        paymentStatus: 'pending',
+        status: 'active',
+        createdAt: serverTimestamp(),
+    };
 
-        await setDoc(newReservationRef, reservationPayload);
+    setDocumentNonBlocking(newReservationRef, reservationPayload, {});
 
-        router.push(`/checkout/${newReservationRef.id}`);
-    } catch (error: any) {
-        console.error("Reservation creation failed:", error);
-        toast({
-            variant: 'destructive',
-            title: 'Reservation Failed',
-            description: 'Could not create your reservation. You may not have permissions.',
-        });
-    } finally {
-        setIsCheckingOut(false);
-    }
+    // Optimistic navigation
+    router.push(`/checkout/${newReservationRef.id}`);
   };
 
   const whatsappMessage = React.useMemo(() => {
@@ -245,16 +226,11 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
 
   const handleWhatsappBooking = () => {
     if (!firestore) {
-      toast({
-        variant: 'destructive',
-        title: 'Database Error',
-        description: 'Firestore is not initialized. Please try again later.',
-      });
+      toast({ variant: 'destructive', title: 'Database Error', description: 'Firestore is not initialized.' });
       return;
     }
     if (isFlowDisabled) return;
     
-    // Open WhatsApp first to avoid popup blockers
     const whatsappUrl = `https://wa.me/${whatsappNumber.replace(/\D/g, '')}?text=${whatsappMessage}`;
     window.open(whatsappUrl, '_blank', 'noopener,noreferrer');
 
@@ -274,15 +250,7 @@ const ReservationFlow = ({ service, dates, totalPrice, fullName, origin, destina
         paymentStatus: 'unpaid',
     };
     
-    const inquiriesCol = collection(firestore, 'inquiries');
-    addDoc(inquiriesCol, inquiryData).catch((error) => {
-        console.error("Failed to save WhatsApp inquiry:", error);
-        toast({
-            variant: "destructive",
-            title: "Logging unavailable",
-            description: "Your inquiry could not be logged in our system. Please ensure the agent confirms your booking manually.",
-        });
-    });
+    addDocumentNonBlocking(collection(firestore, 'inquiries'), inquiryData);
   };
 
   return (

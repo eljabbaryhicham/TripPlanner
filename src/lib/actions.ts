@@ -1,4 +1,3 @@
-
 'use server';
 
 import { z } from 'zod';
@@ -6,6 +5,7 @@ import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { manageAdmin } from '@/ai/flows/manage-admin-flow';
 import { getAdminServices } from '@/firebase/admin';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
@@ -228,22 +228,18 @@ export async function updateGeneralSettings(prevState: any, formData: FormData) 
             explore: explore || "" 
         }
     };
-
-    try {
-        const { adminFirestore } = getAdminServices();
-        const db = adminFirestore;
-        const settingsRef = db.collection('app_settings').doc('general');
-        await settingsRef.set(settingsUpdate, { merge: true });
-        
-        revalidatePath('/admin');
-        revalidatePath('/');
-        
-        return { error: null, success: true };
-    } catch (error: any) {
-        console.error('Failed to update settings:', error);
-        const message = error.message || 'Could not save settings.';
-        return { error: message, success: false };
-    }
+    
+    const { adminFirestore } = getAdminServices();
+    const db = adminFirestore;
+    const settingsRef = db.collection('app_settings').doc('general');
+    
+    // Using non-blocking update
+    setDocumentNonBlocking(settingsRef, settingsUpdate, { merge: true });
+    
+    revalidatePath('/admin', 'layout');
+    revalidatePath('/', 'layout');
+    
+    return { error: null, success: true };
 }
 
 // --- Category Settings Action ---
@@ -256,25 +252,19 @@ export async function updateCategorySettings(prevState: any, formData: FormData)
         explore: data.explore === 'on',
     };
     
-    try {
-        const { adminFirestore } = getAdminServices();
-        const db = adminFirestore;
-        const settingsRef = db.collection('app_settings').doc('general');
-        await settingsRef.set({ categories: categoryStates }, { merge: true });
-        
-        revalidatePath('/admin');
-        revalidatePath('/services/cars');
-        revalidatePath('/services/hotels');
-        revalidatePath('/services/transport');
-        revalidatePath('/services/explore');
-        revalidatePath('/');
-        
-        return { error: null, success: true };
-    } catch (error: any) {
-        console.error('Failed to update category settings:', error);
-        const message = error.message || 'Could not save category settings.';
-        return { error: message, success: false };
-    }
+    const { adminFirestore } = getAdminServices();
+    const settingsRef = adminFirestore.collection('app_settings').doc('general');
+
+    setDocumentNonBlocking(settingsRef, { categories: categoryStates }, { merge: true });
+    
+    revalidatePath('/admin');
+    revalidatePath('/services/cars');
+    revalidatePath('/services/hotels');
+    revalidatePath('/services/transport');
+    revalidatePath('/services/explore');
+    revalidatePath('/');
+    
+    return { error: null, success: true };
 }
 
 
@@ -289,19 +279,13 @@ export async function updateEmailTemplate(prevState: any, formData: FormData) {
         return { error: parsed.error.errors[0].message, success: false };
     }
     
-    try {
-        const { adminFirestore } = getAdminServices();
-        const db = adminFirestore;
-        const templateRef = db.collection('email_templates').doc('admin_notification');
-        await templateRef.set({ template: parsed.data.template });
+    const { adminFirestore } = getAdminServices();
+    const templateRef = adminFirestore.collection('email_templates').doc('admin_notification');
+    
+    setDocumentNonBlocking(templateRef, { template: parsed.data.template }, { merge: true });
 
-        revalidatePath('/admin');
-        return { error: null, success: true };
-    } catch (error: any) {
-        console.error('Failed to update email template:', error);
-        const message = error.message || 'Could not save email template.';
-        return { error: message, success: false };
-    }
+    revalidatePath('/admin');
+    return { error: null, success: true };
 }
 
 // --- Client Email Template Action ---
@@ -311,19 +295,13 @@ export async function updateClientEmailTemplate(prevState: any, formData: FormDa
         return { error: parsed.error.errors[0].message, success: false };
     }
     
-    try {
-        const { adminFirestore } = getAdminServices();
-        const db = adminFirestore;
-        const templateRef = db.collection('email_templates').doc('client_confirmation');
-        await templateRef.set({ template: parsed.data.template });
+    const { adminFirestore } = getAdminServices();
+    const templateRef = adminFirestore.collection('email_templates').doc('client_confirmation');
 
-        revalidatePath('/admin');
-        return { error: null, success: true };
-    } catch (error: any) {
-        console.error('Failed to update client email template:', error);
-        const message = error.message || 'Could not save client email template.';
-        return { error: message, success: false };
-    }
+    setDocumentNonBlocking(templateRef, { template: parsed.data.template }, { merge: true });
+
+    revalidatePath('/admin');
+    return { error: null, success: true };
 }
 
 

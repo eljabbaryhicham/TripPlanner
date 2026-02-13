@@ -14,7 +14,8 @@ import { Loader2, Save, PlusCircle, Trash2, Image as ImageIcon } from 'lucide-re
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { z } from 'zod';
 import { useFirestore } from '@/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { MOROCCAN_CITIES } from '@/lib/constants';
@@ -253,18 +254,11 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
         const docRef = doc(firestore, collectionPath, docId);
         const dataToSave = { ...serviceData, id: docId, category: serviceCategory };
 
-        setDoc(docRef, dataToSave, { merge: true })
-            .then(() => {
-                toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
-                onClose();
-            })
-            .catch((error) => {
-                console.error("Save service failed:", error);
-                toast({ variant: 'destructive', title: 'Save Failed', description: 'You may not have the required permissions to save this service.' });
-            })
-            .finally(() => {
-                setIsSubmitting(false);
-            });
+        setDocumentNonBlocking(docRef, dataToSave, { merge: true });
+        
+        toast({ title: isEditing ? 'Service Updated' : 'Service Created', description: 'Your changes have been saved successfully.' });
+        setIsSubmitting(false);
+        onClose();
     };
 
     return (

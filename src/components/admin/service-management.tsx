@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -6,11 +5,12 @@ import type { Service, ServiceCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase, Compass, Loader2 } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase, Compass } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
-import { doc, deleteDoc, setDoc } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
+import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,7 +38,6 @@ const getCollectionPath = (category: ServiceCategory) => {
 function ServiceStatusToggle({ service }: { service: Service }) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [isPending, setIsPending] = React.useState(false);
 
   const handleToggle = (checked: boolean) => {
     if (!firestore) {
@@ -51,21 +50,9 @@ function ServiceStatusToggle({ service }: { service: Service }) {
         return;
     }
 
-    setIsPending(true);
     const docRef = doc(firestore, collectionPath, service.id);
-    const dataToUpdate = { isActive: checked };
-
-    setDoc(docRef, dataToUpdate, { merge: true })
-        .then(() => {
-            toast({ title: "Status Updated" });
-        })
-        .catch(error => {
-            console.error("Service status update failed:", error);
-            toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update service status. Check permissions.' });
-        })
-        .finally(() => {
-            setIsPending(false);
-        });
+    updateDocumentNonBlocking(docRef, { isActive: checked });
+    toast({ title: "Status update initiated." });
   };
   
   return (
@@ -74,9 +61,7 @@ function ServiceStatusToggle({ service }: { service: Service }) {
         id={`status-${service.id}`}
         checked={service.isActive ?? true}
         onCheckedChange={handleToggle}
-        disabled={isPending}
       />
-      {isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
     </div>
   );
 }
@@ -84,7 +69,6 @@ function ServiceStatusToggle({ service }: { service: Service }) {
 function BestOfferToggle({ service }: { service: Service }) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [isPending, setIsPending] = React.useState(false);
 
   const handleToggle = (checked: boolean) => {
     if (!firestore) {
@@ -97,21 +81,9 @@ function BestOfferToggle({ service }: { service: Service }) {
         return;
     }
     
-    setIsPending(true);
     const docRef = doc(firestore, collectionPath, service.id);
-    const dataToUpdate = { isBestOffer: checked };
-
-    setDoc(docRef, dataToUpdate, { merge: true })
-        .then(() => {
-            toast({ title: "Best Offer Updated" });
-        })
-        .catch(error => {
-            console.error("Best offer update failed:", error);
-            toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update best offer status. Check permissions.' });
-        })
-        .finally(() => {
-            setIsPending(false);
-        });
+    updateDocumentNonBlocking(docRef, { isBestOffer: checked });
+    toast({ title: "Best offer update initiated." });
   };
 
   return (
@@ -120,9 +92,7 @@ function BestOfferToggle({ service }: { service: Service }) {
         id={`best-offer-${service.id}`}
         checked={service.isBestOffer ?? false}
         onCheckedChange={handleToggle}
-        disabled={isPending}
       />
-      {isPending && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
     </div>
   );
 }
@@ -146,15 +116,8 @@ function DeleteServiceMenuItem({ service }: { service: Service }) {
         }
 
         const docRef = doc(firestore, collectionPath, service.id);
-        deleteDoc(docRef)
-            .then(() => {
-                toast({ title: 'Service Deleted', description: 'The service has been successfully removed.' });
-            })
-            .catch(error => {
-                console.error("Delete service failed:", error);
-                toast({ variant: 'destructive', title: 'Delete Failed', description: 'You may not have the required permissions.' });
-            });
-        
+        deleteDocumentNonBlocking(docRef);
+        toast({ title: 'Service Deletion Initiated' });
         setDialogOpen(false);
     };
 

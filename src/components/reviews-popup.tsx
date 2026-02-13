@@ -2,7 +2,8 @@
 
 import * as React from 'react';
 import { useUser, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp, query, where, onSnapshot, DocumentData, FirestoreError } from 'firebase/firestore';
+import { collection, serverTimestamp, query, where, onSnapshot, DocumentData, FirestoreError } from 'firebase/firestore';
+import { addDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import {
   Dialog,
   DialogContent,
@@ -21,7 +22,7 @@ import { Skeleton } from './ui/skeleton';
 import { Input } from './ui/input';
 
 // Form for submitting a new review
-const ReviewForm = ({ serviceId, serviceName, onReviewSubmitted }: { serviceId: string, serviceName: string, onReviewSubmitted: () => void }) => {
+const ReviewForm = ({ serviceId, serviceName }: { serviceId: string, serviceName: string }) => {
     const { user } = useUser();
     const firestore = useFirestore();
     const { toast } = useToast();
@@ -53,22 +54,13 @@ const ReviewForm = ({ serviceId, serviceName, onReviewSubmitted }: { serviceId: 
             authorImage: user.photoURL || null,
         };
 
-        const reviewsCol = collection(firestore, 'reviews');
-        addDoc(reviewsCol, reviewData)
-          .then(() => {
-            toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.' });
-            setRating(0);
-            setComment('');
-            setName('');
-            onReviewSubmitted(); // Callback to trigger re-fetch in parent
-          })
-          .catch((error) => {
-            console.error("Review submission failed:", error);
-            toast({ variant: 'destructive', title: 'Submission Failed', description: 'Could not submit your review. Please check your permissions and try again.' });
-          })
-          .finally(() => {
-            setIsSubmitting(false);
-          });
+        addDocumentNonBlocking(collection(firestore, 'reviews'), reviewData);
+        
+        toast({ title: 'Review Submitted!', description: 'Thank you for your feedback.' });
+        setRating(0);
+        setComment('');
+        setName('');
+        setIsSubmitting(false);
     };
     
     return (
@@ -183,7 +175,7 @@ const ReviewsPopup = ({ isOpen, onClose, serviceId, serviceName }: ReviewsPopupP
         <div className="py-4 space-y-6 max-h-[60vh] overflow-y-auto pr-2">
             {user && (
               <>
-                <ReviewForm serviceId={serviceId} serviceName={serviceName} onReviewSubmitted={() => { /* re-fetch is now automatic */ }} />
+                <ReviewForm serviceId={serviceId} serviceName={serviceName} />
                 <Separator />
               </>
             )}
