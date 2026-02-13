@@ -19,10 +19,10 @@ export interface AppSettings {
     heroBackgroundImageUrl?: string;
     suggestionsBackgroundImageUrl?: string;
     categoryImages?: {
-        cars: string;
-        hotels: string;
-        transport: string;
-        explore: string;
+        cars?: string;
+        hotels?: string;
+        transport?: string;
+        explore?: string;
     };
 }
 
@@ -35,17 +35,20 @@ export function SettingsProvider({ defaultSettings, children }: { defaultSetting
 
   const settings = useMemo(() => {
     if (firestoreSettings) {
+        // Exclude properties like 'id' from the merge to match AppSettings type.
+        const { id, ...restOfFirestoreSettings } = firestoreSettings;
+
         // Deep merge fetched settings with defaults
         return {
           ...defaultSettings,
-          ...firestoreSettings,
+          ...restOfFirestoreSettings,
           categories: {
             ...defaultSettings.categories,
-            ...(firestoreSettings.categories || {})
+            ...(restOfFirestoreSettings.categories || {})
           },
           categoryImages: {
             ...defaultSettings.categoryImages,
-            ...(firestoreSettings.categoryImages || {})
+            ...(restOfFirestoreSettings.categoryImages || {})
           }
         };
     }
