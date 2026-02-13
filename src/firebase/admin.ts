@@ -9,41 +9,17 @@ interface AdminServices {
   adminFirestore: Firestore;
 }
 
-// A cached instance of the services
-let services: AdminServices | null = null;
-
 /**
  * Initializes and/or returns the Firebase Admin SDK services.
- * This function ensures that the SDK is initialized only once.
+ * This function is safe for serverless environments and ensures the SDK is initialized only once per instance.
  * @returns An object containing the initialized admin services.
  */
 export function getAdminServices(): AdminServices {
-    // If services are already initialized, return the cached instance.
-    if (services) {
-        return services;
-    }
-
-    // If no apps are initialized, initialize a new one.
-    if (getApps().length === 0) {
-        const adminApp = initializeApp({
-            credential: applicationDefault(),
-        });
-        
-        // Cache the services
-        services = {
-            adminApp,
-            adminAuth: getAuth(adminApp),
-            adminFirestore: getFirestore(adminApp),
-        };
-    } else {
-        // If an app is already initialized, get it and its services.
-        const adminApp = getApp();
-        services = {
-            adminApp,
-            adminAuth: getAuth(adminApp),
-            adminFirestore: getFirestore(adminApp),
-        };
-    }
+    const app = getApps().length === 0 ? initializeApp({ credential: applicationDefault() }) : getApp();
     
-    return services;
+    return {
+        adminApp: app,
+        adminAuth: getAuth(app),
+        adminFirestore: getFirestore(app),
+    };
 }

@@ -180,9 +180,10 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     }
 
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error('Failed to send email:', error);
-    return { success: false, error: 'An unexpected error occurred.' };
+    const message = error.message || 'An unexpected error occurred.';
+    return { success: false, error: message };
   }
 }
 
@@ -238,9 +239,10 @@ export async function updateGeneralSettings(prevState: any, formData: FormData) 
         revalidatePath('/');
         
         return { error: null, success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to update settings:', error);
-        return { error: 'Could not save settings.', success: false };
+        const message = error.message || 'Could not save settings.';
+        return { error: message, success: false };
     }
 }
 
@@ -268,9 +270,10 @@ export async function updateCategorySettings(prevState: any, formData: FormData)
         revalidatePath('/');
         
         return { error: null, success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to update category settings:', error);
-        return { error: 'Could not save category settings.', success: false };
+        const message = error.message || 'Could not save category settings.';
+        return { error: message, success: false };
     }
 }
 
@@ -294,9 +297,10 @@ export async function updateEmailTemplate(prevState: any, formData: FormData) {
 
         revalidatePath('/admin');
         return { error: null, success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to update email template:', error);
-        return { error: 'Could not save email template.', success: false };
+        const message = error.message || 'Could not save email template.';
+        return { error: message, success: false };
     }
 }
 
@@ -315,9 +319,10 @@ export async function updateClientEmailTemplate(prevState: any, formData: FormDa
 
         revalidatePath('/admin');
         return { error: null, success: true };
-    } catch (error) {
+    } catch (error: any) {
         console.error('Failed to update client email template:', error);
-        return { error: 'Could not save client email template.', success: false };
+        const message = error.message || 'Could not save client email template.';
+        return { error: message, success: false };
     }
 }
 
