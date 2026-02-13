@@ -1,22 +1,22 @@
 'use client';
 
 import * as React from 'react';
-import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Loader2, Save } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { updateCategorySettings } from '@/lib/actions';
 import { Separator } from '../ui/separator';
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
+function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
     return (
-        <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+        <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Settings
         </Button>
     );
@@ -34,21 +34,35 @@ const CategoryToggle = ({ id, label, defaultChecked }: { id: string, label: stri
 export default function CategoryManagement({ currentSettings }: { currentSettings: { [key: string]: boolean } }) {
     const router = useRouter();
     const { toast } = useToast();
-    const formRef = React.useRef<HTMLFormElement>(null);
-    
-    // This hook is experimental and its API might change.
-    // Using it to handle form state after submission.
-    const [state, formAction] = React.useActionState(updateCategorySettings, { error: null, success: false });
+    const firestore = useFirestore();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    React.useEffect(() => {
-        if (state.success) {
-            toast({ title: 'Categories Updated', description: 'Your category settings have been saved.' });
-            // No need to call router.refresh() as revalidatePath is used in the server action.
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+            setIsSubmitting(false);
+            return;
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
-        }
-    }, [state, toast, router]);
+
+        const formData = new FormData(event.currentTarget);
+        const data = Object.fromEntries(formData);
+        const categoryStates = {
+            cars: data.cars === 'on',
+            hotels: data.hotels === 'on',
+            transport: data.transport === 'on',
+            explore: data.explore === 'on',
+        };
+
+        const settingsRef = doc(firestore, 'app_settings', 'general');
+        setDocumentNonBlocking(settingsRef, { categories: categoryStates }, { merge: true });
+
+        toast({ title: 'Category settings update initiated.' });
+        setIsSubmitting(false);
+        router.refresh();
+    };
 
     return (
         <Card>
@@ -59,7 +73,7 @@ export default function CategoryManagement({ currentSettings }: { currentSetting
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <form ref={formRef} action={formAction} className="space-y-6">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <CategoryToggle id="cars" label="Car Rentals" defaultChecked={currentSettings?.cars ?? true} />
                     <Separator />
                     <CategoryToggle id="hotels" label="Hotels" defaultChecked={currentSettings?.hotels ?? true} />
@@ -68,7 +82,7 @@ export default function CategoryManagement({ currentSettings }: { currentSetting
                     <Separator />
                     <CategoryToggle id="explore" label="Explore Trips" defaultChecked={currentSettings?.explore ?? true} />
                     <div className="flex justify-end pt-4">
-                        <SubmitButton />
+                        <SubmitButton isSubmitting={isSubmitting} />
                     </div>
                 </form>
             </CardContent>

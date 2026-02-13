@@ -1,9 +1,10 @@
 'use client';
 
 import * as React from 'react';
-import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { updateEmailTemplate, updateClientEmailTemplate } from '@/lib/actions';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Loader2, Save } from 'lucide-react';
@@ -11,11 +12,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
+function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
     return (
-        <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+        <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Template
         </Button>
     );
@@ -24,22 +24,32 @@ function SubmitButton() {
 function AdminTemplateForm({ currentTemplate }: { currentTemplate: string }) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(updateEmailTemplate, { error: null, success: false });
+    const firestore = useFirestore();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+        const formData = new FormData(event.currentTarget);
+        const template = formData.get('template') as string;
 
-    React.useEffect(() => {
-        if (state.success) {
-            toast({ title: 'Template Updated', description: 'The admin email template has been saved.' });
-            router.refresh();
+        if (!firestore) {
+            toast({ variant: "destructive", title: "Error", description: "Database not available." });
+            setIsSubmitting(false);
+            return;
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
-        }
-    }, [state, toast, router]);
+        
+        const templateRef = doc(firestore, 'email_templates', 'admin_notification');
+        setDocumentNonBlocking(templateRef, { template }, { merge: true });
+        toast({ title: "Admin template update initiated." });
+        setIsSubmitting(false);
+        router.refresh();
+    };
 
     return (
-        <form action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
             <Textarea name="template" defaultValue={currentTemplate} rows={15} className="font-mono text-xs" />
-            <div className="flex justify-end"><SubmitButton /></div>
+            <div className="flex justify-end"><SubmitButton isSubmitting={isSubmitting} /></div>
         </form>
     );
 }
@@ -47,22 +57,32 @@ function AdminTemplateForm({ currentTemplate }: { currentTemplate: string }) {
 function ClientTemplateForm({ currentTemplate }: { currentTemplate: string }) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(updateClientEmailTemplate, { error: null, success: false });
+    const firestore = useFirestore();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
+    
+    const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+        const formData = new FormData(event.currentTarget);
+        const template = formData.get('template') as string;
 
-    React.useEffect(() => {
-        if (state.success) {
-            toast({ title: 'Template Updated', description: 'The client confirmation email template has been saved.' });
-            router.refresh();
+        if (!firestore) {
+            toast({ variant: "destructive", title: "Error", description: "Database not available." });
+            setIsSubmitting(false);
+            return;
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
-        }
-    }, [state, toast, router]);
+
+        const templateRef = doc(firestore, 'email_templates', 'client_confirmation');
+        setDocumentNonBlocking(templateRef, { template }, { merge: true });
+        toast({ title: "Client template update initiated." });
+        setIsSubmitting(false);
+        router.refresh();
+    };
 
     return (
-        <form action={formAction} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4">
             <Textarea name="template" defaultValue={currentTemplate} rows={15} className="font-mono text-xs" />
-            <div className="flex justify-end"><SubmitButton /></div>
+            <div className="flex justify-end"><SubmitButton isSubmitting={isSubmitting} /></div>
         </form>
     );
 }

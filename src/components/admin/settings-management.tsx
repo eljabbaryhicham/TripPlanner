@@ -1,10 +1,12 @@
-
 'use client';
 
 import * as React from 'react';
-import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { updateGeneralSettings } from '@/lib/actions';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
+import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { z } from 'zod';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,11 +16,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '../ui/separator';
 import { MediaBrowserDialog } from './media-browser-dialog';
 
-function SubmitButton() {
-    const { pending } = useFormStatus();
+const generalSettingsSchema = z.object({
+    whatsappNumber: z.string().min(1, { message: 'WhatsApp number cannot be empty.' }),
+    bookingEmailTo: z.string().email({ message: 'A valid recipient email is required.' }),
+    resendEmailFrom: z.string().min(1, { message: 'A "from" email is required for Resend.' }),
+    logoUrl: z.string().url({ message: "Invalid URL" }).or(z.literal("")).optional(),
+    heroBackgroundImageUrl: z.string().url({ message: "Invalid URL for Hero Background" }).or(z.literal("")).optional(),
+    suggestionsBackgroundImageUrl: z.string().url({ message: "Invalid URL for Suggestions Background" }).or(z.literal("")).optional(),
+    "categoryImages.cars": z.string().url({ message: "Invalid URL for Cars category image" }).or(z.literal("")).optional(),
+    "categoryImages.hotels": z.string().url({ message: "Invalid URL for Hotels category image" }).or(z.literal("")).optional(),
+    "categoryImages.transport": z.string().url({ message: "Invalid URL for Transport category image" }).or(z.literal("")).optional(),
+    "categoryImages.explore": z.string().url({ message: "Invalid URL for Explore category image" }).or(z.literal("")).optional(),
+});
+
+function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
     return (
-        <Button type="submit" disabled={pending}>
-            {pending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+        <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
             Save Changes
         </Button>
     );
@@ -50,7 +64,8 @@ export default function SettingsManagement({
 }: SettingsManagementProps) {
     const router = useRouter();
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(updateGeneralSettings, { error: null, success: false });
+    const firestore = useFirestore();
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     const [logoUrl, setLogoUrl] = React.useState(currentLogoUrl || '');
     const [heroBg, setHeroBg] = React.useState(currentHeroBackgroundImageUrl || '');
@@ -64,16 +79,6 @@ export default function SettingsManagement({
 
     const [isBrowserOpen, setIsBrowserOpen] = React.useState(false);
     const [imageTarget, setImageTarget] = React.useState<string | null>(null);
-
-    React.useEffect(() => {
-        if (state.success) {
-            toast({ title: 'Settings Updated', description: 'Your changes have been saved successfully.' });
-            router.refresh();
-        }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
-        }
-    }, [state, toast, router]);
 
     const handleSelectImage = (url: string) => {
         if (imageTarget === 'logoUrl') setLogoUrl(url);
@@ -92,6 +97,52 @@ export default function SettingsManagement({
         setIsBrowserOpen(true);
     };
 
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setIsSubmitting(true);
+
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+            setIsSubmitting(false);
+            return;
+        }
+
+        const formData = new FormData(event.currentTarget);
+        const rawData = Object.fromEntries(formData);
+        const parsed = generalSettingsSchema.safeParse(rawData);
+
+        if (!parsed.success) {
+            toast({ variant: 'destructive', title: 'Invalid Data', description: parsed.error.errors[0].message });
+            setIsSubmitting(false);
+            return;
+        }
+
+        const { 
+            "categoryImages.cars": cars, 
+            "categoryImages.hotels": hotels,
+            "categoryImages.transport": transport,
+            "categoryImages.explore": explore,
+            ...rest
+        } = parsed.data;
+
+        const settingsUpdate = {
+            ...rest,
+            categoryImages: { 
+                cars: cars || "", 
+                hotels: hotels || "", 
+                transport: transport || "", 
+                explore: explore || "" 
+            }
+        };
+
+        const settingsRef = doc(firestore, 'app_settings', 'general');
+        setDocumentNonBlocking(settingsRef, settingsUpdate, { merge: true });
+
+        toast({ title: 'Settings update initiated.', description: 'Your changes have been saved.' });
+        setIsSubmitting(false);
+        router.refresh();
+    };
+
     return (
         <>
             <Card>
@@ -100,7 +151,7 @@ export default function SettingsManagement({
                     <CardDescription>Manage application-wide settings for visuals, notifications, and contact points.</CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <form action={formAction} className="space-y-6 max-w-2xl">
+                    <form onSubmit={handleSubmit} className="space-y-6 max-w-2xl">
                         <div className="space-y-2">
                             <Label htmlFor="logoUrl">Website Logo URL</Label>
                             <div className="flex items-center gap-2">
@@ -214,7 +265,7 @@ export default function SettingsManagement({
                             <p className="text-xs text-muted-foreground">The "From" address for emails sent via Resend. Must be a verified domain.</p>
                         </div>
                         <div className="flex justify-end pt-2">
-                            <SubmitButton />
+                            <SubmitButton isSubmitting={isSubmitting} />
                         </div>
                     </form>
                 </CardContent>
