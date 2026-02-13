@@ -25,6 +25,7 @@ export default function AboutPage() {
                     alt="Traveler looking at a map"
                     fill
                     className="object-cover"
+                    priority
                 />
             </div>
             <p>
