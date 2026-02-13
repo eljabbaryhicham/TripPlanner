@@ -70,7 +70,8 @@ export default async function RootLayout({
         console.log("No settings document found in Firestore, using defaults. First save in admin dashboard will create it.");
     }
   } catch (error) {
-    console.error("Could not load settings from Firestore, using defaults:", error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error("Could not load settings from Firestore, using defaults:", errorMessage);
   }
 
   return (
@@ -93,5 +94,3 @@ export default async function RootLayout({
     </html>
   );
 }
-
-    
