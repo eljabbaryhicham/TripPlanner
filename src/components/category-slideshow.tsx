@@ -41,7 +41,7 @@ const categories = [
 
 const CategorySlideshow = () => {
   const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, align: 'center' }, [
-    Autoplay({ delay: 4000, stopOnInteraction: false }),
+    Autoplay({ delay: 4000, stopOnInteraction: false, stopOnMouseEnter: true }),
   ]);
   const { categories: categorySettings } = useSettings();
 
@@ -82,14 +82,20 @@ const CategorySlideshow = () => {
     (cat) => categorySettings[cat.setting as keyof typeof categorySettings] !== false
   );
   
-  if (activeCategories.length === 0) {
+  // To ensure the loop works seamlessly, especially with few items, we duplicate the slides.
+  // Embla's loop needs enough slides to fill the viewport plus one for smooth looping.
+  const slides = activeCategories.length > 0 && activeCategories.length < 5
+    ? [...activeCategories, ...activeCategories, ...activeCategories]
+    : activeCategories;
+
+  if (slides.length === 0) {
     return null;
   }
 
   return (
     <div className="embla" ref={emblaRef}>
       <div className="embla__container">
-        {activeCategories.map((category, index) => {
+        {slides.map((category, index) => {
           const tweenValue = tweenValues[index] || 0;
           const tweenStyle = {
             transform: `rotateY(${tweenValue * -30}deg) scale(${1 - Math.abs(tweenValue) * 0.15})`,
@@ -97,7 +103,7 @@ const CategorySlideshow = () => {
           };
 
           return (
-            <div className="embla__slide" key={index} style={tweenStyle}>
+            <div className="embla__slide" key={`${category.href}-${index}`} style={tweenStyle}>
               <Link href={category.href}>
                 <div className="relative aspect-[3/4] h-full overflow-hidden rounded-2xl shadow-lg transition-all duration-300 ease-in-out hover:scale-[1.02] hover:shadow-2xl">
                   <Image
