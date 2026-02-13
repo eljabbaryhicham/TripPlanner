@@ -125,7 +125,7 @@ const BookingManagement = () => {
                 <CardDescription>View all incoming reservations and manual booking inquiries.</CardDescription>
             </CardHeader>
             <CardContent>
-                 <div className="flex items-center py-4 gap-2">
+                 <div className="flex flex-wrap items-center py-4 gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                             <Button variant="outline" disabled={selectedBookings.size === 0}>
@@ -145,7 +145,7 @@ const BookingManagement = () => {
                         disabled={isLoading || allBookings.length === 0}
                     >
                         <Download className="mr-2 h-4 w-4" />
-                        Download as PDF
+                        Download PDF
                     </Button>
                 </div>
 
@@ -159,7 +159,7 @@ const BookingManagement = () => {
                         <p className="mt-4 text-muted-foreground">No bookings or inquiries found yet.</p>
                     </div>
                 ) : (
-                    <div className="relative max-h-[560px] overflow-y-auto rounded-lg border">
+                    <div className="relative max-h-[560px] overflow-auto rounded-lg border">
                         <Table>
                             <TableHeader className="sticky top-0 z-10 bg-card">
                                 <TableRow>
@@ -200,12 +200,12 @@ const BookingManagement = () => {
                                                 aria-label={`Select booking ${booking.id}`}
                                             />
                                         </TableCell>
-                                        <TableCell>{formatDate(booking.createdAt)}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{formatDate(booking.createdAt)}</TableCell>
                                         <TableCell>
                                             <div className="font-medium">{booking.customerName}</div>
-                                            {booking.email && <div className="text-xs text-muted-foreground">{booking.email}</div>}
+                                            {booking.email && <div className="text-xs text-muted-foreground truncate">{booking.email}</div>}
                                         </TableCell>
-                                        <TableCell>{booking.serviceName}</TableCell>
+                                        <TableCell className="whitespace-nowrap">{booking.serviceName}</TableCell>
                                         <TableCell>
                                             <Badge variant={booking.type === 'Checkout' ? 'default' : 'secondary'} className="capitalize">
                                                 {booking.bookingMethod || booking.type}
@@ -224,7 +224,7 @@ const BookingManagement = () => {
                                                 {booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending')}
                                             </Badge>
                                         </TableCell>
-                                        <TableCell className="text-right font-medium">
+                                        <TableCell className="text-right font-medium whitespace-nowrap">
                                             {booking.totalPrice != null ? `$${booking.totalPrice.toFixed(2)}` : 'N/A'}
                                         </TableCell>
                                     </TableRow>

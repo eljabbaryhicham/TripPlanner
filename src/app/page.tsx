@@ -93,7 +93,7 @@ export default function Home() {
           </div>
 
           {/* Bottom group */}
-          <div className="relative z-10 text-center pb-32 sm:pb-36">
+          <div className="relative z-10 text-center pb-28 sm:pb-32">
             <p className="mb-4 font-handwriting text-2xl sm:text-3xl text-white/90">Explore Our Best Services</p>
             <Link href="#best-services" scroll={true}>
               <Button

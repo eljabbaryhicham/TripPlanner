@@ -3,10 +3,6 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
     --background: 224 71% 4%;
@@ -121,11 +117,18 @@ body {
 }
 
 .scroller__slide {
-  height: 400px;
-  width: 280px;
+  height: 340px; /* Reduced for smaller screens */
+  width: 250px;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 640px) { /* sm */
+  .scroller__slide {
+    height: 400px;
+    width: 280px;
+  }
+}
+
+@media (min-width: 768px) { /* md */
   .scroller__slide {
     height: 500px;
     width: 350px;

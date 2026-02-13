@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -27,7 +26,7 @@ const NavLink = ({
       <Link href={href}>
         <div
           className={cn(
-            'flex h-14 w-14 items-center justify-center rounded-2xl transition-all duration-200 ease-in-out group-hover:-translate-y-2 group-hover:scale-110',
+            'flex h-12 w-12 items-center justify-center rounded-xl transition-all duration-200 ease-in-out group-hover:-translate-y-1 group-hover:scale-110 sm:h-14 sm:w-14 sm:rounded-2xl sm:group-hover:-translate-y-2',
             isActive
               ? 'bg-primary/20'
               : 'bg-background/80 group-hover:bg-secondary/50'
@@ -36,11 +35,11 @@ const NavLink = ({
           {children}
         </div>
       </Link>
-      <span className="absolute -bottom-6 text-xs text-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+      <span className="absolute -bottom-5 text-xs text-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100">
         {label}
       </span>
       {isActive && (
-        <div className="absolute -bottom-2 h-1 w-1 rounded-full bg-foreground"></div>
+        <div className="absolute -bottom-1.5 h-1 w-1 rounded-full bg-foreground"></div>
       )}
     </div>
   );
@@ -59,34 +58,34 @@ const Header = () => {
   }, [auth, isUserLoading, user]);
 
   return (
-    <div className="fixed bottom-6 left-1/2 z-50 -translate-x-1/2">
-      <nav className="flex h-20 items-start justify-center gap-4 rounded-3xl border bg-background/50 p-3 shadow-lg backdrop-blur-md">
+    <div className="fixed bottom-4 sm:bottom-6 left-1/2 z-50 -translate-x-1/2">
+      <nav className="flex h-16 items-start justify-center gap-2 sm:gap-4 rounded-2xl sm:rounded-3xl border bg-background/50 p-2 sm:p-3 shadow-lg backdrop-blur-md">
         <NavLink href="/" label="Home">
           {logoUrl ? (
-            <Image src={logoUrl} alt="TriPlanner Logo" width={40} height={40} className="object-contain" />
+            <Image src={logoUrl} alt="TriPlanner Logo" width={32} height={32} className="sm:w-10 sm:h-10 object-contain" />
           ) : (
-            <Mountain className="h-7 w-7 text-foreground" />
+            <Mountain className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
           )}
         </NavLink>
-        <div className="mx-1 h-10 self-center w-px bg-border" />
+        <div className="mx-1 h-8 sm:h-10 self-center w-px bg-border" />
         {categorySettings?.cars && (
           <NavLink href="/services/cars" label="Cars">
-            <Car className="h-7 w-7 text-foreground" />
+            <Car className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
           </NavLink>
         )}
         {categorySettings?.hotels && (
           <NavLink href="/services/hotels" label="Hotels">
-            <BedDouble className="h-7 w-7 text-foreground" />
+            <BedDouble className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
           </NavLink>
         )}
         {categorySettings?.transport && (
           <NavLink href="/services/transport" label="Pickup">
-            <Briefcase className="h-7 w-7 text-foreground" />
+            <Briefcase className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
           </NavLink>
         )}
         {categorySettings?.explore && (
           <NavLink href="/services/explore" label="Explore">
-            <Compass className="h-7 w-7 text-foreground" />
+            <Compass className="h-6 w-6 sm:h-7 sm:w-7 text-foreground" />
           </NavLink>
         )}
       </nav>

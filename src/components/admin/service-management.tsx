@@ -148,28 +148,30 @@ function DeleteServiceMenuItem({ service }: { service: Service }) {
 
 function ServiceTableSkeleton() {
     return (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Active</TableHead>
-                    <TableHead>Best Offer</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {Array.from({ length: 3 }).map((_, i) => (
-                    <TableRow key={i}>
-                        <TableCell><Skeleton className="h-5 w-32" /></TableCell>
-                        <TableCell><Skeleton className="h-5 w-24" /></TableCell>
-                        <TableCell><Skeleton className="h-6 w-11" /></TableCell>
-                        <TableCell><Skeleton className="h-6 w-11" /></TableCell>
-                        <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Active</TableHead>
+                        <TableHead>Best Offer</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                     </TableRow>
-                ))}
-            </TableBody>
-        </Table>
+                </TableHeader>
+                <TableBody>
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <TableRow key={i}>
+                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-11" /></TableCell>
+                            <TableCell><Skeleton className="h-6 w-11" /></TableCell>
+                            <TableCell className="text-right"><Skeleton className="h-8 w-8 ml-auto" /></TableCell>
+                        </TableRow>
+                    ))}
+                </TableBody>
+            </Table>
+        </div>
     );
 }
 
@@ -190,66 +192,68 @@ export default function ServiceManagement({
     const exploreServices = services.filter(s => s.category === 'explore');
 
     const renderTable = (servicesForCategory: Service[]) => (
-        <Table>
-            <TableHeader>
-                <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Price</TableHead>
-                    <TableHead>Active</TableHead>
-                    <TableHead>Best Offer</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-            </TableHeader>
-            <TableBody>
-                {servicesForCategory && servicesForCategory.length > 0 ? (
-                    servicesForCategory.map((service) => (
-                        <TableRow key={service.id}>
-                            <TableCell className="font-medium">{service.name}</TableCell>
-                            <TableCell>${service.price} / {service.priceUnit}</TableCell>
-                            <TableCell>
-                                <ServiceStatusToggle service={service} />
-                            </TableCell>
-                            <TableCell>
-                                <BestOfferToggle service={service} />
-                            </TableCell>
-                            <TableCell className="text-right">
-                                <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="ghost" className="h-8 w-8 p-0">
-                                            <span className="sr-only">Open menu</span>
-                                            <MoreHorizontal className="h-4 w-4" />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                    <DropdownMenuContent align="end">
-                                        <DropdownMenuItem onClick={() => onEdit(service)}>
-                                            Edit
-                                        </DropdownMenuItem>
-                                        <DeleteServiceMenuItem service={service} />
-                                    </DropdownMenuContent>
-                                </DropdownMenu>
+        <div className="overflow-x-auto">
+            <Table>
+                <TableHeader>
+                    <TableRow>
+                        <TableHead>Name</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Active</TableHead>
+                        <TableHead>Best Offer</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                </TableHeader>
+                <TableBody>
+                    {servicesForCategory && servicesForCategory.length > 0 ? (
+                        servicesForCategory.map((service) => (
+                            <TableRow key={service.id}>
+                                <TableCell className="font-medium">{service.name}</TableCell>
+                                <TableCell>${service.price} / {service.priceUnit}</TableCell>
+                                <TableCell>
+                                    <ServiceStatusToggle service={service} />
+                                </TableCell>
+                                <TableCell>
+                                    <BestOfferToggle service={service} />
+                                </TableCell>
+                                <TableCell className="text-right">
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" className="h-8 w-8 p-0">
+                                                <span className="sr-only">Open menu</span>
+                                                <MoreHorizontal className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuItem onClick={() => onEdit(service)}>
+                                                Edit
+                                            </DropdownMenuItem>
+                                            <DeleteServiceMenuItem service={service} />
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                </TableCell>
+                            </TableRow>
+                        ))
+                    ) : (
+                        <TableRow>
+                            <TableCell colSpan={5} className="h-24 text-center">
+                                No services found.
                             </TableCell>
                         </TableRow>
-                    ))
-                ) : (
-                    <TableRow>
-                        <TableCell colSpan={5} className="h-24 text-center">
-                            No services found.
-                        </TableCell>
-                    </TableRow>
-                )}
-            </TableBody>
-        </Table>
+                    )}
+                </TableBody>
+            </Table>
+        </div>
     );
 
     return (
         <Card>
             <CardHeader>
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center sm:justify-between gap-4">
                     <div>
                         <CardTitle>Services Management</CardTitle>
                         <CardDescription>Add, edit, or remove services from Firestore.</CardDescription>
                     </div>
-                    <Button onClick={onAdd}>
+                    <Button onClick={onAdd} className="w-full sm:w-auto">
                         <PlusCircle className="mr-2 h-4 w-4" />
                         Add Service
                     </Button>
@@ -258,7 +262,7 @@ export default function ServiceManagement({
             <CardContent>
                 {isLoading ? <ServiceTableSkeleton /> : (
                     <Tabs defaultValue="cars" className="w-full">
-                        <TabsList className="grid w-full grid-cols-4">
+                        <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
                             <TabsTrigger value="cars"><Car className="mr-2 h-4 w-4" />Cars</TabsTrigger>
                             <TabsTrigger value="hotels"><BedDouble className="mr-2 h-4 w-4" />Hotels</TabsTrigger>
                             <TabsTrigger value="transport"><Briefcase className="mr-2 h-4 w-4" />Transport</TabsTrigger>
