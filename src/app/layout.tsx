@@ -4,7 +4,6 @@ import './globals.css';
 import { Toaster } from "@/components/ui/toaster";
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { SettingsProvider } from '@/components/settings-provider';
-import { getAdminServices } from '@/firebase/admin';
 
 export const metadata: Metadata = {
   title: 'TriPlanner',
@@ -33,38 +32,11 @@ const defaultSettings = {
   }
 };
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let settings = { ...defaultSettings }; // Start with defaults
-  try {
-    const { adminFirestore } = getAdminServices();
-    const db = adminFirestore;
-    const settingsDoc = await db.collection('app_settings').doc('general').get();
-    if (settingsDoc.exists) {
-        const firestoreSettings = settingsDoc.data();
-        // Deep merge with defaults to ensure all keys are present
-        settings = {
-          ...defaultSettings,
-          ...firestoreSettings,
-          categories: {
-            ...defaultSettings.categories,
-            ...(firestoreSettings?.categories || {})
-          },
-          categoryImages: {
-            ...defaultSettings.categoryImages,
-            ...(firestoreSettings?.categoryImages || {})
-          }
-        };
-    } else {
-        console.log("No settings document found in Firestore, using defaults. First save in admin dashboard will create it.");
-    }
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error("Could not load settings from Firestore, using defaults:", errorMessage);
-  }
 
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
@@ -76,11 +48,11 @@ export default async function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <SettingsProvider settings={settings}>
-          <FirebaseClientProvider>
+        <FirebaseClientProvider>
+          <SettingsProvider defaultSettings={defaultSettings}>
             {children}
-          </FirebaseClientProvider>
-        </SettingsProvider>
+          </SettingsProvider>
+        </FirebaseClientProvider>
         <Toaster />
       </body>
     </html>
