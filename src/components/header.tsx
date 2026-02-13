@@ -59,7 +59,7 @@ const Header = () => {
 
   return (
     <div className="fixed bottom-4 sm:bottom-6 left-1/2 z-50 -translate-x-1/2">
-      <nav className="flex h-16 items-start justify-center gap-2 sm:gap-4 rounded-2xl sm:rounded-3xl border bg-background/50 p-2 sm:p-3 shadow-lg backdrop-blur-md">
+      <nav className="flex h-16 items-center justify-center gap-2 sm:gap-4 rounded-2xl sm:rounded-3xl border bg-background/50 p-2 sm:p-3 shadow-lg backdrop-blur-md">
         <NavLink href="/" label="Home">
           {logoUrl ? (
             <Image src={logoUrl} alt="TriPlanner Logo" width={32} height={32} className="sm:w-10 sm:h-10 object-contain" />
