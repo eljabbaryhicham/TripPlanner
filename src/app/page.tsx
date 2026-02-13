@@ -11,7 +11,6 @@ import AiSuggestions from '@/components/ai-suggestions';
 import BestServicesSection from '@/components/best-services-section';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useSettings } from '@/components/settings-provider';
-import Footer from '@/components/footer';
 import CategorySlideshow from '@/components/category-slideshow';
 import { Button } from '@/components/ui/button';
 import { ArrowDown } from 'lucide-react';
@@ -68,7 +67,7 @@ export default function Home() {
       <Header />
       <main>
         <section
-          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-32 text-white"
+          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-48 text-white"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
@@ -109,8 +108,6 @@ export default function Home() {
           </div>
         </section>
 
-        <AiSuggestions />
-        
         <section
           id="best-services"
           className="flex min-h-screen snap-start flex-col"
@@ -118,8 +115,10 @@ export default function Home() {
           <div className="flex flex-1 items-center justify-center">
             {renderBestServices()}
           </div>
-          <Footer />
         </section>
+        
+        <AiSuggestions />
+        
       </main>
     </div>
   );
