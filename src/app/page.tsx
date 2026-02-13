@@ -120,7 +120,9 @@ export default function Home() {
         <section
           className="relative flex min-h-screen snap-start flex-col text-white"
         >
-          <AiSuggestions />
+          <div className="flex-grow">
+            <AiSuggestions />
+          </div>
           <div className="relative z-10">
             <Footer />
           </div>
