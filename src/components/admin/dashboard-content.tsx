@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { collection, doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { LogOut } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -22,7 +22,6 @@ import MediaLibrary from '@/components/admin/media-library';
 import { useRouter } from 'next/navigation';
 import BookingManagement from './booking-management';
 import { Skeleton } from '../ui/skeleton';
-import { getAdminEmailTemplate, getClientEmailTemplate } from '@/lib/actions';
 
 export default function DashboardContent() {
     const router = useRouter();
@@ -45,27 +44,45 @@ export default function DashboardContent() {
     const { data: adminProfile, isLoading: isAdminProfileLoading } = useDoc(adminProfileRef);
     const isSuperAdmin = adminProfile?.role === 'superadmin';
 
-    // Fetch settings
+    // Fetch settings and email templates
     React.useEffect(() => {
+        if (!firestore) return;
+
         setCategorySettings(settings.categories);
         setSettingsLoading(true);
+
+        const adminTemplateRef = doc(firestore, 'email_templates', 'admin_notification');
+        const clientTemplateRef = doc(firestore, 'email_templates', 'client_confirmation');
+
         Promise.all([
-            getAdminEmailTemplate(),
-            getClientEmailTemplate()
-        ]).then(([templateData, clientTemplateData]) => {
-            if (templateData.template) {
-                setEmailTemplate(templateData.template);
-            } else if (templateData.error) {
-                console.error("Failed to load admin template:", templateData.error);
+            getDoc(adminTemplateRef),
+            getDoc(clientTemplateRef)
+        ]).then(([adminDoc, clientDoc]) => {
+            if (adminDoc.exists()) {
+                setEmailTemplate(adminDoc.data()?.template);
+            } else {
+                console.warn("Admin email template not found in Firestore.");
+                // Optional: set a default fallback
+                setEmailTemplate("<h3>New Booking Inquiry for {{serviceName}}</h3><p><strong>Name:</strong> {{name}}</p><p><strong>Email:</strong> {{email}}</p>");
             }
-            if (clientTemplateData.template) {
-                setClientEmailTemplate(clientTemplateData.template);
-            } else if (clientTemplateData.error) {
-                console.error("Failed to load client template:", clientTemplateData.error);
+            if (clientDoc.exists()) {
+                setClientEmailTemplate(clientDoc.data()?.template);
+            } else {
+                console.warn("Client email template not found in Firestore.");
+                // Optional: set a default fallback
+                setClientEmailTemplate("<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>");
             }
-        }).catch(console.error)
-          .finally(() => setSettingsLoading(false));
-    }, [settings]);
+        }).catch(error => {
+            console.error("Failed to load email templates from Firestore:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Could not load email templates',
+                description: 'There was a problem fetching email templates from the database.'
+            });
+        }).finally(() => {
+            setSettingsLoading(false);
+        });
+    }, [settings, firestore, toast]);
 
     // Data fetching for services from all collections
     const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
