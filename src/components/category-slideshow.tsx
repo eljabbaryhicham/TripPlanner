@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -6,52 +7,52 @@ import Link from 'next/link';
 import { Car, BedDouble, Briefcase, Compass } from 'lucide-react';
 import { useSettings } from './settings-provider';
 
-const categories = [
+const baseCategories = [
   {
     name: 'Cars',
     icon: Car,
     href: '/services/cars',
-    image: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=800&auto=format&fit=crop',
     setting: 'cars',
   },
   {
     name: 'Hotels',
     icon: BedDouble,
     href: '/services/hotels',
-    image: 'https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800&auto=format&fit=crop',
     setting: 'hotels',
   },
   {
     name: 'Pickup',
     icon: Briefcase,
     href: '/services/transport',
-    image: 'https://images.unsplash.com/photo-1579362629245-c464d1ab5537?q=80&w=800&auto=format&fit=crop',
     setting: 'transport',
   },
   {
     name: 'Explore',
     icon: Compass,
     href: '/services/explore',
-    image: 'https://images.unsplash.com/photo-1503220317375-aaad61436b1b?q=80&w=800&auto=format&fit=crop',
     setting: 'explore',
   },
 ];
 
 const CategorySlideshow = () => {
-  const { categories: categorySettings } = useSettings();
+  const { categories: categorySettings, categoryImages } = useSettings();
 
-  const activeSlides = React.useMemo(() => {
-    return categories.filter(
-      (cat) => categorySettings[cat.setting as keyof typeof categorySettings] !== false
-    );
-  }, [categorySettings]);
+  const activeCategories = React.useMemo(() => {
+    return baseCategories
+      .filter(cat => categorySettings[cat.setting as keyof typeof categorySettings] !== false)
+      .map(cat => ({
+        ...cat,
+        image: categoryImages?.[cat.setting as keyof typeof categoryImages] || ''
+      }));
+  }, [categorySettings, categoryImages]);
 
-  if (activeSlides.length === 0) {
+  if (activeCategories.length === 0) {
     return null;
   }
   
   // Duplicate slides for seamless animation
-  const slides = [...activeSlides, ...activeSlides];
+  const duplicatedSlides = [...activeCategories, ...activeCategories, ...activeCategories, ...activeCategories, ...activeCategories];
+  const slides = duplicatedSlides.slice(0, Math.max(10, duplicatedSlides.length));
 
   return (
     <div className="scroller" data-animated="true">

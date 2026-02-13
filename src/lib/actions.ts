@@ -209,23 +209,43 @@ const generalSettingsSchema = z.object({
     bookingEmailTo: z.string().email({ message: 'A valid recipient email is required.' }),
     resendEmailFrom: z.string().min(1, { message: 'A "from" email is required for Resend.' }),
     logoUrl: z.string().url({ message: "Invalid URL" }).or(z.literal("")).optional(),
+    heroBackgroundImageUrl: z.string().url({ message: "Invalid URL for Hero Background" }).or(z.literal("")).optional(),
+    suggestionsBackgroundImageUrl: z.string().url({ message: "Invalid URL for Suggestions Background" }).or(z.literal("")).optional(),
+    "categoryImages.cars": z.string().url({ message: "Invalid URL for Cars category image" }).or(z.literal("")).optional(),
+    "categoryImages.hotels": z.string().url({ message: "Invalid URL for Hotels category image" }).or(z.literal("")).optional(),
+    "categoryImages.transport": z.string().url({ message: "Invalid URL for Transport category image" }).or(z.literal("")).optional(),
+    "categoryImages.explore": z.string().url({ message: "Invalid URL for Explore category image" }).or(z.literal("")).optional(),
 });
 
 export async function updateGeneralSettings(prevState: any, formData: FormData) {
-    const parsed = generalSettingsSchema.safeParse(Object.fromEntries(formData));
+    const rawData = Object.fromEntries(formData);
+    const parsed = generalSettingsSchema.safeParse(rawData);
 
     if (!parsed.success) {
         return { error: parsed.error.errors[0].message, success: false };
     }
 
+    const { 
+        "categoryImages.cars": cars, 
+        "categoryImages.hotels": hotels,
+        "categoryImages.transport": transport,
+        "categoryImages.explore": explore,
+        ...rest
+    } = parsed.data;
+
+    const settingsUpdate = {
+        ...rest,
+        categoryImages: { cars, hotels, transport, explore }
+    };
+
     try {
         const configRaw = await fs.readFile(settingsFilePath, 'utf-8');
         const currentConfig = JSON.parse(configRaw);
-        const newConfig = { ...currentConfig, ...parsed.data };
+        const newConfig = { ...currentConfig, ...settingsUpdate };
         await fs.writeFile(settingsFilePath, JSON.stringify(newConfig, null, 2), 'utf-8');
         
         revalidatePath('/admin');
-        revalidatePath('/'); // Revalidate homepage for logo
+        revalidatePath('/'); // Revalidate homepage for logo, backgrounds, and slideshow
         
         return { error: null, success: true };
     } catch (error) {

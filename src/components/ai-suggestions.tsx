@@ -3,22 +3,23 @@
 
 import * as React from 'react';
 import { Compass } from 'lucide-react';
-import Footer from './footer';
+import { useSettings } from './settings-provider';
 
 const AiSuggestions = () => {
+  const settings = useSettings();
+
   return (
-    <section
-      className="relative flex min-h-screen snap-start flex-col text-white"
+    <div
+      className="absolute inset-0"
       style={{
-        backgroundImage:
-          "url('https://images.unsplash.com/photo-1527613426441-4da17471b66d?q=80&w=2052&auto=format&fit=crop')",
+        backgroundImage: `url('${settings.suggestionsBackgroundImageUrl}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundAttachment: 'fixed',
       }}
     >
       <div className="absolute inset-0 bg-black/90" />
-      <div className="relative flex flex-1 items-center justify-center">
+      <div className="relative flex h-full items-center justify-center">
         <div className="container mx-auto px-4 text-center">
           <Compass className="mx-auto h-12 w-12 text-accent" />
           <h2 className="mt-4 font-headline text-3xl font-bold md:text-4xl">
@@ -31,10 +32,7 @@ const AiSuggestions = () => {
           </p>
         </div>
       </div>
-      <div className="relative z-10">
-        <Footer />
-      </div>
-    </section>
+    </div>
   );
 };
 

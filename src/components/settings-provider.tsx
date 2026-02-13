@@ -13,7 +13,15 @@ export interface AppSettings {
         hotels: boolean;
         transport: boolean;
         explore: boolean;
-    }
+    };
+    heroBackgroundImageUrl?: string;
+    suggestionsBackgroundImageUrl?: string;
+    categoryImages?: {
+        cars: string;
+        hotels: string;
+        transport: string;
+        explore: string;
+    };
 }
 
 const SettingsContext = createContext<AppSettings | null>(null);

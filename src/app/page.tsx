@@ -14,6 +14,7 @@ import { useSettings } from '@/components/settings-provider';
 import CategorySlideshow from '@/components/category-slideshow';
 import { Button } from '@/components/ui/button';
 import { ArrowDown } from 'lucide-react';
+import Footer from '@/components/footer';
 
 export default function Home() {
   const firestore = useFirestore();
@@ -69,8 +70,7 @@ export default function Home() {
         <section
           className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-48 text-white"
           style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
+            backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
             backgroundAttachment: 'fixed',
@@ -117,7 +117,14 @@ export default function Home() {
           </div>
         </section>
         
-        <AiSuggestions />
+        <section
+          className="relative flex min-h-screen snap-start flex-col text-white"
+        >
+          <AiSuggestions />
+          <div className="relative z-10">
+            <Footer />
+          </div>
+        </section>
         
       </main>
     </div>

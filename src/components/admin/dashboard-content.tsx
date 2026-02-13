@@ -160,6 +160,9 @@ export default function DashboardContent() {
                                     currentWhatsappNumber={settings.whatsappNumber}
                                     currentBookingEmailTo={settings.bookingEmailTo || ''}
                                     currentResendEmailFrom={settings.resendEmailFrom || ''}
+                                    currentHeroBackgroundImageUrl={settings.heroBackgroundImageUrl}
+                                    currentSuggestionsBackgroundImageUrl={settings.suggestionsBackgroundImageUrl}
+                                    currentCategoryImages={settings.categoryImages}
                                 />
                             )}
                         </AccordionContent>

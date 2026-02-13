@@ -23,6 +23,14 @@ const defaultSettings = {
     hotels: true,
     transport: true,
     explore: true
+  },
+  heroBackgroundImageUrl: "https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop",
+  suggestionsBackgroundImageUrl: "https://images.unsplash.com/photo-1527613426441-4da17471b66d?q=80&w=2052&auto=format&fit=crop",
+  categoryImages: {
+    cars: "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=800&auto=format&fit=crop",
+    hotels: "https://images.unsplash.com/photo-1566073771259-6a8506099945?q=80&w=800&auto=format&fit=crop",
+    transport: "https://images.unsplash.com/photo-1579362629245-c464d1ab5537?q=80&w=800&auto=format&fit=crop",
+    explore: "https://images.unsplash.com/photo-1503220317375-aaad61436b1b?q=80&w=800&auto=format&fit=crop"
   }
 };
 
@@ -43,6 +51,10 @@ export default async function RootLayout({
       categories: {
         ...defaultSettings.categories,
         ...(fileSettings.categories || {})
+      },
+      categoryImages: {
+        ...defaultSettings.categoryImages,
+        ...(fileSettings.categoryImages || {})
       }
     };
   } catch (error) {
