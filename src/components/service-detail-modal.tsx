@@ -167,9 +167,9 @@ const ServiceDetailModal = ({
           }
         }}
       >
-        <DialogContent className="max-w-3xl overflow-y-auto max-h-[90vh]">
+        <DialogContent className="max-w-3xl overflow-y-auto overscroll-y-contain max-h-[90vh]">
           <DialogHeader>
-            <div className="relative -mx-6 -mt-6 rounded-t-lg overflow-hidden p-4 bg-muted/40">
+            <div className="relative -mx-6 -mt-6 rounded-t-lg p-4 bg-muted/40">
               <Carousel>
                 <CarouselContent>
                   <CarouselItem>
@@ -195,8 +195,8 @@ const ServiceDetailModal = ({
                     </CarouselItem>
                   ))}
                 </CarouselContent>
-                <CarouselPrevious className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 sm:h-12 sm:w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
-                <CarouselNext className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-30 h-8 w-8 sm:h-12 sm:w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
+                <CarouselPrevious className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 h-8 w-8 sm:h-12 sm:w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
+                <CarouselNext className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-40 h-8 w-8 sm:h-12 sm:w-12 bg-black/60 text-white border-0 opacity-90 transition-transform hover:scale-110" />
               </Carousel>
             </div>
           </DialogHeader>
