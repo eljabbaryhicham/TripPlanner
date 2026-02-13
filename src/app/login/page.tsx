@@ -22,7 +22,8 @@ export default function LoginPage() {
   const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    if (!isUserLoading && user) {
+    // Only redirect if the user is fully authenticated and NOT anonymous.
+    if (!isUserLoading && user && !user.isAnonymous) {
         router.push('/admin');
     }
   }, [user, isUserLoading, router]);
@@ -38,7 +39,8 @@ export default function LoginPage() {
       }
       await signInWithEmailAndPassword(auth, email, password);
       toast({ title: 'Login Successful', description: 'Redirecting to dashboard...' });
-      window.location.assign('/admin');
+      // Use router.push for SPA navigation instead of a full page reload.
+      router.push('/admin');
     } catch (err: any) {
       let errorMessage = 'An unknown error occurred.';
       switch (err.code) {
@@ -60,7 +62,8 @@ export default function LoginPage() {
     }
   };
 
-  if (isUserLoading || user) {
+  // Show a loader while checking auth state OR if a real user is found and we are redirecting.
+  if (isUserLoading || (user && !user.isAnonymous)) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -68,6 +71,7 @@ export default function LoginPage() {
     );
   }
 
+  // If loading is finished and user is null or anonymous, show the login form.
   return (
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className="mx-auto w-full max-w-sm">
