@@ -68,7 +68,7 @@ export default function Home() {
       <Header />
       <main>
         <section
-          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-48 text-white"
+          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-32 sm:pb-48 text-white"
           style={{
             backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
             backgroundSize: 'cover',
@@ -81,7 +81,7 @@ export default function Home() {
           {/* Top group */}
           <div className="relative z-10 w-full">
             <div className="container mx-auto px-4 text-center">
-              <h1 className="font-headline text-4xl font-bold tracking-tight md:text-6xl lg:text-7xl">
+              <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
                 TriPlanner
               </h1>
               <p className="mt-4 max-w-2xl mx-auto text-lg text-white/90 md:text-xl">
@@ -95,11 +95,11 @@ export default function Home() {
 
           {/* Bottom group */}
           <div className="relative z-10 text-center">
-            <p className="mb-4 font-handwriting text-3xl text-white/90">Explore Our Best Services</p>
+            <p className="mb-4 font-handwriting text-2xl sm:text-3xl text-white/90">Explore Our Best Services</p>
             <Link href="#best-services" scroll={true}>
               <Button
                 variant="outline"
-                className="rounded-full h-14 w-14 p-0 bg-white/10 border-white/20 hover:bg-white/20 backdrop-blur-sm animate-bounce"
+                className="rounded-full h-12 w-12 sm:h-14 sm:w-14 p-0 bg-white/10 border-white/20 hover:bg-white/20 backdrop-blur-sm animate-bounce"
               >
                 <span className="sr-only">Scroll to next section</span>
                 <ArrowDown className="h-6 w-6" />

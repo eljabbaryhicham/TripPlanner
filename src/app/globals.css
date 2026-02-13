@@ -121,8 +121,15 @@ body {
 }
 
 .scroller__slide {
-  height: 500px;
-  width: 350px;
+  height: 400px;
+  width: 280px;
+}
+
+@media (min-width: 768px) {
+  .scroller__slide {
+    height: 500px;
+    width: 350px;
+  }
 }
 
 @keyframes scroll {
