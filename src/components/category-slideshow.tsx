@@ -82,11 +82,15 @@ const CategorySlideshow = () => {
     (cat) => categorySettings[cat.setting as keyof typeof categorySettings] !== false
   );
   
-  // To ensure the loop works seamlessly, especially with few items, we duplicate the slides.
+  // To ensure the loop works seamlessly, we duplicate the slides.
   // Embla's loop needs enough slides to fill the viewport plus one for smooth looping.
-  const slides = activeCategories.length > 0 && activeCategories.length < 5
-    ? [...activeCategories, ...activeCategories, ...activeCategories]
-    : activeCategories;
+  let slides = [...activeCategories];
+  if (slides.length > 0 && slides.length < 10) {
+      const originalSlides = [...slides];
+      while (slides.length < 10) {
+          slides = slides.concat(originalSlides);
+      }
+  }
 
   if (slides.length === 0) {
     return null;
