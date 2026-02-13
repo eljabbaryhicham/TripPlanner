@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -67,7 +68,7 @@ export default function Home() {
       <Header />
       <main>
         <section
-          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-12 text-white"
+          className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 pb-32 text-white"
           style={{
             backgroundImage:
               "url('https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=2070&auto=format&fit=crop')",
