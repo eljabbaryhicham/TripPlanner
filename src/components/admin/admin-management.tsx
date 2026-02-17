@@ -2,9 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { removeAdmin, setSuperAdmin } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -15,24 +13,14 @@ import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '../ui/skeleton';
 
-import { useFirestore } from '@/firebase';
+import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { firebaseConfig } from '@/firebase/config';
 import { FirebaseApp, initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
 
-function SubmitButton({ children, variant = 'default' }: { children: React.ReactNode, variant?: 'default' | 'destructive' | 'secondary' }) {
-    const { pending } = useFormStatus();
-    return (
-        <Button type="submit" size="sm" variant={variant} disabled={pending}>
-            {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : children}
-        </Button>
-    );
-}
-
 function AddAdminForm() {
-    const router = useRouter();
     const { toast } = useToast();
     const firestore = useFirestore();
     const [email, setEmail] = React.useState('');
@@ -49,15 +37,13 @@ function AddAdminForm() {
 
         let secondaryApp: FirebaseApp | null = null;
         try {
-            // Initialize a secondary Firebase app to avoid logging out the current admin
-            secondaryApp = initializeApp(firebaseConfig, 'admin-creation-app');
+            // Use a unique name for the app instance to avoid conflicts on fast re-renders
+            secondaryApp = initializeApp(firebaseConfig, `admin-creation-app-${Date.now()}`);
             const secondaryAuth = getAuth(secondaryApp);
 
-            // Create the new user with the secondary auth instance
             const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
             const newUser = userCredential.user;
 
-            // Use the primary Firestore instance (where superadmin is logged in) to set the role
             const adminRoleRef = doc(firestore, 'roles_admin', newUser.uid);
             await setDoc(adminRoleRef, {
                 email: newUser.email,
@@ -69,8 +55,6 @@ function AddAdminForm() {
             toast({ title: 'Admin Added', description: 'The new admin has been successfully added.' });
             setEmail('');
             setPassword('');
-            router.refresh();
-
         } catch (error: any) {
             let errorMessage = 'An unknown error occurred.';
             if (error.code === 'auth/email-already-in-use') {
@@ -83,7 +67,6 @@ function AddAdminForm() {
             toast({ variant: 'destructive', title: 'Error Adding Admin', description: errorMessage });
         } finally {
             setIsSubmitting(false);
-            // Clean up the secondary app instance to prevent memory leaks
             if (secondaryApp) {
                 try {
                     await deleteApp(secondaryApp);
@@ -117,52 +100,57 @@ function AddAdminForm() {
     );
 }
 
-function RemoveAdminForm({ adminId }: { adminId: string }) {
-    const router = useRouter();
+function RemoveAdminButton({ adminId }: { adminId: string }) {
+    const firestore = useFirestore();
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(removeAdmin, { error: null, success: false });
-     React.useEffect(() => {
-        if (state.success) {
-            toast({ title: 'Admin Removed' });
-            router.refresh();
+    const [isDeleting, setIsDeleting] = React.useState(false);
+
+    const handleRemove = () => {
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+            return;
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
-        }
-    }, [state, toast, router]);
+        setIsDeleting(true);
+
+        // This only removes the role from Firestore, which revokes admin privileges.
+        // It does not delete the user from Firebase Authentication due to server-side auth issues.
+        const docRef = doc(firestore, 'roles_admin', adminId);
+        deleteDocumentNonBlocking(docRef);
+
+        toast({ title: 'Admin Role Removed', description: 'The user can no longer access admin privileges.' });
+        setIsDeleting(false);
+    };
 
     return (
-        <form action={formAction}>
-            <input type="hidden" name="id" value={adminId} />
-            <SubmitButton variant="destructive">
-                <Trash2 className="h-4 w-4" />
-            </SubmitButton>
-        </form>
+        <Button size="sm" variant="destructive" disabled={isDeleting} onClick={handleRemove}>
+            {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+        </Button>
     );
 }
 
-function SetSuperAdminForm({ adminId }: { adminId: string }) {
-    const router = useRouter();
+function SetSuperAdminButton({ adminId }: { adminId: string }) {
+    const firestore = useFirestore();
     const { toast } = useToast();
-    const [state, formAction] = React.useActionState(setSuperAdmin, { error: null, success: false });
+    const [isPromoting, setIsPromoting] = React.useState(false);
 
-     React.useEffect(() => {
-        if (state.success) {
-            toast({ title: 'Super Admin Updated' });
-            router.refresh();
+    const handlePromote = () => {
+        if (!firestore) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
+            return;
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
-        }
-    }, [state, toast, router]);
+        setIsPromoting(true);
 
-     return (
-        <form action={formAction}>
-            <input type="hidden" name="id" value={adminId} />
-            <SubmitButton variant="secondary">
-                <Crown className="h-4 w-4" />
-            </SubmitButton>
-        </form>
+        const docRef = doc(firestore, 'roles_admin', adminId);
+        updateDocumentNonBlocking(docRef, { role: 'superadmin' });
+        
+        toast({ title: 'Super Admin Updated', description: 'Admin has been promoted.' });
+        setIsPromoting(false);
+    };
+    
+    return (
+        <Button size="sm" variant="secondary" disabled={isPromoting} onClick={handlePromote}>
+            {isPromoting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Crown className="h-4 w-4" />}
+        </Button>
     );
 }
 
@@ -197,7 +185,9 @@ export default function AdminManagement({ admins, currentUser, isLoading }: { ad
         <Card>
             <CardHeader>
                 <CardTitle>Manage Administrators</CardTitle>
-                <CardDescription>Add, remove, or promote administrators.</CardDescription>
+                <CardDescription>
+                    Add, remove, or promote administrators. These actions are performed by your browser, authorized by your Super Admin role.
+                </CardDescription>
             </CardHeader>
             <CardContent>
                 {isLoading ? <AdminTableSkeleton /> : (
@@ -216,10 +206,10 @@ export default function AdminManagement({ admins, currentUser, isLoading }: { ad
                                     <TableCell className="capitalize">{admin.role}</TableCell>
                                     <TableCell className="flex justify-end gap-2">
                                         {admin.id !== currentUser.id && admin.role !== 'superadmin' && (
-                                            <SetSuperAdminForm adminId={admin.id} />
+                                            <SetSuperAdminButton adminId={admin.id} />
                                         )}
                                         {admin.id !== currentUser.id && (
-                                            <RemoveAdminForm adminId={admin.id} />
+                                            <RemoveAdminButton adminId={admin.id} />
                                         )}
                                     </TableCell>
                                 </TableRow>
