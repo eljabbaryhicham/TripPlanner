@@ -23,6 +23,8 @@ import BookingManagement from './booking-management';
 import { Skeleton } from '../ui/skeleton';
 import { Separator } from '../ui/separator';
 import ReviewManagement from './review-management';
+import adminTemplateFromFile from '@/lib/email-template.json';
+import clientTemplateFromFile from '@/lib/client-email-template.json';
 
 export default function DashboardContent() {
     const router = useRouter();
@@ -59,19 +61,17 @@ export default function DashboardContent() {
             getDoc(adminTemplateRef),
             getDoc(clientTemplateRef)
         ]).then(([adminDoc, clientDoc]) => {
-            if (adminDoc.exists()) {
+            if (adminDoc.exists() && adminDoc.data()?.template) {
                 setEmailTemplate(adminDoc.data()?.template);
             } else {
-                console.warn("Admin email template not found in Firestore.");
-                // Optional: set a default fallback
-                setEmailTemplate("<h3>New Booking Inquiry for {{serviceName}}</h3><p><strong>Name:</strong> {{name}}</p><p><strong>Email:</strong> {{email}}</p>");
+                console.warn("Admin email template not found in Firestore. Using local fallback.");
+                setEmailTemplate(adminTemplateFromFile.template);
             }
-            if (clientDoc.exists()) {
+            if (clientDoc.exists() && clientDoc.data()?.template) {
                 setClientEmailTemplate(clientDoc.data()?.template);
             } else {
-                console.warn("Client email template not found in Firestore.");
-                // Optional: set a default fallback
-                setClientEmailTemplate("<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>");
+                console.warn("Client email template not found in Firestore. Using local fallback.");
+                setClientEmailTemplate(clientTemplateFromFile.template);
             }
         }).catch(error => {
             console.error("Failed to load email templates from Firestore:", error);
