@@ -108,13 +108,27 @@ const BookingManagement = () => {
         const tableRows: (string | number)[][] = [];
 
         allBookings.forEach(booking => {
+            // Logic for Status (matches table display)
+            const isPaid = booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid';
+            const isCancelled = booking.status === 'cancelled';
+            let statusText = 'Pending';
+            if (isCancelled) {
+                statusText = 'Cancelled';
+            } else if (isPaid) {
+                statusText = 'Completed';
+            }
+            
+            // Logic for Payment (matches table display)
+            let paymentText = booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending');
+            paymentText = paymentText.charAt(0).toUpperCase() + paymentText.slice(1);
+
             const bookingData = [
                 formatDate(booking.createdAt),
                 booking.customerName,
                 booking.serviceName,
                 booking.bookingMethod || booking.type,
-                booking.status || (booking.type === 'Inquiry' ? 'pending' : 'active'),
-                booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid' ? 'Paid' : 'Unpaid',
+                statusText,
+                paymentText,
                 booking.totalPrice != null ? `$${booking.totalPrice.toFixed(2)}` : 'N/A'
             ];
             tableRows.push(bookingData);
