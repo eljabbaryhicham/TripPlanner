@@ -1,11 +1,10 @@
-
 'use client';
 
 import * as React from 'react';
 import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
-import { LogOut } from 'lucide-react';
+import { LogOut, Settings } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { signOut } from 'firebase/auth';
 import ServiceManagement from '@/components/admin/service-management';
@@ -22,6 +21,8 @@ import MediaLibrary from '@/components/admin/media-library';
 import { useRouter } from 'next/navigation';
 import BookingManagement from './booking-management';
 import { Skeleton } from '../ui/skeleton';
+import { Separator } from '../ui/separator';
+import ReviewManagement from './review-management';
 
 export default function DashboardContent() {
     const router = useRouter();
@@ -143,7 +144,7 @@ export default function DashboardContent() {
                     </Button>
                 </div>
             </header>
-            <main className="p-4 sm:px-6 sm:py-0">
+            <main className="p-4 sm:px-6 sm:py-0 space-y-8">
                 <Accordion type="multiple" defaultValue={['bookings']} className="w-full space-y-4">
                     <AccordionItem value="bookings">
                         <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
@@ -166,6 +167,25 @@ export default function DashboardContent() {
                             />
                         </AccordionContent>
                     </AccordionItem>
+                     <AccordionItem value="reviews">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Review Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                           <ReviewManagement />
+                        </AccordionContent>
+                    </AccordionItem>
+                </Accordion>
+                
+                <div className="space-y-4">
+                    <div className="flex items-center gap-4">
+                        <Settings className="h-6 w-6 text-muted-foreground" />
+                        <h2 className="text-xl font-semibold text-muted-foreground">Other Settings</h2>
+                    </div>
+                    <Separator />
+                </div>
+                
+                 <Accordion type="multiple" className="w-full space-y-4">
                     <AccordionItem value="settings">
                         <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
                             General Settings
