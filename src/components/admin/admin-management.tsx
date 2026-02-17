@@ -12,7 +12,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '../ui/skeleton';
 
-import { useFirestore, useAuth, updateDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useAuth, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
 import { firebaseConfig } from '@/firebase/config';
 import { FirebaseApp, initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -57,13 +57,13 @@ function AddAdminForm() {
         } catch (error: any) {
             let errorMessage = 'An unknown error occurred.';
             if (error.code === 'auth/email-already-in-use') {
-                errorMessage = 'This email address is already in use. If this user was a previous admin, their account must be fully deleted before they can be re-added.';
+                errorMessage = 'This email address is already in use. If this user was a previous admin, their account must be fully deleted from the Firebase Console before they can be re-added.';
             } else if (error.code === 'auth/weak-password') {
                 errorMessage = 'The password must be at least 6 characters long.';
             } else if (error.code) {
                 errorMessage = error.code;
             }
-            toast({ variant: 'destructive', title: 'Error Adding Admin', description: errorMessage });
+            toast({ variant: 'destructive', title: 'Error Adding Admin', description: errorMessage, duration: 10000 });
         } finally {
             setIsSubmitting(false);
             if (secondaryApp) {
@@ -101,56 +101,37 @@ function AddAdminForm() {
 
 function RemoveAdminButton({ adminId }: { adminId: string }) {
     const { toast } = useToast();
-    const auth = useAuth();
+    const firestore = useFirestore();
     const [isDeleting, setIsDeleting] = React.useState(false);
 
     const handleRemove = async () => {
         setIsDeleting(true);
         try {
-            if (!auth.currentUser) {
-                throw new Error("You must be logged in to perform this action.");
+            if (!firestore) {
+                throw new Error("Database not available.");
             }
 
-            const token = await auth.currentUser.getIdToken();
-
-            const response = await fetch('/api/delete-admin-user', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ uidToDelete: adminId })
+            const docRef = doc(firestore, 'roles_admin', adminId);
+            deleteDocumentNonBlocking(docRef);
+            
+            toast({ 
+                title: 'Admin Role Revoked', 
+                description: "The user's admin privileges have been removed. To fully delete their account, go to the Firebase Console.",
+                duration: 8000
             });
 
-            if (!response.ok) {
-                // If the response is not OK, try to parse the JSON for an error message.
-                const errorData = await response.json().catch(() => ({ error: `Server responded with status ${response.status}` }));
-                const errorMessage = errorData.details || errorData.error || 'An unknown server error occurred.';
-                throw new Error(errorMessage);
-            }
-
-            // If the response is OK, we can optionally parse the body if we expect one,
-            // or just assume success. This handles cases where the server sends an empty body on success.
-            const responseText = await response.text();
-            if (responseText) {
-                const result = JSON.parse(responseText);
-                if (!result.success) {
-                    throw new Error(result.error || result.message || 'Deletion reported failure.');
-                }
-            }
-
-            toast({ title: 'Admin Deleted', description: 'The admin user and their authentication account have been removed.' });
         } catch (error: any) {
              toast({ 
                 variant: 'destructive', 
                 title: 'Deletion Failed', 
                 description: error.message,
-                duration: 10000 // Give more time to read the error
+                duration: 10000 
              });
         } finally {
             setIsDeleting(false);
         }
     };
+
 
     return (
         <Button size="sm" variant="destructive" disabled={isDeleting} onClick={handleRemove}>
