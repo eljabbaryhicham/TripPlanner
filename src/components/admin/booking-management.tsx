@@ -44,7 +44,7 @@ const BookingManagement = () => {
     
     const isLoading = reservationsLoading || inquiriesLoading;
 
-    const handleBatchAction = async (action: 'paid' | 'completed' | 'delete') => {
+    const handleBatchAction = async (action: 'paid' | 'unpaid' | 'completed' | 'delete') => {
         if (!firestore) {
             toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
             return;
@@ -67,6 +67,8 @@ const BookingManagement = () => {
                 const isReservation = booking.type === 'Checkout';
                 if (action === 'paid') {
                     dataToUpdate = { paymentStatus: isReservation ? 'completed' : 'paid' };
+                } else if (action === 'unpaid') {
+                    dataToUpdate = { paymentStatus: isReservation ? 'pending' : 'unpaid' };
                 } else if (action === 'completed') {
                     dataToUpdate = { status: 'completed' };
                 }
@@ -134,6 +136,7 @@ const BookingManagement = () => {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent>
                             <DropdownMenuItem onSelect={() => handleBatchAction('paid')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Paid</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleBatchAction('unpaid')}><XCircle className="mr-2 h-4 w-4" />Mark as Unpaid</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleBatchAction('completed')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Completed</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onSelect={() => handleBatchAction('delete')} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete Selected</DropdownMenuItem>
