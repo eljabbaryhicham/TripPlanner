@@ -1,3 +1,4 @@
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -8,28 +9,7 @@ service cloud.firestore {
     function isAdmin() { return isSignedIn() && exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid)); }
     function isSuperAdmin() { return isAdmin() && get(/databases/$(database)/documents/roles_admin/$(request.auth.uid)).data.role == 'superadmin'; }
 
-    // --- Inquiries (Manual Bookings) ---
-    match /inquiries/{inquiryId} {
-      // Anyone can create an inquiry (including anonymous users)
-      allow create: if isSignedIn();
-      // Only admins can read or modify inquiries
-      allow read, update, delete: if isAdmin();
-    }
-
-    // --- Public Collections (Readable by all, Writable by Admins) ---
-    match /hotels/{docId} { allow read: if true; allow write: if isAdmin(); }
-    match /carRentals/{docId} { allow read: if true; allow write: if isAdmin(); }
-    match /transports/{docId} { allow read: if true; allow write: if isAdmin(); }
-    match /exploreTrips/{docId} { allow read: if true; allow write: if isAdmin(); }
-
-    // --- Publicly readable reviews ---
-    match /reviews/{reviewId} {
-      allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
-    }
-    
-    // --- User-specific data ---
+    // --- User-specific data (Private) ---
     match /users/{userId} {
       // User can create, read, and update their own doc
       allow create, get, update: if isOwner(userId);
@@ -37,23 +17,42 @@ service cloud.firestore {
       allow get: if isAdmin();
       // Only admins can list/delete users
       allow list, delete: if isAdmin();
+      
+      // Subcollections
+      match /reservations/{reservationId} { allow read, write: if isOwner(userId) || isAdmin(); }
+      match /serviceSuggestions/{suggestionId} { allow read, write: if isOwner(userId) || isAdmin(); }
     }
 
-    // --- User Reservations (subcollection) ---
-    match /users/{userId}/reservations/{reservationId} {
-      // A user can manage their own reservations.
-      // An admin can manage any user's reservations.
-      allow read, write: if isOwner(userId) || isAdmin();
+    // --- Admin Roles (Private) ---
+    match /roles_admin/{adminId} {
+      allow read, write: if isSuperAdmin();
+      allow create: if isOwner(adminId); // Allows first admin to create their own role
+      allow get: if isOwner(adminId);
     }
     
-    // --- Admin Roles ---
-    match /roles_admin/{adminId} {
-      // Superadmins can manage all admin roles
-      allow read, write: if isSuperAdmin();
-      // A user can create their own doc to request admin access
-      allow create: if isOwner(adminId);
-      // An admin can read their own role document
-      allow get: if isOwner(adminId);
+    // --- Inquiries (Private Read) ---
+    match /inquiries/{inquiryId} {
+      allow create: if isSignedIn();
+      allow read, update, delete: if isAdmin();
+    }
+    
+    // --- Generic rule for all public collections ---
+    // This allows public read access to any collection not explicitly private.
+    // New service collections (e.g., 'villas', 'tours') will automatically be public.
+    match /{publicCollection}/{docId} {
+        allow read: if publicCollection != 'users' 
+                     && publicCollection != 'roles_admin' 
+                     && publicCollection != 'inquiries';
+        
+        // Admins can write to any of these public collections.
+        allow write: if isAdmin();
+
+        // Special write rule for the 'reviews' collection.
+        allow create: if publicCollection == 'reviews' 
+                       && isSignedIn() 
+                       && request.resource.data.userId == request.auth.uid;
+        allow update, delete: if publicCollection == 'reviews' 
+                               && (isOwner(resource.data.userId) || isAdmin());
     }
   }
 }

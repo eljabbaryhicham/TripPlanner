@@ -3,9 +3,6 @@
 
 import * as React from 'react';
 import Link from 'next/link';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
-
 import Header from '@/components/header';
 import AiSuggestions from '@/components/ai-suggestions';
 import BestServicesSection from '@/components/best-services-section';
@@ -15,31 +12,46 @@ import CategorySlideshow from '@/components/category-slideshow';
 import { Button } from '@/components/ui/button';
 import { ArrowDown } from 'lucide-react';
 import Footer from '@/components/footer';
+import { CategoryServiceLoader } from '@/components/category-service-loader';
+import type { Service } from '@/lib/types';
 
 export default function Home() {
-  const firestore = useFirestore();
   const settings = useSettings();
+  const enabledCategories = settings.categories.filter(cat => cat.enabled);
+  const isSettingsLoading = settings.isSettingsLoading;
 
-  const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
-  const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
-  const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
-  const exploreTripsRef = useMemoFirebase(() => firestore ? collection(firestore, 'exploreTrips') : null, [firestore]);
+  const [serviceData, setServiceData] = React.useState<Record<string, { services: Service[] | null, isLoading: boolean }>>({});
 
-  const { data: carRentals, isLoading: carsLoading } = useCollection(carRentalsRef);
-  const { data: hotels, isLoading: hotelsLoading } = useCollection(hotelsRef);
-  const { data: transports, isLoading: transportsLoading } = useCollection(transportsRef);
-  const { data: exploreTrips, isLoading: exploreLoading } = useCollection(exploreTripsRef);
+  const handleDataLoaded = React.useCallback((categoryId: string, services: Service[] | null, isLoading: boolean) => {
+    setServiceData(prev => ({
+      ...prev,
+      [categoryId]: { services, isLoading }
+    }));
+  }, []);
 
-  const services = React.useMemo(() => {
-    const allServices: any[] = [];
-    if (carRentals) allServices.push(...carRentals.map(s => ({...s, category: 'cars'})));
-    if (hotels) allServices.push(...hotels.map(s => ({...s, category: 'hotels'})));
-    if (transports) allServices.push(...transports.map(s => ({...s, category: 'transport'})));
-    if (exploreTrips) allServices.push(...exploreTrips.map(s => ({...s, category: 'explore'})));
-    return allServices;
-  }, [carRentals, hotels, transports, exploreTrips]);
+  const allServices = React.useMemo(() => {
+    const combinedServices: Service[] = [];
+    for (const categoryId in serviceData) {
+      const { services } = serviceData[categoryId];
+      if (services) {
+        const servicesWithCategory = services.map(s => ({ ...s, category: categoryId }));
+        combinedServices.push(...servicesWithCategory);
+      }
+    }
+    return combinedServices;
+  }, [serviceData]);
 
-  const isLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading;
+  const isLoading = React.useMemo(() => {
+    if (isSettingsLoading) return true;
+    
+    const expectedCategoryIds = enabledCategories.map(c => c.id);
+    if(expectedCategoryIds.length === 0) return false; // Not loading if there are no categories
+
+    const loadedCategoryIds = Object.keys(serviceData);
+    if (loadedCategoryIds.length < expectedCategoryIds.length) return true;
+
+    return Object.values(serviceData).some(data => data.isLoading);
+  }, [serviceData, enabledCategories, isSettingsLoading]);
   
   const renderBestServices = () => {
     if (isLoading) {
@@ -56,13 +68,14 @@ export default function Home() {
       );
     }
     
-    return <BestServicesSection 
-      allServices={services} 
-    />;
+    return <BestServicesSection allServices={allServices} />;
   };
 
   return (
     <div className="flex flex-col min-h-screen">
+      {!isSettingsLoading && enabledCategories.map(cat => (
+        <CategoryServiceLoader key={cat.id} categoryId={cat.id} onDataLoaded={handleDataLoaded} />
+      ))}
       <Header />
       <main className="flex-1">
         <section
