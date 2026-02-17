@@ -26,6 +26,10 @@ import ReviewManagement from './review-management';
 import adminTemplateFromFile from '@/lib/email-template.json';
 import clientTemplateFromFile from '@/lib/client-email-template.json';
 
+interface TemplateFile {
+  template: string;
+}
+
 export default function DashboardContent() {
     const router = useRouter();
     const { user } = useUser();
@@ -63,13 +67,13 @@ export default function DashboardContent() {
                 setEmailTemplate(adminDoc.data()?.template);
             } else {
                 console.warn("Admin email template not found in Firestore. Using local fallback.");
-                setEmailTemplate(adminTemplateFromFile.template);
+                setEmailTemplate((adminTemplateFromFile as TemplateFile).template);
             }
             if (clientDoc.exists() && clientDoc.data()?.template) {
                 setClientEmailTemplate(clientDoc.data()?.template);
             } else {
                 console.warn("Client email template not found in Firestore. Using local fallback.");
-                setClientEmailTemplate(clientTemplateFromFile.template);
+                setClientEmailTemplate((clientTemplateFromFile as TemplateFile).template);
             }
         }).catch(error => {
             console.error("Failed to load email templates from Firestore:", error);
