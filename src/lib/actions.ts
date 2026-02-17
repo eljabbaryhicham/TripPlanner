@@ -5,14 +5,6 @@ import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { getAdminServices } from '@/firebase/admin';
 
-// This was previously in the manage-admin-flow.ts Genkit file.
-const bootstrapSuperAdminSchema = z.object({
-  uid: z.string(),
-  email: z.string().email(),
-});
-type BootstrapSuperAdminInput = z.infer<typeof bootstrapSuperAdminSchema>;
-
-
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
   let result = template;
@@ -191,7 +183,7 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
   }
 }
 
-export async function grantInitialAdminAccess(input: BootstrapSuperAdminInput): Promise<{ success: boolean; error?: string | null; }> {
+export async function grantInitialAdminAccess(input: { uid: string; email: string; }): Promise<{ success: boolean; error?: string | null; }> {
     try {
       const { adminFirestore } = getAdminServices();
       const adminRolesCollection = adminFirestore.collection('roles_admin');
@@ -218,35 +210,6 @@ export async function grantInitialAdminAccess(input: BootstrapSuperAdminInput): 
 }
 
 // --- Admin Management Actions ---
-const addAdminSchema = z.object({
-    login: z.string().email(),
-    password: z.string().min(6),
-});
-export async function addAdmin(prevState: any, formData: FormData) {
-    const parsed = addAdminSchema.safeParse(Object.fromEntries(formData));
-    if (!parsed.success) {
-        return { error: parsed.error.errors[0].message, success: false };
-    }
-    const { login, password } = parsed.data;
-
-    try {
-        const { adminAuth, adminFirestore } = getAdminServices();
-        const userRecord = await adminAuth.createUser({ email: login, password: password });
-        await adminFirestore.collection('roles_admin').doc(userRecord.uid).set({
-            email: login,
-            role: 'admin',
-            createdAt: new Date(),
-            id: userRecord.uid,
-        });
-
-        revalidatePath('/admin');
-        return { success: true, error: null };
-    } catch (error: any) {
-        console.error("Error adding admin:", error);
-        return { success: false, error: error.message || 'An unknown error occurred.' };
-    }
-}
-
 const removeAdminSchema = z.object({ id: z.string() });
 export async function removeAdmin(prevState: any, formData: FormData) {
      const parsed = removeAdminSchema.safeParse(Object.fromEntries(formData));

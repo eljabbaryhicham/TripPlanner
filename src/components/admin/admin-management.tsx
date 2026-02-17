@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useFormStatus } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { addAdmin, removeAdmin, setSuperAdmin } from '@/lib/actions';
+import { removeAdmin, setSuperAdmin } from '@/lib/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,13 @@ import { Loader2, PlusCircle, Trash2, Crown, ChevronsUpDown } from 'lucide-react
 import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '../ui/skeleton';
+
+import { useFirestore } from '@/firebase';
+import { firebaseConfig } from '@/firebase/config';
+import { FirebaseApp, initializeApp, deleteApp } from 'firebase/app';
+import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+
 
 function SubmitButton({ children, variant = 'default' }: { children: React.ReactNode, variant?: 'default' | 'destructive' | 'secondary' }) {
     const { pending } = useFormStatus();
@@ -27,37 +34,84 @@ function SubmitButton({ children, variant = 'default' }: { children: React.React
 function AddAdminForm() {
     const router = useRouter();
     const { toast } = useToast();
-    const formRef = React.useRef<HTMLFormElement>(null);
-    const [state, formAction] = React.useActionState(addAdmin, { error: null, success: false });
+    const firestore = useFirestore();
+    const [email, setEmail] = React.useState('');
+    const [password, setPassword] = React.useState('');
+    const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    React.useEffect(() => {
-        if (state.success) {
+    const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        if (!email || !password) {
+            toast({ variant: 'destructive', title: 'Missing Fields', description: 'Please provide an email and password.' });
+            return;
+        }
+        setIsSubmitting(true);
+
+        let secondaryApp: FirebaseApp | null = null;
+        try {
+            // Initialize a secondary Firebase app to avoid logging out the current admin
+            secondaryApp = initializeApp(firebaseConfig, 'admin-creation-app');
+            const secondaryAuth = getAuth(secondaryApp);
+
+            // Create the new user with the secondary auth instance
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, password);
+            const newUser = userCredential.user;
+
+            // Use the primary Firestore instance (where superadmin is logged in) to set the role
+            const adminRoleRef = doc(firestore, 'roles_admin', newUser.uid);
+            await setDoc(adminRoleRef, {
+                email: newUser.email,
+                role: 'admin',
+                createdAt: new Date(),
+                id: newUser.uid,
+            });
+
             toast({ title: 'Admin Added', description: 'The new admin has been successfully added.' });
-            formRef.current?.reset();
+            setEmail('');
+            setPassword('');
             router.refresh();
+
+        } catch (error: any) {
+            let errorMessage = 'An unknown error occurred.';
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = 'This email address is already in use by another account.';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'The password must be at least 6 characters long.';
+            } else if (error.code) {
+                errorMessage = error.code;
+            }
+            toast({ variant: 'destructive', title: 'Error Adding Admin', description: errorMessage });
+        } finally {
+            setIsSubmitting(false);
+            // Clean up the secondary app instance to prevent memory leaks
+            if (secondaryApp) {
+                try {
+                    await deleteApp(secondaryApp);
+                } catch (e) {
+                    console.error("Error deleting secondary app:", e);
+                }
+            }
         }
-        if (state.error) {
-            toast({ variant: 'destructive', title: 'Error', description: state.error });
-        }
-    }, [state, toast, router]);
+    };
+
 
     return (
-        <form ref={formRef} action={formAction} className="space-y-4 rounded-md border p-4">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-md border p-4">
             <div className="grid sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="login">Login Email</Label>
-                    <Input id="login" name="login" required />
+                    <Input id="login" name="login" type="email" required value={email} onChange={e => setEmail(e.target.value)} />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" name="password" type="password" required />
+                    <Input id="password" name="password" type="password" required value={password} onChange={e => setPassword(e.target.value)} />
                 </div>
             </div>
             <div className="flex justify-end">
-                <SubmitButton>
-                    <PlusCircle className="mr-2 h-4 w-4" />
+                <Button type="submit" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <PlusCircle className="mr-2 h-4 w-4" />}
                     Add Admin
-                </SubmitButton>
+                </Button>
             </div>
         </form>
     );
