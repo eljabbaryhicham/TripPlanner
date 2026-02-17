@@ -1,11 +1,10 @@
-
 'use server';
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { manageAdmin, bootstrapSuperAdmin, type BootstrapSuperAdminInput } from '@/ai/flows/manage-admin-flow';
 import { getAdminServices } from '@/firebase/admin';
+import type { BootstrapSuperAdminInput } from '@/ai/flows/manage-admin-flow';
 
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
@@ -186,12 +185,28 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
 }
 
 export async function grantInitialAdminAccess(input: BootstrapSuperAdminInput): Promise<{ success: boolean; error?: string | null; }> {
-    const result = await bootstrapSuperAdmin(input);
-    if (result.success) {
-        revalidatePath('/admin');
-        return { success: true, error: null };
-    } else {
-        return { success: false, error: result.message };
+    try {
+      const { adminFirestore } = getAdminServices();
+      const adminRolesCollection = adminFirestore.collection('roles_admin');
+      
+      const snapshot = await adminRolesCollection.limit(1).get();
+      if (!snapshot.empty) {
+          return { success: false, error: 'An admin already exists. Cannot bootstrap a new superadmin.' };
+      }
+
+      await adminRolesCollection.doc(input.uid).set({
+        email: input.email,
+        role: 'superadmin',
+        createdAt: new Date(),
+        id: input.uid,
+      });
+
+      revalidatePath('/admin');
+      return { success: true, error: null };
+
+    } catch (error: any) {
+      console.error(`Superadmin bootstrap failed:`, error);
+      return { success: false, error: error.message || 'An unknown error occurred.' };
     }
 }
 
@@ -207,18 +222,21 @@ export async function addAdmin(prevState: any, formData: FormData) {
     }
     const { login, password } = parsed.data;
 
-    const result = await manageAdmin({
-        action: 'add',
-        email: login,
-        password: password,
-    });
+    try {
+        const { adminAuth, adminFirestore } = getAdminServices();
+        const userRecord = await adminAuth.createUser({ email: login, password: password });
+        await adminFirestore.collection('roles_admin').doc(userRecord.uid).set({
+            email: login,
+            role: 'admin',
+            createdAt: new Date(),
+            id: userRecord.uid,
+        });
 
-    if (result.success) {
         revalidatePath('/admin');
         return { success: true, error: null };
-    } else {
-        console.error("Error adding admin:", result.message);
-        return { success: false, error: result.message };
+    } catch (error: any) {
+        console.error("Error adding admin:", error);
+        return { success: false, error: error.message || 'An unknown error occurred.' };
     }
 }
 
@@ -230,16 +248,16 @@ export async function removeAdmin(prevState: any, formData: FormData) {
     }
     const { id } = parsed.data;
 
-    const result = await manageAdmin({
-        action: 'remove',
-        uid: id,
-    });
+    try {
+        const { adminAuth, adminFirestore } = getAdminServices();
+        await adminAuth.deleteUser(id);
+        await adminFirestore.collection('roles_admin').doc(id).delete();
 
-    if (result.success) {
         revalidatePath('/admin');
         return { success: true, error: null };
-    } else {
-        return { success: false, error: result.message };
+    } catch (error: any) {
+        console.error("Error removing admin:", error);
+        return { success: false, error: error.message || 'An unknown error occurred.' };
     }
 }
 
@@ -251,15 +269,14 @@ export async function setSuperAdmin(prevState: any, formData: FormData) {
     }
     const { id } = parsed.data;
 
-    const result = await manageAdmin({
-        action: 'promote',
-        uid: id,
-    });
+    try {
+        const { adminFirestore } = getAdminServices();
+        await adminFirestore.collection('roles_admin').doc(id).update({ role: 'superadmin' });
 
-    if (result.success) {
         revalidatePath('/admin');
         return { success: true, error: null };
-    } else {
-        return { success: false, error: result.message };
+    } catch (error: any) {
+        console.error("Error promoting admin:", error);
+        return { success: false, error: error.message || 'An unknown error occurred.' };
     }
 }
