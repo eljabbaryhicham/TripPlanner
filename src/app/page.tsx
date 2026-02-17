@@ -65,16 +65,16 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen snap-y snap-mandatory overflow-y-scroll scroll-smooth">
+    <div className="flex flex-col min-h-screen">
       <Header />
-      <main>
+      <main className="flex-1">
         {settings.isSettingsLoading ? (
-            <section className="relative flex min-h-screen snap-start flex-col items-center justify-center bg-background">
+            <section className="relative flex min-h-screen flex-col items-center justify-center bg-background">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
             </section>
         ) : (
           <section
-            className="relative flex min-h-screen snap-start flex-col items-center justify-between pt-24 text-white"
+            className="relative flex min-h-screen flex-col items-center justify-between pt-24"
             style={{
               backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
               backgroundSize: 'cover',
@@ -83,10 +83,9 @@ export default function Home() {
           >
             <div className="absolute inset-0 bg-black/70" />
             
-            {/* Top group */}
             <div className="relative z-10 w-full">
               <div className="container mx-auto px-4 text-center">
-                <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+                <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl text-white">
                   TriPlanner
                 </h1>
                 <p className="mt-4 max-w-2xl mx-auto text-lg text-white/90 md:text-xl">
@@ -98,13 +97,12 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Bottom group */}
             <div className="relative z-10 text-center pb-28 sm:pb-32">
               <p className="mb-4 font-handwriting text-2xl sm:text-3xl text-white/90">Explore Our Best Services</p>
               <Link href="#best-services" scroll={true}>
                 <Button
                   variant="outline"
-                  className="rounded-full h-12 w-12 sm:h-14 sm:w-14 p-0 bg-white/10 border-white/20 hover:bg-white/20 backdrop-blur-sm animate-bounce"
+                  className="rounded-full h-12 w-12 sm:h-14 sm:w-14 p-0 bg-white/10 border-white/20 hover:bg-white/20 backdrop-blur-sm animate-bounce text-white"
                 >
                   <span className="sr-only">Scroll to next section</span>
                   <ArrowDown className="h-6 w-6" />
@@ -116,23 +114,20 @@ export default function Home() {
 
         <section
           id="best-services"
-          className="flex min-h-screen snap-start flex-col items-center justify-center py-24 md:py-32"
+          className="py-20 sm:py-24 md:py-32"
         >
           {renderBestServices()}
         </section>
         
          <section
-          className="relative flex min-h-screen snap-start flex-col text-white"
+          className="relative min-h-[50vh] flex flex-col text-white"
         >
           <div className="flex-grow flex items-center justify-center">
              <AiSuggestions />
           </div>
-          <div className="relative z-10">
-            <Footer />
-          </div>
         </section>
-        
       </main>
+      <Footer />
     </div>
   );
 }

@@ -61,6 +61,9 @@
   * {
     @apply border-border;
   }
+  html {
+    @apply scroll-smooth;
+  }
   body {
     @apply bg-background text-foreground;
     scrollbar-color: hsl(var(--secondary)) transparent;
@@ -139,4 +142,8 @@
   to {
     transform: translate(calc(-50% - 0.75rem)); /* 50% of content + half a gap */
   }
+}
+
+footer {
+  padding-bottom: 7rem; /* Ensure footer content is well above the nav bar */
 }
