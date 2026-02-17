@@ -73,12 +73,7 @@ const BookingManagement = () => {
                 } else if (action === 'completed') {
                     dataToUpdate = { status: 'completed' };
                 } else if (action === 'cancelled') {
-                    if (isReservation) {
-                        dataToUpdate = { status: 'cancelled' };
-                    } else {
-                        toast({ variant: 'destructive', title: 'Action Not Applicable', description: `Inquiries cannot be marked as "cancelled".` });
-                        continue; // Skip this item
-                    }
+                    dataToUpdate = { status: 'cancelled' };
                 }
                 updateDocumentNonBlocking(docRef, dataToUpdate);
             }
