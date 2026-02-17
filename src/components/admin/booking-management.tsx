@@ -45,7 +45,7 @@ const BookingManagement = () => {
     
     const isLoading = reservationsLoading || inquiriesLoading;
 
-    const handleBatchAction = async (action: 'paid' | 'unpaid' | 'completed' | 'cancelled' | 'delete') => {
+    const handleBatchAction = async (action: 'paid' | 'unpaid' | 'cancelled' | 'delete') => {
         if (!firestore) {
             toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
             return;
@@ -67,11 +67,15 @@ const BookingManagement = () => {
                 let dataToUpdate = {};
                 const isReservation = booking.type === 'Checkout';
                 if (action === 'paid') {
-                    dataToUpdate = { paymentStatus: isReservation ? 'completed' : 'paid' };
+                    dataToUpdate = {
+                        paymentStatus: isReservation ? 'completed' : 'paid',
+                        status: 'completed'
+                    };
                 } else if (action === 'unpaid') {
-                    dataToUpdate = { paymentStatus: isReservation ? 'pending' : 'unpaid' };
-                } else if (action === 'completed') {
-                    dataToUpdate = { status: 'completed' };
+                    dataToUpdate = {
+                        paymentStatus: isReservation ? 'pending' : 'unpaid',
+                        status: isReservation ? 'active' : 'pending'
+                    };
                 } else if (action === 'cancelled') {
                     dataToUpdate = { 
                         status: 'cancelled',
@@ -144,7 +148,6 @@ const BookingManagement = () => {
                             <DropdownMenuItem onSelect={() => handleBatchAction('paid')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Paid</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleBatchAction('unpaid')}><XCircle className="mr-2 h-4 w-4" />Mark as Unpaid</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onSelect={() => handleBatchAction('completed')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Completed</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleBatchAction('cancelled')} className="text-destructive focus:text-destructive"><XCircle className="mr-2 h-4 w-4" />Mark as Cancelled</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onSelect={() => handleBatchAction('delete')} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete Selected</DropdownMenuItem>
@@ -223,16 +226,31 @@ const BookingManagement = () => {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge
-                                                variant={
-                                                    booking.status === 'completed' ? 'outline'
-                                                    : booking.status === 'cancelled' ? 'destructive'
-                                                    : 'secondary'
+                                            {(() => {
+                                                const isPaid = booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid';
+                                                const isCancelled = booking.status === 'cancelled';
+
+                                                let text = 'Pending';
+                                                let variant: "success" | "destructive" | "secondary" = 'secondary';
+                                                if (isCancelled) {
+                                                    text = 'Cancelled';
+                                                    variant = 'destructive';
+                                                } else if (isPaid) {
+                                                    text = 'Completed';
+                                                    variant = 'success';
                                                 }
-                                                className="capitalize"
-                                            >
-                                                {booking.status || (booking.type === 'Inquiry' ? 'pending' : 'active')}
-                                            </Badge>
+
+                                                return (
+                                                    <Badge
+                                                        variant={variant}
+                                                        className={cn("capitalize",
+                                                            text === 'Pending' && "bg-chart-3 border-transparent text-primary-foreground hover:bg-chart-3/90"
+                                                        )}
+                                                    >
+                                                        {text}
+                                                    </Badge>
+                                                );
+                                            })()}
                                         </TableCell>
                                         <TableCell>
                                             <Badge
