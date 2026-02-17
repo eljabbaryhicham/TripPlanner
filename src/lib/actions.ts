@@ -8,6 +8,16 @@ import adminTemplateFromFile from '@/lib/email-template.json';
 import clientTemplateFromFile from '@/lib/client-email-template.json';
 import appConfigFromFile from '@/lib/app-config.json';
 
+// Adding type for JSON imports
+interface TemplateFile {
+  template: string;
+}
+
+interface AppConfigFile {
+  bookingEmailTo: string;
+  resendEmailFrom: string;
+}
+
 
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
@@ -59,15 +69,15 @@ export async function submitInquiryEmail(data: InquiryData): Promise<{ success: 
         const appSettings = settingsDoc.data();
         recipientEmail = appSettings?.bookingEmailTo;
         fromEmail = appSettings?.resendEmailFrom;
-        adminTemplate = adminTemplateDoc.data()?.template || adminTemplateFromFile.template;
-        clientTemplate = clientTemplateDoc.data()?.template || clientTemplateFromFile.template;
+        adminTemplate = adminTemplateDoc.data()?.template || (adminTemplateFromFile as TemplateFile).template;
+        clientTemplate = clientTemplateDoc.data()?.template || (clientTemplateFromFile as TemplateFile).template;
 
     } catch (dbError: any) {
         console.warn("Could not fetch settings from Firestore. Falling back to local JSON config. Error:", dbError.message);
-        recipientEmail = appConfigFromFile.bookingEmailTo;
-        fromEmail = appConfigFromFile.resendEmailFrom;
-        adminTemplate = adminTemplateFromFile.template;
-        clientTemplate = clientTemplateFromFile.template;
+        recipientEmail = (appConfigFromFile as AppConfigFile).bookingEmailTo;
+        fromEmail = (appConfigFromFile as AppConfigFile).resendEmailFrom;
+        adminTemplate = (adminTemplateFromFile as TemplateFile).template;
+        clientTemplate = (clientTemplateFromFile as TemplateFile).template;
     }
     
     if (!process.env.RESEND_API_KEY) {
