@@ -1,16 +1,17 @@
+
 'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser, useFirestore, useMemoFirebase, useAuth, useDoc } from '@/firebase';
-import { doc, serverTimestamp } from 'firebase/firestore';
+import { doc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, ShieldCheck, Loader2 } from 'lucide-react';
 import { signOut } from 'firebase/auth';
 import { useToast } from '@/hooks/use-toast';
 import DashboardContent from '@/components/admin/dashboard-content';
-import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
+import { grantInitialAdminAccess } from '@/lib/actions';
 
 export default function AdminPage() {
     const router = useRouter();
@@ -18,6 +19,7 @@ export default function AdminPage() {
     const firestore = useFirestore();
     const auth = useAuth();
     const { toast } = useToast();
+    const [isGranting, setIsGranting] = React.useState(false);
 
     // This effect handles the redirection for non-authenticated or anonymous users.
     React.useEffect(() => {
@@ -38,20 +40,21 @@ export default function AdminPage() {
         }
     };
     
-    const grantAdminAccess = () => {
-        if (!user || user.isAnonymous || !firestore) {
-            toast({ variant: 'destructive', title: 'Error', description: 'A valid user or database is not available.' });
+    const grantAdminAccess = async () => {
+        if (!user || user.isAnonymous || !user.email) {
+            toast({ variant: 'destructive', title: 'Error', description: 'A valid, authenticated user with an email is required.' });
             return;
         }
+        setIsGranting(true);
 
-        const adminDocRef = doc(firestore, 'roles_admin', user.uid);
-        const dataToSave = { email: user.email, createdAt: serverTimestamp(), role: 'admin', id: user.uid };
+        const result = await grantInitialAdminAccess({ uid: user.uid, email: user.email });
 
-        // Optimistically show the toast
-        toast({ title: "Success!", description: "Admin access granted. Welcome. To manage other users, ask a superadmin to promote your account." });
-        
-        // Perform the non-blocking write. If it fails, the FirebaseErrorListener will catch it.
-        setDocumentNonBlocking(adminDocRef, dataToSave, {});
+        if (result.success) {
+            toast({ title: "Success!", description: "Super Admin access granted. You can now manage other administrators." });
+        } else {
+            toast({ variant: 'destructive', title: 'Operation Failed', description: result.error || 'Could not grant admin access.' });
+        }
+        setIsGranting(false);
     };
 
     // Consolidate loading states: true if user is loading, OR if we have a non-anonymous user and are checking their admin profile.
@@ -89,7 +92,10 @@ export default function AdminPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Button onClick={grantAdminAccess}>Grant Admin Access</Button>
+                        <Button onClick={grantAdminAccess} disabled={isGranting}>
+                          {isGranting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                          Grant Admin Access
+                        </Button>
                         <Button variant="ghost" onClick={handleLogout}>Logout</Button>
                     </CardContent>
                 </Card>

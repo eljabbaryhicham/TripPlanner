@@ -1,9 +1,10 @@
+
 'use server';
 
 import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
-import { manageAdmin } from '@/ai/flows/manage-admin-flow';
+import { manageAdmin, bootstrapSuperAdmin, type BootstrapSuperAdminInput } from '@/ai/flows/manage-admin-flow';
 import { getAdminServices } from '@/firebase/admin';
 
 // Fills a template string with data.
@@ -182,6 +183,16 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     const message = error.message || 'An unexpected error occurred.';
     return { success: false, error: message };
   }
+}
+
+export async function grantInitialAdminAccess(input: BootstrapSuperAdminInput): Promise<{ success: boolean; error?: string | null; }> {
+    const result = await bootstrapSuperAdmin(input);
+    if (result.success) {
+        revalidatePath('/admin');
+        return { success: true, error: null };
+    } else {
+        return { success: false, error: result.message };
+    }
 }
 
 // --- Admin Management Actions ---

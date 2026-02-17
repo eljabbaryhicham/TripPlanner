@@ -81,3 +81,52 @@ const manageAdminFlow = ai.defineFlow(
     }
   }
 );
+
+
+// New flow for bootstrapping the first superadmin
+const BootstrapSuperAdminInputSchema = z.object({
+  uid: z.string(),
+  email: z.string().email(),
+});
+export type BootstrapSuperAdminInput = z.infer<typeof BootstrapSuperAdminInputSchema>;
+
+const BootstrapSuperAdminOutputSchema = z.object({
+    success: z.boolean(),
+    message: z.string(),
+});
+
+export async function bootstrapSuperAdmin(input: BootstrapSuperAdminInput): Promise<z.infer<typeof BootstrapSuperAdminOutputSchema>> {
+  return bootstrapSuperAdminFlow(input);
+}
+
+const bootstrapSuperAdminFlow = ai.defineFlow(
+  {
+    name: 'bootstrapSuperAdminFlow',
+    inputSchema: BootstrapSuperAdminInputSchema,
+    outputSchema: BootstrapSuperAdminOutputSchema,
+  },
+  async (input) => {
+    try {
+      const { adminFirestore } = getAdminServices();
+      const adminRolesCollection = adminFirestore.collection('roles_admin');
+      
+      const snapshot = await adminRolesCollection.limit(1).get();
+      if (!snapshot.empty) {
+          return { success: false, message: 'An admin already exists. Cannot bootstrap a new superadmin.' };
+      }
+
+      await adminRolesCollection.doc(input.uid).set({
+        email: input.email,
+        role: 'superadmin',
+        createdAt: new Date(),
+        id: input.uid,
+      });
+
+      return { success: true, message: 'Superadmin bootstrapped successfully.' };
+
+    } catch (error: any) {
+      console.error(`Superadmin bootstrap flow failed:`, error);
+      return { success: false, message: error.message || 'An unknown error occurred.' };
+    }
+  }
+);
