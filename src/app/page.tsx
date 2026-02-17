@@ -79,14 +79,14 @@ export default function Home() {
       <Header />
       <main className="flex-1">
         <section
-          className="relative flex min-h-screen flex-col items-center justify-between pt-24"
-          style={{
+          className="relative flex min-h-screen flex-col items-center justify-between pt-24 bg-background"
+          style={!isSettingsLoading && settings.heroBackgroundImageUrl ? {
             backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
             backgroundSize: 'cover',
             backgroundPosition: 'center',
-          }}
+          } : {}}
         >
-          <div className="absolute inset-0 bg-black/70" />
+          {!isSettingsLoading && settings.heroBackgroundImageUrl && <div className="absolute inset-0 bg-black/70" />}
           
           <div className="relative z-10 w-full">
             <div className="container mx-auto px-4 text-center">

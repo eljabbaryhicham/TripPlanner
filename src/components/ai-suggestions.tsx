@@ -10,14 +10,14 @@ const AiSuggestions = () => {
 
   return (
     <div
-      className="absolute inset-0"
-      style={{
+      className="absolute inset-0 bg-background"
+      style={!settings.isSettingsLoading && settings.suggestionsBackgroundImageUrl ? {
         backgroundImage: `url('${settings.suggestionsBackgroundImageUrl}')`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
-      }}
+      } : {}}
     >
-      <div className="absolute inset-0 bg-black/90" />
+      {!settings.isSettingsLoading && settings.suggestionsBackgroundImageUrl && <div className="absolute inset-0 bg-black/90" />}
       <div className="relative flex h-full items-center justify-center">
         <div className="container mx-auto px-4 text-center">
           <Compass className="mx-auto h-12 w-12 text-accent" />
