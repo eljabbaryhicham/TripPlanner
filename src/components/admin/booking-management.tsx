@@ -73,7 +73,10 @@ const BookingManagement = () => {
                 } else if (action === 'completed') {
                     dataToUpdate = { status: 'completed' };
                 } else if (action === 'cancelled') {
-                    dataToUpdate = { status: 'cancelled' };
+                    dataToUpdate = { 
+                        status: 'cancelled',
+                        paymentStatus: isReservation ? 'pending' : 'unpaid' 
+                    };
                 }
                 updateDocumentNonBlocking(docRef, dataToUpdate);
             }
