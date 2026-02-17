@@ -2,7 +2,6 @@
 import { initializeApp, getApps, getApp, App } from 'firebase-admin/app';
 import { getFirestore, Firestore } from 'firebase-admin/firestore';
 import { getAuth, Auth } from 'firebase-admin/auth';
-import { firebaseConfig } from './config';
 
 // Define a type for our services object for clarity
 interface AdminServices {
@@ -28,14 +27,9 @@ export function getAdminServices(): AdminServices {
     }
     
     // If no app is initialized, create a new one.
-    // In Google Cloud environments (like App Hosting), the SDK should automatically
-    // discover credentials. Explicitly providing the project ID can resolve
-    // issues where auto-discovery might be ambiguous.
-    const app = initializeApp({
-        // GCLOUD_PROJECT is a standard environment variable in Google Cloud.
-        // As a fallback, we use the project ID from the client-side config.
-        projectId: process.env.GCLOUD_PROJECT || firebaseConfig.projectId,
-    });
+    // When running in a Google Cloud environment like App Hosting,
+    // initializeApp() with no arguments automatically discovers credentials.
+    const app = initializeApp();
         
     return {
         adminApp: app,
