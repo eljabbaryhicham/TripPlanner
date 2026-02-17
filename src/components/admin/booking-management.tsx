@@ -5,23 +5,38 @@ import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import { collection, collectionGroup, query, doc } from 'firebase/firestore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Inbox, ChevronDown, Trash2, CheckCircle, XCircle, Download } from 'lucide-react';
+import { Loader2, Inbox, ChevronDown, Trash2, CheckCircle, XCircle, Download, DollarSign, Ban, Hourglass } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, isToday, isThisWeek, isThisMonth, isThisYear } from 'date-fns';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { cn } from '@/lib/utils';
 
+// New StatCard component for displaying statistics
+const StatCard = ({ title, amount, icon }: { title: string, amount: number, icon: React.ReactNode }) => (
+    <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            {icon}
+        </CardHeader>
+        <CardContent>
+            <div className="text-2xl font-bold">${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+        </CardContent>
+    </Card>
+);
+
 const BookingManagement = () => {
     const firestore = useFirestore();
     const { toast } = useToast();
     
     const [selectedBookings, setSelectedBookings] = React.useState<Set<string>>(new Set());
+    const [timeRange, setTimeRange] = React.useState('lifetime');
 
     const reservationsQuery = useMemoFirebase(() => firestore ? query(collectionGroup(firestore, 'reservations')) : null, [firestore]);
     const inquiriesQuery = useMemoFirebase(() => firestore ? query(collection(firestore, 'inquiries')) : null, [firestore]);
@@ -42,6 +57,36 @@ const BookingManagement = () => {
         
         return combined;
     }, [reservations, inquiries]);
+
+    const filteredBookings = React.useMemo(() => {
+        if (timeRange === 'lifetime') return allBookings;
+        return allBookings.filter(booking => {
+            if (!booking.createdAt?.seconds) return false;
+            const bookingDate = new Date(booking.createdAt.seconds * 1000);
+            if (timeRange === 'day') return isToday(bookingDate);
+            if (timeRange === 'week') return isThisWeek(bookingDate, { weekStartsOn: 1 });
+            if (timeRange === 'month') return isThisMonth(bookingDate);
+            if (timeRange === 'year') return isThisYear(bookingDate);
+            return true;
+        });
+    }, [allBookings, timeRange]);
+
+    const stats = React.useMemo(() => {
+        return filteredBookings.reduce((acc, booking) => {
+            const price = booking.totalPrice || 0;
+            const isPaid = booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid';
+            const isCancelled = booking.status === 'cancelled';
+
+            if(isCancelled) {
+                acc.cancelledAmount += price;
+            } else if (isPaid) {
+                acc.income += price;
+            } else {
+                acc.pendingAmount += price;
+            }
+            return acc;
+        }, { income: 0, pendingAmount: 0, cancelledAmount: 0 });
+    }, [filteredBookings]);
     
     const isLoading = reservationsLoading || inquiriesLoading;
 
@@ -74,7 +119,7 @@ const BookingManagement = () => {
                 } else if (action === 'unpaid') {
                     dataToUpdate = {
                         paymentStatus: isReservation ? 'pending' : 'unpaid',
-                        status: isReservation ? 'active' : 'pending'
+                        status: 'pending'
                     };
                 } else if (action === 'cancelled') {
                     dataToUpdate = { 
@@ -107,21 +152,19 @@ const BookingManagement = () => {
         const tableColumns = ["Date", "Customer", "Service", "Method", "Status", "Payment", "Price"];
         const tableRows: (string | number)[][] = [];
 
-        allBookings.forEach(booking => {
-            // Logic for Status (matches table display)
+        filteredBookings.forEach(booking => {
             const isPaid = booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid';
             const isCancelled = booking.status === 'cancelled';
             let statusText = 'Pending';
+            let paymentText = booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending');
+            paymentText = paymentText.charAt(0).toUpperCase() + paymentText.slice(1);
+
             if (isCancelled) {
                 statusText = 'Cancelled';
             } else if (isPaid) {
                 statusText = 'Completed';
             }
             
-            // Logic for Payment (matches table display)
-            let paymentText = booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending');
-            paymentText = paymentText.charAt(0).toUpperCase() + paymentText.slice(1);
-
             const bookingData = [
                 formatDate(booking.createdAt),
                 booking.customerName,
@@ -134,7 +177,6 @@ const BookingManagement = () => {
             tableRows.push(bookingData);
         });
 
-        // The 'any' cast is to work around TypeScript issues with the jspdf-autotable plugin.
         (doc as any).autoTable({
             head: [tableColumns],
             body: tableRows,
@@ -151,6 +193,28 @@ const BookingManagement = () => {
                 <CardDescription>View all incoming reservations and manual booking inquiries.</CardDescription>
             </CardHeader>
             <CardContent>
+                <div className="mb-6 space-y-4">
+                    <div className="flex items-center justify-end">
+                        <Select value={timeRange} onValueChange={setTimeRange}>
+                            <SelectTrigger className="w-[180px]">
+                                <SelectValue placeholder="Filter by time" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="lifetime">Lifetime</SelectItem>
+                                <SelectItem value="year">This Year</SelectItem>
+                                <SelectItem value="month">This Month</SelectItem>
+                                <SelectItem value="week">This Week</SelectItem>
+                                <SelectItem value="day">Today</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-3">
+                        <StatCard title="Income" amount={stats.income} icon={<DollarSign className="h-4 w-4 text-muted-foreground" />} />
+                        <StatCard title="Pending" amount={stats.pendingAmount} icon={<Hourglass className="h-4 w-4 text-muted-foreground" />} />
+                        <StatCard title="Cancelled" amount={stats.cancelledAmount} icon={<Ban className="h-4 w-4 text-muted-foreground" />} />
+                    </div>
+                </div>
+
                  <div className="flex flex-wrap items-center py-4 gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -170,7 +234,7 @@ const BookingManagement = () => {
                     <Button
                         variant="outline"
                         onClick={handleDownloadPdf}
-                        disabled={isLoading || allBookings.length === 0}
+                        disabled={isLoading || filteredBookings.length === 0}
                     >
                         <Download className="mr-2 h-4 w-4" />
                         Download PDF
@@ -181,10 +245,10 @@ const BookingManagement = () => {
                     <div className="flex justify-center items-center h-48">
                         <Loader2 className="h-8 w-8 animate-spin text-primary" />
                     </div>
-                ) : allBookings.length === 0 ? (
+                ) : filteredBookings.length === 0 ? (
                     <div className="text-center py-10">
                         <Inbox className="mx-auto h-12 w-12 text-muted-foreground" />
-                        <p className="mt-4 text-muted-foreground">No bookings or inquiries found yet.</p>
+                        <p className="mt-4 text-muted-foreground">No bookings or inquiries found for this period.</p>
                     </div>
                 ) : (
                     <div className="relative max-h-[560px] overflow-auto rounded-lg border">
@@ -193,10 +257,10 @@ const BookingManagement = () => {
                                 <TableRow>
                                     <TableHead className="w-[40px]">
                                         <Checkbox
-                                            checked={selectedBookings.size > 0 && allBookings.every(b => selectedBookings.has(b.id))}
+                                            checked={selectedBookings.size > 0 && filteredBookings.length > 0 && filteredBookings.every(b => selectedBookings.has(b.id))}
                                             onCheckedChange={(checked) => {
                                                 if (checked) {
-                                                    setSelectedBookings(new Set(allBookings.map(b => b.id)));
+                                                    setSelectedBookings(new Set(filteredBookings.map(b => b.id)));
                                                 } else {
                                                     setSelectedBookings(new Set());
                                                 }
@@ -214,7 +278,7 @@ const BookingManagement = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {allBookings.map((booking) => (
+                                {filteredBookings.map((booking) => (
                                     <TableRow key={booking.id} data-state={selectedBookings.has(booking.id) && "selected"}>
                                         <TableCell>
                                             <Checkbox
