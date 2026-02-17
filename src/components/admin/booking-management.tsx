@@ -218,8 +218,8 @@ const BookingManagement = () => {
                                         </TableCell>
                                         <TableCell>
                                             <Badge 
-                                                variant={(booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid') ? 'default' : 'destructive'} 
-                                                className="capitalize bg-opacity-70"
+                                                variant={(booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid') ? 'success' : 'destructive'} 
+                                                className="capitalize"
                                             >
                                                 {booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending')}
                                             </Badge>
