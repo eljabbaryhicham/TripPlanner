@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -168,7 +167,7 @@ const ServiceDetailModal = ({
           }
         }}
       >
-        <DialogContent className="max-w-3xl p-0">
+        <DialogContent className="w-[90vw] max-w-3xl h-[85vh] flex flex-col p-0">
           <Carousel className="relative">
             <CarouselContent>
               <CarouselItem>
@@ -194,11 +193,11 @@ const ServiceDetailModal = ({
                 </CarouselItem>
               ))}
             </CarouselContent>
-            <CarouselPrevious className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 z-40 h-8 w-8 sm:h-10 sm:w-10 bg-black/50 text-white border-0 opacity-80 hover:opacity-100 hover:scale-105 transition-all" />
-            <CarouselNext className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 z-40 h-8 w-8 sm:h-10 sm:w-10 bg-black/50 text-white border-0 opacity-80 hover:opacity-100 hover:scale-105 transition-all" />
+            <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 z-20 h-10 w-10 bg-black/50 text-white border-0 opacity-80 hover:opacity-100 hover:scale-105 transition-all" />
+            <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 z-20 h-10 w-10 bg-black/50 text-white border-0 opacity-80 hover:opacity-100 hover:scale-105 transition-all" />
           </Carousel>
           
-          <ScrollArea className="max-h-[calc(90vh-16rem)] overscroll-contain">
+          <ScrollArea className="flex-1 min-h-0 overscroll-contain">
             <div className="px-6 pt-6">
               <div className="pb-6">
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
