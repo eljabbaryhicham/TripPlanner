@@ -1,8 +1,6 @@
-
 'use client';
 
 import * as React from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Skeleton } from '../ui/skeleton';
 
-import { useFirestore, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { useFirestore, useAuth, updateDocumentNonBlocking } from '@/firebase';
 import { firebaseConfig } from '@/firebase/config';
 import { FirebaseApp, initializeApp, deleteApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
@@ -58,7 +56,7 @@ function AddAdminForm() {
         } catch (error: any) {
             let errorMessage = 'An unknown error occurred.';
             if (error.code === 'auth/email-already-in-use') {
-                errorMessage = 'This email address is already in use by another account.';
+                errorMessage = 'This email address is already in use. If this user was a previous admin, their account must be fully deleted before they can be re-added.';
             } else if (error.code === 'auth/weak-password') {
                 errorMessage = 'The password must be at least 6 characters long.';
             } else if (error.code) {
@@ -101,24 +99,40 @@ function AddAdminForm() {
 }
 
 function RemoveAdminButton({ adminId }: { adminId: string }) {
-    const firestore = useFirestore();
     const { toast } = useToast();
+    const auth = useAuth();
     const [isDeleting, setIsDeleting] = React.useState(false);
 
-    const handleRemove = () => {
-        if (!firestore) {
-            toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
-            return;
-        }
+    const handleRemove = async () => {
         setIsDeleting(true);
+        try {
+            if (!auth.currentUser) {
+                throw new Error("You must be logged in to perform this action.");
+            }
 
-        // This only removes the role from Firestore, which revokes admin privileges.
-        // It does not delete the user from Firebase Authentication due to server-side auth issues.
-        const docRef = doc(firestore, 'roles_admin', adminId);
-        deleteDocumentNonBlocking(docRef);
+            const token = await auth.currentUser.getIdToken();
 
-        toast({ title: 'Admin Role Removed', description: 'The user can no longer access admin privileges.' });
-        setIsDeleting(false);
+            const response = await fetch('/api/delete-admin-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ uidToDelete: adminId })
+            });
+            
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || result.details || 'Failed to delete admin.');
+            }
+
+            toast({ title: 'Admin Deleted', description: 'The admin user and their authentication account have been removed.' });
+        } catch (error: any) {
+            toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+        } finally {
+            setIsDeleting(false);
+        }
     };
 
     return (
