@@ -167,14 +167,6 @@ export default function DashboardContent() {
                             />
                         </AccordionContent>
                     </AccordionItem>
-                     <AccordionItem value="reviews">
-                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                            Review Management
-                        </AccordionTrigger>
-                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                           <ReviewManagement />
-                        </AccordionContent>
-                    </AccordionItem>
                 </Accordion>
                 
                 <div className="space-y-4">
@@ -185,7 +177,50 @@ export default function DashboardContent() {
                     <Separator />
                 </div>
                 
-                 <Accordion type="multiple" className="w-full space-y-4">
+                <Accordion type="multiple" className="w-full space-y-4">
+                    {isSuperAdmin && (
+                        <AccordionItem value="media">
+                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                                Media Library
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                                <MediaLibrary />
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
+                    {isSuperAdmin && (
+                        <AccordionItem value="admins">
+                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                                Administrator Management
+                            </AccordionTrigger>
+                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                                <AdminManagement admins={admins || []} currentUser={adminProfile} isLoading={adminsLoading} />
+                            </AccordionContent>
+                        </AccordionItem>
+                    )}
+                    <AccordionItem value="categories">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Category Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                             {settingsLoading ? (
+                                <div className="p-6 space-y-4">
+                                    <Skeleton className="h-10 w-full" />
+                                    <Skeleton className="h-10 w-full" />
+                                </div>
+                             ) : (
+                                <CategoryManagement currentSettings={categorySettings} />
+                             )}
+                        </AccordionContent>
+                    </AccordionItem>
+                    <AccordionItem value="reviews">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Review Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                           <ReviewManagement />
+                        </AccordionContent>
+                    </AccordionItem>
                     <AccordionItem value="settings">
                         <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
                             General Settings
@@ -209,21 +244,6 @@ export default function DashboardContent() {
                             )}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="categories">
-                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                            Category Management
-                        </AccordionTrigger>
-                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                             {settingsLoading ? (
-                                <div className="p-6 space-y-4">
-                                    <Skeleton className="h-10 w-full" />
-                                    <Skeleton className="h-10 w-full" />
-                                </div>
-                             ) : (
-                                <CategoryManagement currentSettings={categorySettings} />
-                             )}
-                        </AccordionContent>
-                    </AccordionItem>
                     <AccordionItem value="email-templates">
                         <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
                             Email Templates
@@ -241,26 +261,6 @@ export default function DashboardContent() {
                             )}
                         </AccordionContent>
                     </AccordionItem>
-                    {isSuperAdmin && (
-                        <AccordionItem value="admins">
-                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                Administrator Management
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                                <AdminManagement admins={admins || []} currentUser={adminProfile} isLoading={adminsLoading} />
-                            </AccordionContent>
-                        </AccordionItem>
-                    )}
-                     {isSuperAdmin && (
-                        <AccordionItem value="media">
-                            <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                                Media Library
-                            </AccordionTrigger>
-                            <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                                <MediaLibrary />
-                            </AccordionContent>
-                        </AccordionItem>
-                    )}
                 </Accordion>
             </main>
             <ServiceEditor
