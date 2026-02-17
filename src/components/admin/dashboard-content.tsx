@@ -36,7 +36,6 @@ export default function DashboardContent() {
     
     const [emailTemplate, setEmailTemplate] = React.useState('');
     const [clientEmailTemplate, setClientEmailTemplate] = React.useState('');
-    const [categorySettings, setCategorySettings] = React.useState({});
     const [settingsLoading, setSettingsLoading] = React.useState(true);
     
     const [editorOpen, setEditorOpen] = React.useState(false);
@@ -51,7 +50,6 @@ export default function DashboardContent() {
     React.useEffect(() => {
         if (!firestore) return;
 
-        setCategorySettings(settings.categories);
         setSettingsLoading(true);
 
         const adminTemplateRef = doc(firestore, 'email_templates', 'admin_notification');
@@ -83,7 +81,7 @@ export default function DashboardContent() {
         }).finally(() => {
             setSettingsLoading(false);
         });
-    }, [settings, firestore, toast]);
+    }, [firestore, toast]);
 
     // Data fetching for services from all collections
     const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
@@ -203,17 +201,17 @@ export default function DashboardContent() {
                             Category Management
                         </AccordionTrigger>
                         <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                             {settingsLoading ? (
+                             {settings.isSettingsLoading ? (
                                 <div className="p-6 space-y-4">
                                     <Skeleton className="h-10 w-full" />
                                     <Skeleton className="h-10 w-full" />
                                 </div>
                              ) : (
-                                <CategoryManagement currentSettings={categorySettings} />
+                                <CategoryManagement />
                              )}
                         </AccordionContent>
                     </AccordionItem>
-                    <AccordionItem value="reviews">
+                     <AccordionItem value="reviews">
                         <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
                             Review Management
                         </AccordionTrigger>
@@ -226,21 +224,13 @@ export default function DashboardContent() {
                             General Settings
                         </AccordionTrigger>
                         <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                            {settingsLoading ? (
+                            {settings.isSettingsLoading ? (
                                 <div className="p-6 space-y-4">
                                     <Skeleton className="h-10 w-1/2" />
                                     <Skeleton className="h-20 w-full" />
                                 </div>
                             ) : (
-                                <SettingsManagement 
-                                    currentLogoUrl={settings.logoUrl}
-                                    currentWhatsappNumber={settings.whatsappNumber}
-                                    currentBookingEmailTo={settings.bookingEmailTo || ''}
-                                    currentResendEmailFrom={settings.resendEmailFrom || ''}
-                                    currentHeroBackgroundImageUrl={settings.heroBackgroundImageUrl}
-                                    currentSuggestionsBackgroundImageUrl={settings.suggestionsBackgroundImageUrl}
-                                    currentCategoryImages={settings.categoryImages}
-                                />
+                                <SettingsManagement />
                             )}
                         </AccordionContent>
                     </AccordionItem>

@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '../ui/separator';
 import { MediaBrowserDialog } from './media-browser-dialog';
+import { useSettings } from '../settings-provider';
 
 const generalSettingsSchema = z.object({
     whatsappNumber: z.string().min(1, { message: 'WhatsApp number cannot be empty.' }),
@@ -23,10 +24,6 @@ const generalSettingsSchema = z.object({
     logoUrl: z.string().url({ message: "Invalid URL" }).or(z.literal("")).optional(),
     heroBackgroundImageUrl: z.string().url({ message: "Invalid URL for Hero Background" }).or(z.literal("")).optional(),
     suggestionsBackgroundImageUrl: z.string().url({ message: "Invalid URL for Suggestions Background" }).or(z.literal("")).optional(),
-    "categoryImages.cars": z.string().url({ message: "Invalid URL for Cars category image" }).or(z.literal("")).optional(),
-    "categoryImages.hotels": z.string().url({ message: "Invalid URL for Hotels category image" }).or(z.literal("")).optional(),
-    "categoryImages.transport": z.string().url({ message: "Invalid URL for Transport category image" }).or(z.literal("")).optional(),
-    "categoryImages.explore": z.string().url({ message: "Invalid URL for Explore category image" }).or(z.literal("")).optional(),
 });
 
 function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
@@ -38,44 +35,16 @@ function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
     );
 }
 
-interface SettingsManagementProps {
-    currentWhatsappNumber: string;
-    currentBookingEmailTo: string;
-    currentResendEmailFrom: string;
-    currentLogoUrl?: string;
-    currentHeroBackgroundImageUrl?: string;
-    currentSuggestionsBackgroundImageUrl?: string;
-    currentCategoryImages?: {
-        cars?: string;
-        hotels?: string;
-        transport?: string;
-        explore?: string;
-    };
-}
-
-export default function SettingsManagement({
-    currentWhatsappNumber,
-    currentBookingEmailTo,
-    currentResendEmailFrom,
-    currentLogoUrl,
-    currentHeroBackgroundImageUrl,
-    currentSuggestionsBackgroundImageUrl,
-    currentCategoryImages
-}: SettingsManagementProps) {
+export default function SettingsManagement() {
     const router = useRouter();
     const { toast } = useToast();
     const firestore = useFirestore();
+    const settings = useSettings();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-    const [logoUrl, setLogoUrl] = React.useState(currentLogoUrl || '');
-    const [heroBg, setHeroBg] = React.useState(currentHeroBackgroundImageUrl || '');
-    const [suggestionsBg, setSuggestionsBg] = React.useState(currentSuggestionsBackgroundImageUrl || '');
-    const [categoryImages, setCategoryImages] = React.useState({
-        cars: currentCategoryImages?.cars || '',
-        hotels: currentCategoryImages?.hotels || '',
-        transport: currentCategoryImages?.transport || '',
-        explore: currentCategoryImages?.explore || '',
-    });
+    const [logoUrl, setLogoUrl] = React.useState(settings.logoUrl || '');
+    const [heroBg, setHeroBg] = React.useState(settings.heroBackgroundImageUrl || '');
+    const [suggestionsBg, setSuggestionsBg] = React.useState(settings.suggestionsBackgroundImageUrl || '');
 
     const [isBrowserOpen, setIsBrowserOpen] = React.useState(false);
     const [imageTarget, setImageTarget] = React.useState<string | null>(null);
@@ -84,10 +53,6 @@ export default function SettingsManagement({
         if (imageTarget === 'logoUrl') setLogoUrl(url);
         else if (imageTarget === 'heroBg') setHeroBg(url);
         else if (imageTarget === 'suggestionsBg') setSuggestionsBg(url);
-        else if (imageTarget && imageTarget.startsWith('category.')) {
-            const category = imageTarget.split('.')[1] as keyof typeof categoryImages;
-            setCategoryImages(prev => ({ ...prev, [category]: url }));
-        }
         setIsBrowserOpen(false);
         setImageTarget(null);
     };
@@ -117,26 +82,8 @@ export default function SettingsManagement({
             return;
         }
 
-        const { 
-            "categoryImages.cars": cars, 
-            "categoryImages.hotels": hotels,
-            "categoryImages.transport": transport,
-            "categoryImages.explore": explore,
-            ...rest
-        } = parsed.data;
-
-        const settingsUpdate = {
-            ...rest,
-            categoryImages: { 
-                cars: cars || "", 
-                hotels: hotels || "", 
-                transport: transport || "", 
-                explore: explore || "" 
-            }
-        };
-
         const settingsRef = doc(firestore, 'app_settings', 'general');
-        setDocumentNonBlocking(settingsRef, settingsUpdate, { merge: true });
+        setDocumentNonBlocking(settingsRef, parsed.data, { merge: true });
 
         toast({ title: 'Settings update initiated.', description: 'Your changes have been saved.' });
         setIsSubmitting(false);
@@ -171,7 +118,7 @@ export default function SettingsManagement({
                         </div>
                         <Separator />
                         <h4 className="text-lg font-semibold pt-4">Homepage Visuals</h4>
-                        <p className="text-sm text-muted-foreground -mt-4">Customize backgrounds for homepage sections and images for the category slideshow.</p>
+                        <p className="text-sm text-muted-foreground -mt-4">Customize backgrounds for homepage sections.</p>
 
                         <div className="space-y-2">
                             <Label htmlFor="heroBackgroundImageUrl">Hero Section Background</Label>
@@ -193,37 +140,6 @@ export default function SettingsManagement({
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                            <div className="space-y-2">
-                                <Label htmlFor="categoryImages.cars">Cars Slideshow Image</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input id="categoryImages.cars" name="categoryImages.cars" type="url" value={categoryImages.cars} onChange={(e) => setCategoryImages(p => ({...p, cars: e.target.value}))} />
-                                    <Button type="button" variant="outline" size="icon" onClick={() => openBrowser('category.cars')}><ImageIcon className="h-4 w-4" /></Button>
-                                </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="categoryImages.hotels">Hotels Slideshow Image</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input id="categoryImages.hotels" name="categoryImages.hotels" type="url" value={categoryImages.hotels} onChange={(e) => setCategoryImages(p => ({...p, hotels: e.target.value}))} />
-                                    <Button type="button" variant="outline" size="icon" onClick={() => openBrowser('category.hotels')}><ImageIcon className="h-4 w-4" /></Button>
-                                </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="categoryImages.transport">Transport Slideshow Image</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input id="categoryImages.transport" name="categoryImages.transport" type="url" value={categoryImages.transport} onChange={(e) => setCategoryImages(p => ({...p, transport: e.target.value}))} />
-                                    <Button type="button" variant="outline" size="icon" onClick={() => openBrowser('category.transport')}><ImageIcon className="h-4 w-4" /></Button>
-                                </div>
-                            </div>
-                             <div className="space-y-2">
-                                <Label htmlFor="categoryImages.explore">Explore Slideshow Image</Label>
-                                <div className="flex items-center gap-2">
-                                    <Input id="categoryImages.explore" name="categoryImages.explore" type="url" value={categoryImages.explore} onChange={(e) => setCategoryImages(p => ({...p, explore: e.target.value}))} />
-                                    <Button type="button" variant="outline" size="icon" onClick={() => openBrowser('category.explore')}><ImageIcon className="h-4 w-4" /></Button>
-                                </div>
-                            </div>
-                        </div>
-
                         <Separator />
                         <h4 className="text-lg font-semibold pt-4">Contact & Notifications</h4>
                         <p className="text-sm text-muted-foreground -mt-4">Manage WhatsApp number and email addresses for bookings and contact forms.</p>
@@ -233,7 +149,7 @@ export default function SettingsManagement({
                             <Input
                                 id="whatsappNumber"
                                 name="whatsappNumber"
-                                defaultValue={currentWhatsappNumber}
+                                defaultValue={settings.whatsappNumber}
                                 placeholder="e.g., +15551234567"
                                 required
                             />
@@ -245,7 +161,7 @@ export default function SettingsManagement({
                                 id="bookingEmailTo"
                                 name="bookingEmailTo"
                                 type="email"
-                                defaultValue={currentBookingEmailTo}
+                                defaultValue={settings.bookingEmailTo}
                                 placeholder="recipient@example.com"
                                 required
                             />
@@ -258,7 +174,7 @@ export default function SettingsManagement({
                                 id="resendEmailFrom"
                                 name="resendEmailFrom"
                                 type="text"
-                                defaultValue={currentResendEmailFrom}
+                                defaultValue={settings.resendEmailFrom}
                                 placeholder="My App <noreply@mydomain.com>"
                                 required
                             />

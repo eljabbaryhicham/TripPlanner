@@ -18,8 +18,9 @@ export default function TransportPage() {
   const { data: services, isLoading: servicesLoading } = useCollection(transportsRef);
   
   const settings = useSettings();
+  const isCategoryEnabled = settings.categories.find(c => c.id === 'transport')?.enabled ?? false;
 
-  const isLoading = servicesLoading;
+  const isLoading = servicesLoading || settings.isSettingsLoading;
 
   const renderContent = () => {
     if (isLoading) {
@@ -32,7 +33,7 @@ export default function TransportPage() {
       );
     }
 
-    if (settings.categories?.transport === false) {
+    if (!isCategoryEnabled) {
       return <PageMessage icon={<AlertTriangle className="h-10 w-10 text-primary" />} title="Service Unavailable" message="This service category is currently disabled. Please check back later." />;
     }
     

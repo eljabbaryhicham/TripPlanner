@@ -17,12 +17,14 @@ export default function ExplorePage() {
   const { data: exploreServices, isLoading: servicesLoading } = useCollection(exploreTripsRef);
   
   const settings = useSettings();
+  const isCategoryEnabled = settings.categories.find(c => c.id === 'explore')?.enabled ?? false;
+  const category = settings.categories.find(c => c.id === 'explore');
 
   const activeExploreServices = React.useMemo(() => {
     return exploreServices?.filter(service => service.isActive !== false) ?? [];
   }, [exploreServices]);
 
-  const isLoading = servicesLoading;
+  const isLoading = servicesLoading || settings.isSettingsLoading;
 
   const renderContent = () => {
     if (isLoading) {
@@ -35,7 +37,7 @@ export default function ExplorePage() {
       );
     }
     
-    if (settings.categories?.explore === false) {
+    if (!isCategoryEnabled) {
       return <PageMessage icon={<AlertTriangle className="h-10 w-10 text-primary" />} title="Service Unavailable" message="This service category is currently disabled. Please check back later." />;
     }
 
@@ -65,7 +67,7 @@ export default function ExplorePage() {
             <div className="text-center mb-12">
               <Compass className="mx-auto h-12 w-12 text-primary" />
               <h1 className="mt-4 font-headline text-3xl font-bold md:text-4xl">
-                Explore Morocco
+                {category?.name || 'Explore Morocco'}
               </h1>
               <p className="mt-2 max-w-2xl mx-auto text-lg text-foreground/80">
                 Join our organized trips and discover the wonders of Morocco with fellow travelers.

@@ -1,5 +1,4 @@
-
-export type ServiceCategory = 'cars' | 'hotels' | 'transport' | 'explore';
+export type ServiceCategory = 'cars' | 'hotels' | 'transport' | 'explore' | string;
 
 export interface AdditionalMedia {
   imageUrl: string;
@@ -33,4 +32,13 @@ export interface Review {
   createdAt: any; // Firestore Timestamp
   authorName: string;
   authorImage?: string | null;
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  icon: string;
+  href: string;
+  imageUrl: string;
+  enabled: boolean;
 }

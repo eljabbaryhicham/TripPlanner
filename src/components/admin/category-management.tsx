@@ -7,35 +7,62 @@ import { doc } from 'firebase/firestore';
 import { setDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, PlusCircle, Edit, Trash2, Copy } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Separator } from '../ui/separator';
+import { useSettings } from '@/components/settings-provider';
+import type { Category } from '@/lib/types';
+import { slugify } from '@/lib/utils';
+import { CategoryEditor } from './category-editor';
+import { Icon } from '../icon';
 
-function SubmitButton({ isSubmitting }: { isSubmitting: boolean }) {
-    return (
-        <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-            Save Settings
-        </Button>
-    );
-}
-
-const CategoryToggle = ({ id, label, defaultChecked }: { id: string, label: string, defaultChecked: boolean }) => (
-    <div className="flex items-center justify-between">
-        <Label htmlFor={id} className="font-medium">
-            {label}
-        </Label>
-        <Switch id={id} name={id} defaultChecked={defaultChecked} />
-    </div>
-);
-
-export default function CategoryManagement({ currentSettings }: { currentSettings: { [key: string]: boolean } }) {
+export default function CategoryManagement() {
     const router = useRouter();
     const { toast } = useToast();
     const firestore = useFirestore();
+    const settings = useSettings();
+
+    const [categories, setCategories] = React.useState<Category[]>([]);
     const [isSubmitting, setIsSubmitting] = React.useState(false);
+    const [isEditorOpen, setIsEditorOpen] = React.useState(false);
+    const [categoryToEdit, setCategoryToEdit] = React.useState<Category | null>(null);
+    
+    React.useEffect(() => {
+        setCategories(settings.categories || []);
+    }, [settings.categories]);
+
+    const handleAddNew = () => {
+        setCategoryToEdit(null);
+        setIsEditorOpen(true);
+    };
+    
+    const handleEdit = (category: Category) => {
+        setCategoryToEdit(category);
+        setIsEditorOpen(true);
+    };
+
+    const handleDuplicate = (category: Category) => {
+        const newCategory: Category = {
+            ...category,
+            id: `${slugify(category.name)}-${Math.random().toString(36).substr(2, 5)}`,
+            name: `${category.name} (Copy)`,
+        };
+        setCategories(prev => [...prev, newCategory]);
+        toast({ title: 'Category Duplicated', description: 'Save your changes to finalize.' });
+    };
+
+    const handleDelete = (id: string) => {
+        setCategories(prev => prev.filter(c => c.id !== id));
+        toast({ title: 'Category Marked for Deletion', description: 'Save your changes to finalize.' });
+    };
+
+    const handleSaveCategory = (categoryData: Category) => {
+        if (categoryToEdit) { // Editing
+            setCategories(prev => prev.map(c => c.id === categoryData.id ? categoryData : c));
+        } else { // Adding
+            setCategories(prev => [...prev, categoryData]);
+        }
+        setIsEditorOpen(false);
+    };
 
     const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
         event.preventDefault();
@@ -47,45 +74,65 @@ export default function CategoryManagement({ currentSettings }: { currentSetting
             return;
         }
 
-        const formData = new FormData(event.currentTarget);
-        const data = Object.fromEntries(formData);
-        const categoryStates = {
-            cars: data.cars === 'on',
-            hotels: data.hotels === 'on',
-            transport: data.transport === 'on',
-            explore: data.explore === 'on',
-        };
-
         const settingsRef = doc(firestore, 'app_settings', 'general');
-        setDocumentNonBlocking(settingsRef, { categories: categoryStates }, { merge: true });
+        setDocumentNonBlocking(settingsRef, { categories: categories }, { merge: true });
 
-        toast({ title: 'Category settings update initiated.' });
+        toast({ title: 'Category settings update initiated.', description: 'Your changes will be live shortly.' });
         setIsSubmitting(false);
         router.refresh();
     };
 
     return (
-        <Card>
-            <CardHeader>
-                <CardTitle>Category Management</CardTitle>
-                <CardDescription>
-                    Enable or disable entire service categories across the app. This will hide them from the navigation and service pages.
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <CategoryToggle id="cars" label="Car Rentals" defaultChecked={currentSettings?.cars ?? true} />
-                    <Separator />
-                    <CategoryToggle id="hotels" label="Hotels" defaultChecked={currentSettings?.hotels ?? true} />
-                    <Separator />
-                    <CategoryToggle id="transport" label="Transport / Pickup" defaultChecked={currentSettings?.transport ?? true} />
-                    <Separator />
-                    <CategoryToggle id="explore" label="Explore Trips" defaultChecked={currentSettings?.explore ?? true} />
-                    <div className="flex justify-end pt-4">
-                        <SubmitButton isSubmitting={isSubmitting} />
+        <>
+            <Card>
+                <CardHeader>
+                    <div className="flex items-center justify-between">
+                         <div>
+                            <CardTitle>Category Management</CardTitle>
+                            <CardDescription>
+                                Add, edit, remove, and rearrange service categories.
+                            </CardDescription>
+                         </div>
+                         <Button onClick={handleAddNew}><PlusCircle className="mr-2 h-4 w-4" /> Add New</Button>
                     </div>
-                </form>
-            </CardContent>
-        </Card>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        <div className="space-y-4 rounded-md border p-4">
+                            {categories.length === 0 ? (
+                                <p className="text-center text-muted-foreground">No categories defined. Add one to get started.</p>
+                            ) : (
+                                categories.map(category => (
+                                    <div key={category.id} className="flex items-center justify-between rounded-md border bg-background p-3">
+                                        <div className="flex items-center gap-4">
+                                            <Icon name={category.icon} className="h-6 w-6 text-muted-foreground" />
+                                            <div className="font-medium">{category.name}</div>
+                                            <div className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-full">{category.id}</div>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Button type="button" size="icon" variant="ghost" onClick={() => handleEdit(category)}><Edit className="h-4 w-4" /></Button>
+                                            <Button type="button" size="icon" variant="ghost" onClick={() => handleDuplicate(category)}><Copy className="h-4 w-4" /></Button>
+                                            <Button type="button" size="icon" variant="ghost" onClick={() => handleDelete(category.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                                        </div>
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                        <div className="flex justify-end pt-4">
+                             <Button type="submit" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                                Save All Changes
+                            </Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
+            <CategoryEditor 
+                isOpen={isEditorOpen}
+                onClose={() => setIsEditorOpen(false)}
+                onSave={handleSaveCategory}
+                category={categoryToEdit}
+            />
+        </>
     );
 }

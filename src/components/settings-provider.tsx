@@ -1,29 +1,18 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useDoc, useFirestore, useMemoFirebase } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import type { Category } from '@/lib/types';
 
 export interface AppSettings {
     logoUrl?: string;
     whatsappNumber: string;
     bookingEmailTo: string;
     resendEmailFrom: string;
-    categories: {
-        cars: boolean;
-        hotels: boolean;
-        transport: boolean;
-        explore: boolean;
-    };
+    categories: Category[];
     heroBackgroundImageUrl?: string;
     suggestionsBackgroundImageUrl?: string;
-    categoryImages?: {
-        cars?: string;
-        hotels?: string;
-        transport?: string;
-        explore?: string;
-    };
 }
 
 interface SettingsContextType extends AppSettings {
@@ -43,18 +32,15 @@ export function SettingsProvider({ defaultSettings, children }: { defaultSetting
         // Exclude properties like 'id' from the merge to match AppSettings type.
         const { id, ...restOfFirestoreSettings } = firestoreSettings as any;
 
-        // Deep merge fetched settings with defaults
+        // If firestore has a valid categories array, use it. Otherwise, fall back to defaults.
+        const categories = Array.isArray(restOfFirestoreSettings.categories) && restOfFirestoreSettings.categories.length > 0
+            ? restOfFirestoreSettings.categories
+            : defaultSettings.categories;
+
         return {
           ...defaultSettings,
           ...restOfFirestoreSettings,
-          categories: {
-            ...defaultSettings.categories,
-            ...(restOfFirestoreSettings.categories || {})
-          },
-          categoryImages: {
-            ...defaultSettings.categoryImages,
-            ...(restOfFirestoreSettings.categoryImages || {})
-          }
+          categories,
         };
     }
     // Return defaults if nothing is fetched yet or on first render

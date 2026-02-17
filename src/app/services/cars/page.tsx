@@ -27,6 +27,9 @@ export default function CarsPage() {
   const [priceRange, setPriceRange] = React.useState('all');
   const [seats, setSeats] = React.useState('all');
 
+  const isCategoryEnabled = settings.categories.find(c => c.id === 'cars')?.enabled ?? false;
+  const category = settings.categories.find(c => c.id === 'cars');
+
   const hasServices = carServices && carServices.length > 0;
   const allInactive = hasServices && carServices.every(s => s.isActive === false);
 
@@ -59,7 +62,7 @@ export default function CarsPage() {
     return services;
   }, [carServices, priceRange, seats]);
 
-  const isLoading = servicesLoading;
+  const isLoading = servicesLoading || settings.isSettingsLoading;
 
   const renderContent = () => {
     if (isLoading) {
@@ -72,7 +75,7 @@ export default function CarsPage() {
       );
     }
     
-    if (settings.categories?.cars === false) {
+    if (!isCategoryEnabled) {
       return <PageMessage icon={<AlertTriangle className="h-10 w-10 text-primary" />} title="Service Unavailable" message="This service category is currently disabled. Please check back later." />;
     }
 
@@ -100,14 +103,14 @@ export default function CarsPage() {
             <div className="text-center mb-12">
               <Car className="mx-auto h-12 w-12 text-primary" />
               <h1 className="mt-4 font-headline text-3xl font-bold md:text-4xl">
-                Car Rentals
+                {category?.name || 'Car Rentals'}
               </h1>
               <p className="mt-2 max-w-2xl mx-auto text-lg text-foreground/80">
                 Find the perfect vehicle for your journey.
               </p>
             </div>
 
-            {!isLoading && settings.categories?.cars !== false && hasServices && !allInactive && (
+            {!isLoading && isCategoryEnabled && hasServices && !allInactive && (
               <div className="mb-8 flex flex-col sm:flex-row justify-center gap-4">
                 <Select value={priceRange} onValueChange={setPriceRange}>
                   <SelectTrigger className="w-full sm:w-[200px]">

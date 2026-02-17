@@ -1,15 +1,15 @@
-
 'use client';
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { BedDouble, Car, Briefcase, Mountain, Compass } from 'lucide-react';
+import { Mountain } from 'lucide-react';
 import * as React from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { useAuth, useUser, initiateAnonymousSignIn } from '@/firebase';
 import { useSettings } from './settings-provider';
 import { Skeleton } from './ui/skeleton';
+import { Icon } from './icon';
 
 const NavLink = ({
   href,
@@ -66,6 +66,8 @@ const Header = () => {
       </div>
     );
   }
+  
+  const activeCategories = categorySettings.filter(c => c.enabled);
 
   return (
     <div className="fixed bottom-4 left-1/2 z-50 -translate-x-1/2 sm:bottom-6">
@@ -78,26 +80,11 @@ const Header = () => {
           )}
         </NavLink>
         <div className="mx-1 h-8 self-center w-px bg-border sm:h-10" />
-        {categorySettings?.cars && (
-          <NavLink href="/services/cars" label="Cars">
-            <Car className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
+        {activeCategories.map(category => (
+          <NavLink href={category.href} label={category.name} key={category.id}>
+             <Icon name={category.icon} className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
           </NavLink>
-        )}
-        {categorySettings?.hotels && (
-          <NavLink href="/services/hotels" label="Hotels">
-            <BedDouble className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
-          </NavLink>
-        )}
-        {categorySettings?.transport && (
-          <NavLink href="/services/transport" label="Pickup">
-            <Briefcase className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
-          </NavLink>
-        )}
-        {categorySettings?.explore && (
-          <NavLink href="/services/explore" label="Explore">
-            <Compass className="h-6 w-6 text-foreground sm:h-7 sm:w-7" />
-          </NavLink>
-        )}
+        ))}
       </nav>
     </div>
   );

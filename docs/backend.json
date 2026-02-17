@@ -556,28 +556,68 @@
       "type": "object",
       "description": "Stores application-wide settings.",
       "properties": {
-        "logoUrl": { "type": "string", "format": "uri" },
-        "whatsappNumber": { "type": "string" },
-        "bookingEmailTo": { "type": "string", "format": "email" },
-        "resendEmailFrom": { "type": "string" },
-        "heroBackgroundImageUrl": { "type": "string", "format": "uri" },
-        "suggestionsBackgroundImageUrl": { "type": "string", "format": "uri" },
-        "categories": {
-          "type": "object",
-          "properties": {
-            "cars": { "type": "boolean" },
-            "hotels": { "type": "boolean" },
-            "transport": { "type": "boolean" },
-            "explore": { "type": "boolean" }
-          }
+        "logoUrl": {
+          "type": "string",
+          "format": "uri"
         },
-        "categoryImages": {
-          "type": "object",
-          "properties": {
-            "cars": { "type": "string", "format": "uri" },
-            "hotels": { "type": "string", "format": "uri" },
-            "transport": { "type": "string", "format": "uri" },
-            "explore": { "type": "string", "format": "uri" }
+        "whatsappNumber": {
+          "type": "string"
+        },
+        "bookingEmailTo": {
+          "type": "string",
+          "format": "email"
+        },
+        "resendEmailFrom": {
+          "type": "string"
+        },
+        "heroBackgroundImageUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "suggestionsBackgroundImageUrl": {
+          "type": "string",
+          "format": "uri"
+        },
+        "categories": {
+          "type": "array",
+          "description": "Defines the service categories available in the app.",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "description": "Unique identifier for the category (e.g., 'cars')."
+              },
+              "name": {
+                "type": "string",
+                "description": "Display name of the category (e.g., 'Cars')."
+              },
+              "icon": {
+                "type": "string",
+                "description": "Name of the lucide-react icon to use."
+              },
+              "href": {
+                "type": "string",
+                "description": "URL path for the category page."
+              },
+              "imageUrl": {
+                "type": "string",
+                "format": "uri",
+                "description": "Image for the category slideshow."
+              },
+              "enabled": {
+                "type": "boolean",
+                "description": "Whether the category is visible to users."
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "icon",
+              "href",
+              "imageUrl",
+              "enabled"
+            ]
           }
         }
       }

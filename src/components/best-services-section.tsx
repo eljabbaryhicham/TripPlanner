@@ -1,13 +1,8 @@
-
 'use client';
 
 import Link from 'next/link';
 import {
-  Car,
-  BedDouble,
-  Briefcase,
   ArrowRight,
-  Compass,
   Star,
   ServerCrash,
   Archive,
@@ -17,6 +12,8 @@ import ServiceList from '@/components/service-list';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import PageMessage from './page-message';
+import { useSettings } from './settings-provider';
+import { Icon } from './icon';
 
 interface BestServicesSectionProps {
   allServices: Service[];
@@ -26,18 +23,19 @@ interface BestServicesSectionProps {
     transports: Service[] | null;
     exploreTrips: Service[] | null;
   };
-  categorySettings: { [key: string]: boolean };
 }
 
-export default function BestServicesSection({ allServices, categoryServices, categorySettings }: BestServicesSectionProps) {
+export default function BestServicesSection({ allServices, categoryServices }: BestServicesSectionProps) {
+  const { categories: categorySettings } = useSettings();
   
-  const activeServices = allServices.filter(s => s.isActive !== false);
-
-  const bestOffers = activeServices.filter((service) => {
-    const isBest = service.isBestOffer;
-    const isCategoryActive = categorySettings ? categorySettings[service.category] !== false : true;
-    return isBest && isCategoryActive;
+  const activeCategories = categorySettings.filter(c => c.enabled);
+  
+  const activeServices = allServices.filter(s => {
+    const category = activeCategories.find(c => c.id === s.category);
+    return s.isActive !== false && category;
   });
+
+  const bestOffers = activeServices.filter((service) => service.isBestOffer);
 
   const bestCars = bestOffers.filter(s => s.category === 'cars');
   const bestHotels = bestOffers.filter(s => s.category === 'hotels');
@@ -56,21 +54,24 @@ export default function BestServicesSection({ allServices, categoryServices, cat
   const renderCategoryContent = (
     servicesForCategory: Service[] | null, 
     bestOffersForCategory: Service[], 
-    categoryName: 'cars' | 'hotels' | 'transport' | 'explore'
+    categoryName: string
   ) => {
     const hasServices = servicesForCategory && servicesForCategory.length > 0;
     const allInactive = hasServices && servicesForCategory.every(s => s.isActive === false);
+    const category = activeCategories.find(c => c.id === categoryName);
+    if (!category) return null;
+
 
     if (!hasServices) {
-      return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title={`No ${categoryName} Available`} message={`There are currently no services in this category. Please check back later.`} />;
+      return <PageMessage icon={<Archive className="h-10 w-10 text-primary" />} title={`No ${category.name} Available`} message={`There are currently no services in this category. Please check back later.`} />;
     }
 
     if (allInactive) {
-      return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title={`${categoryName.charAt(0).toUpperCase() + categoryName.slice(1)} Are Busy`} message={`All services in this category are temporarily unavailable. We'll be back soon!`} />;
+      return <PageMessage icon={<ServerCrash className="h-10 w-10 text-primary" />} title={`${category.name} Are Busy`} message={`All services in this category are temporarily unavailable. We'll be back soon!`} />;
     }
     
     if (bestOffersForCategory.length === 0) {
-      return <PageMessage icon={<Star className="h-10 w-10 text-primary" />} title="No Special Offers" message={`There are no featured best offers for ${categoryName} at the moment.`} />;
+      return <PageMessage icon={<Star className="h-10 w-10 text-primary" />} title="No Special Offers" message={`There are no featured best offers for ${category.name} at the moment.`} />;
     }
 
     return (
@@ -78,8 +79,8 @@ export default function BestServicesSection({ allServices, categoryServices, cat
         <ServiceList services={bestOffersForCategory.slice(0, 3)} />
         <div className="text-center">
           <Button asChild variant="outline">
-            <Link href={`/services/${categoryName}`}>
-              Show More {categoryName.charAt(0).toUpperCase() + categoryName.slice(1)}
+            <Link href={category.href}>
+              Show More {category.name}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
@@ -99,54 +100,25 @@ export default function BestServicesSection({ allServices, categoryServices, cat
         <Tabs defaultValue="all" className="w-full">
           <TabsList className="flex flex-wrap h-auto justify-center w-full max-w-lg mx-auto mb-8">
             <TabsTrigger value="all">All</TabsTrigger>
-            {categorySettings.cars !== false && (
-              <TabsTrigger value="cars">
-                <Car className="w-4 h-4 mr-2" />
-                Cars
+            {activeCategories.map(cat => (
+              <TabsTrigger key={cat.id} value={cat.id}>
+                <Icon name={cat.icon} className="w-4 h-4 mr-2" />
+                {cat.name}
               </TabsTrigger>
-            )}
-            {categorySettings.hotels !== false && (
-              <TabsTrigger value="hotels">
-                <BedDouble className="w-4 h-4 mr-2" />
-                Hotels
-              </TabsTrigger>
-            )}
-            {categorySettings.transport !== false && (
-              <TabsTrigger value="transport">
-                <Briefcase className="w-4 h-4 mr-2" />
-                Pickup
-              </TabsTrigger>
-            )}
-            {categorySettings.explore !== false && (
-              <TabsTrigger value="explore">
-                <Compass className="w-4 h-4 mr-2" />
-                Explore
-              </TabsTrigger>
-            )}
+            ))}
           </TabsList>
           <TabsContent value="all">
             <ServiceList services={bestOffers.slice(0, 3)} />
           </TabsContent>
-          {categorySettings.cars !== false && (
-            <TabsContent value="cars">
-              {renderCategoryContent(categoryServices.carRentals, bestCars, 'cars')}
+          {activeCategories.map(cat => (
+            <TabsContent key={cat.id} value={cat.id}>
+              {renderCategoryContent(
+                  categoryServices[cat.id as keyof typeof categoryServices], 
+                  bestOffers.filter(s => s.category === cat.id), 
+                  cat.id
+              )}
             </TabsContent>
-          )}
-          {categorySettings.hotels !== false && (
-            <TabsContent value="hotels">
-              {renderCategoryContent(categoryServices.hotels, bestHotels, 'hotels')}
-            </TabsContent>
-          )}
-          {categorySettings.transport !== false && (
-            <TabsContent value="transport">
-              {renderCategoryContent(categoryServices.transports, bestTransports, 'transport')}
-            </TabsContent>
-          )}
-          {categorySettings.explore !== false && (
-            <TabsContent value="explore">
-              {renderCategoryContent(categoryServices.exploreTrips, bestExplores, 'explore')}
-            </TabsContent>
-          )}
+          ))}
         </Tabs>
       )}
     </div>
