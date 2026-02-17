@@ -163,7 +163,10 @@ function ServiceTableSkeleton() {
                 <TableBody>
                     {Array.from({ length: 3 }).map((_, i) => (
                         <TableRow key={i}>
-                            <TableCell><Skeleton className="h-5 w-32" /></TableCell>
+                            <TableCell>
+                                <Skeleton className="h-5 w-32" />
+                                <Skeleton className="h-4 w-24 mt-1" />
+                            </TableCell>
                             <TableCell><Skeleton className="h-5 w-24" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-11" /></TableCell>
                             <TableCell><Skeleton className="h-6 w-11" /></TableCell>
@@ -208,7 +211,10 @@ export default function ServiceManagement({
                     {servicesForCategory && servicesForCategory.length > 0 ? (
                         servicesForCategory.map((service) => (
                             <TableRow key={service.id}>
-                                <TableCell className="font-medium">{service.name}</TableCell>
+                                <TableCell>
+                                    <div className="font-medium">{service.name}</div>
+                                    {service.label && <div className="text-xs text-muted-foreground">{service.label}</div>}
+                                </TableCell>
                                 <TableCell>${service.price} / {service.priceUnit}</TableCell>
                                 <TableCell>
                                     <ServiceStatusToggle service={service} />

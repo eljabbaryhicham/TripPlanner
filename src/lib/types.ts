@@ -9,6 +9,7 @@ export interface AdditionalMedia {
 export interface Service {
   id: string;
   name: string;
+  label?: string;
   description: string;
   imageUrl: string;
   isBestOffer?: boolean;

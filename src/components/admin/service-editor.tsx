@@ -35,6 +35,7 @@ const additionalMediaSchema = z.object({
 const serviceSchema = z.object({
     id: z.string().optional(),
     name: z.string().min(1, 'Name is required'),
+    label: z.string().optional(),
     description: z.string().min(1, 'Description is required'),
     imageUrl: z.string().url('Image URL must be a valid URL'),
     category: z.enum(['cars', 'hotels', 'transport', 'explore']),
@@ -85,6 +86,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
 
     // Form state
     const [name, setName] = React.useState('');
+    const [label, setLabel] = React.useState('');
     const [description, setDescription] = React.useState('');
     const [imageUrl, setImageUrl] = React.useState('');
     const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport' | 'explore'>('cars');
@@ -102,6 +104,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
         if (isOpen) {
             if (service) { // Editing an existing service
                 setName(service.name);
+                setLabel(service.label || '');
                 setDescription(service.description);
                 setImageUrl(service.imageUrl);
                 setCategory(service.category);
@@ -113,6 +116,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                 setAdditionalMedia(service.additionalMedia ? service.additionalMedia.map((m, i) => ({ ...m, id: Date.now() + i })) : []);
             } else { // Creating a new service, reset to defaults
                 setName('');
+                setLabel('');
                 setDescription('');
                 setImageUrl('');
                 setCategory('cars'); // Start with 'cars' as the default
@@ -210,6 +214,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
         const dataToValidate = {
             id: service?.id,
             name,
+            label,
             description,
             imageUrl,
             category,
@@ -298,6 +303,11 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                                 <div className="space-y-2">
                                     <Label htmlFor="name">Name</Label>
                                     <Input id="name" value={name} onChange={e => setName(e.target.value)} required />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="label">Internal Label (Optional)</Label>
+                                    <Input id="label" value={label} onChange={e => setLabel(e.target.value)} />
+                                    <p className="text-xs text-muted-foreground">This label is only visible in the admin dashboard.</p>
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="description">Description</Label>
