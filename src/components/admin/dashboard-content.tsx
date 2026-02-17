@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { useFirestore, useCollection, useMemoFirebase, useUser, useDoc, useAuth } from '@/firebase';
+import { useFirestore, useMemoFirebase, useUser, useDoc, useAuth, useCollection } from '@/firebase';
 import { collection, doc, getDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { LogOut, Settings } from 'lucide-react';
@@ -83,31 +83,9 @@ export default function DashboardContent() {
         });
     }, [firestore, toast]);
 
-    // Data fetching for services from all collections
-    const carRentalsRef = useMemoFirebase(() => firestore ? collection(firestore, 'carRentals') : null, [firestore]);
-    const hotelsRef = useMemoFirebase(() => firestore ? collection(firestore, 'hotels') : null, [firestore]);
-    const transportsRef = useMemoFirebase(() => firestore ? collection(firestore, 'transports') : null, [firestore]);
-    const exploreTripsRef = useMemoFirebase(() => firestore ? collection(firestore, 'exploreTrips') : null, [firestore]);
-    
     // Admins are only fetched here, since this component only renders for admins.
     const adminsRef = useMemoFirebase(() => firestore ? collection(firestore, 'roles_admin') : null, [firestore]);
-
-    const { data: carRentals, isLoading: carsLoading } = useCollection(carRentalsRef);
-    const { data: hotels, isLoading: hotelsLoading } = useCollection(hotelsRef);
-    const { data: transports, isLoading: transportsLoading } = useCollection(transportsRef);
-    const { data: exploreTrips, isLoading: exploreLoading } = useCollection(exploreTripsRef);
     const { data: admins, isLoading: adminsLoading } = useCollection(adminsRef);
-
-    const servicesLoading = carsLoading || hotelsLoading || transportsLoading || exploreLoading;
-
-    const services = React.useMemo(() => {
-        const allServices: any[] = [];
-        if (carRentals) allServices.push(...carRentals.map(s => ({ ...s, category: 'cars' })));
-        if (hotels) allServices.push(...hotels.map(s => ({ ...s, category: 'hotels' })));
-        if (transports) allServices.push(...transports.map(s => ({ ...s, category: 'transport' })));
-        if (exploreTrips) allServices.push(...exploreTrips.map(s => ({ ...s, category: 'explore' })));
-        return allServices;
-    }, [carRentals, hotels, transports, exploreTrips]);
 
     const handleLogout = async () => {
         if (auth) {
@@ -158,8 +136,6 @@ export default function DashboardContent() {
                         </AccordionTrigger>
                         <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
                             <ServiceManagement 
-                                services={services}
-                                isLoading={servicesLoading}
                                 onAdd={handleAddService} 
                                 onEdit={handleEditService} 
                             />
