@@ -124,12 +124,19 @@ function RemoveAdminButton({ adminId }: { adminId: string }) {
             const result = await response.json();
 
             if (!response.ok) {
-                throw new Error(result.error || result.details || 'Failed to delete admin.');
+                // Prioritize the detailed message from the server
+                const errorMessage = result.details || result.error || 'An unknown error occurred on the server.';
+                throw new Error(errorMessage);
             }
 
             toast({ title: 'Admin Deleted', description: 'The admin user and their authentication account have been removed.' });
         } catch (error: any) {
-            toast({ variant: 'destructive', title: 'Deletion Failed', description: error.message });
+             toast({ 
+                variant: 'destructive', 
+                title: 'Deletion Failed', 
+                description: error.message,
+                duration: 10000 // Give more time to read the error
+             });
         } finally {
             setIsDeleting(false);
         }
