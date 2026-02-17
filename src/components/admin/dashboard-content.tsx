@@ -144,7 +144,15 @@ export default function DashboardContent() {
                 </div>
             </header>
             <main className="p-4 sm:px-6 sm:py-0">
-                <Accordion type="multiple" defaultValue={['services']} className="w-full space-y-4">
+                <Accordion type="multiple" defaultValue={['bookings']} className="w-full space-y-4">
+                    <AccordionItem value="bookings">
+                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
+                            Booking Management
+                        </AccordionTrigger>
+                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
+                            <BookingManagement />
+                        </AccordionContent>
+                    </AccordionItem>
                     <AccordionItem value="services">
                         <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
                             Service Management
@@ -156,14 +164,6 @@ export default function DashboardContent() {
                                 onAdd={handleAddService} 
                                 onEdit={handleEditService} 
                             />
-                        </AccordionContent>
-                    </AccordionItem>
-                    <AccordionItem value="bookings">
-                        <AccordionTrigger className="p-4 text-lg font-semibold hover:no-underline rounded-lg bg-card border data-[state=open]:rounded-b-none">
-                            Booking Management
-                        </AccordionTrigger>
-                        <AccordionContent className="p-0 rounded-b-lg border border-t-0 bg-card">
-                            <BookingManagement />
                         </AccordionContent>
                     </AccordionItem>
                     <AccordionItem value="settings">

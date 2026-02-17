@@ -15,6 +15,7 @@ import { useToast } from '@/hooks/use-toast';
 import { updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase/non-blocking-updates';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { cn } from '@/lib/utils';
 
 const BookingManagement = () => {
     const firestore = useFirestore();
@@ -44,7 +45,7 @@ const BookingManagement = () => {
     
     const isLoading = reservationsLoading || inquiriesLoading;
 
-    const handleBatchAction = async (action: 'paid' | 'unpaid' | 'completed' | 'delete') => {
+    const handleBatchAction = async (action: 'paid' | 'unpaid' | 'completed' | 'cancelled' | 'delete') => {
         if (!firestore) {
             toast({ variant: 'destructive', title: 'Error', description: 'Database not available.' });
             return;
@@ -71,6 +72,13 @@ const BookingManagement = () => {
                     dataToUpdate = { paymentStatus: isReservation ? 'pending' : 'unpaid' };
                 } else if (action === 'completed') {
                     dataToUpdate = { status: 'completed' };
+                } else if (action === 'cancelled') {
+                    if (isReservation) {
+                        dataToUpdate = { status: 'cancelled' };
+                    } else {
+                        toast({ variant: 'destructive', title: 'Action Not Applicable', description: `Inquiries cannot be marked as "cancelled".` });
+                        continue; // Skip this item
+                    }
                 }
                 updateDocumentNonBlocking(docRef, dataToUpdate);
             }
@@ -137,7 +145,9 @@ const BookingManagement = () => {
                         <DropdownMenuContent>
                             <DropdownMenuItem onSelect={() => handleBatchAction('paid')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Paid</DropdownMenuItem>
                             <DropdownMenuItem onSelect={() => handleBatchAction('unpaid')}><XCircle className="mr-2 h-4 w-4" />Mark as Unpaid</DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onSelect={() => handleBatchAction('completed')}><CheckCircle className="mr-2 h-4 w-4" />Mark as Completed</DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => handleBatchAction('cancelled')} className="text-destructive focus:text-destructive"><XCircle className="mr-2 h-4 w-4" />Mark as Cancelled</DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onSelect={() => handleBatchAction('delete')} className="text-destructive focus:text-destructive"><Trash2 className="mr-2 h-4 w-4" />Delete Selected</DropdownMenuItem>
                         </DropdownMenuContent>
@@ -215,14 +225,24 @@ const BookingManagement = () => {
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant={booking.status === 'completed' ? 'outline' : 'secondary'} className="capitalize">
+                                            <Badge
+                                                variant={
+                                                    booking.status === 'completed' ? 'outline'
+                                                    : booking.status === 'cancelled' ? 'destructive'
+                                                    : 'secondary'
+                                                }
+                                                className="capitalize"
+                                            >
                                                 {booking.status || (booking.type === 'Inquiry' ? 'pending' : 'active')}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>
-                                            <Badge 
-                                                variant={(booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid') ? 'success' : 'destructive'} 
-                                                className="capitalize"
+                                            <Badge
+                                                variant={(booking.paymentStatus === 'completed' || booking.paymentStatus === 'paid') ? 'success' : 'destructive'}
+                                                className={cn("capitalize",
+                                                    (booking.paymentStatus === 'pending' || booking.paymentStatus === 'unpaid')
+                                                    && "bg-chart-3 border-transparent text-primary-foreground hover:bg-chart-3/90"
+                                                )}
                                             >
                                                 {booking.paymentStatus || (booking.type === 'Inquiry' ? 'unpaid' : 'pending')}
                                             </Badge>
