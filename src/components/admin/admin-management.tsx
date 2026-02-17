@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -120,13 +121,22 @@ function RemoveAdminButton({ adminId }: { adminId: string }) {
                 },
                 body: JSON.stringify({ uidToDelete: adminId })
             });
-            
-            const result = await response.json();
 
             if (!response.ok) {
-                // Prioritize the detailed message from the server
-                const errorMessage = result.details || result.error || 'An unknown error occurred on the server.';
+                // If the response is not OK, try to parse the JSON for an error message.
+                const errorData = await response.json().catch(() => ({ error: `Server responded with status ${response.status}` }));
+                const errorMessage = errorData.details || errorData.error || 'An unknown server error occurred.';
                 throw new Error(errorMessage);
+            }
+
+            // If the response is OK, we can optionally parse the body if we expect one,
+            // or just assume success. This handles cases where the server sends an empty body on success.
+            const responseText = await response.text();
+            if (responseText) {
+                const result = JSON.parse(responseText);
+                if (!result.success) {
+                    throw new Error(result.error || result.message || 'Deletion reported failure.');
+                }
             }
 
             toast({ title: 'Admin Deleted', description: 'The admin user and their authentication account have been removed.' });
