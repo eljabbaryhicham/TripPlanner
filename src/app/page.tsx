@@ -5,7 +5,6 @@ import * as React from 'react';
 import Link from 'next/link';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
-import { Loader2 } from 'lucide-react';
 
 import Header from '@/components/header';
 import AiSuggestions from '@/components/ai-suggestions';
@@ -68,49 +67,43 @@ export default function Home() {
     <div className="flex flex-col min-h-screen">
       <Header />
       <main className="flex-1">
-        {settings.isSettingsLoading ? (
-            <section className="relative flex min-h-screen flex-col items-center justify-center bg-background">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </section>
-        ) : (
-          <section
-            className="relative flex min-h-screen flex-col items-center justify-between pt-24"
-            style={{
-              backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-            }}
-          >
-            <div className="absolute inset-0 bg-black/70" />
-            
-            <div className="relative z-10 w-full">
-              <div className="container mx-auto px-4 text-center">
-                <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl text-white">
-                  TriPlanner
-                </h1>
-                <p className="mt-4 max-w-2xl mx-auto text-lg text-white/90 md:text-xl">
-                  Your ultimate travel planning assistant. Discover and book your next adventure.
-                </p>
-              </div>
-              <div className="w-full mt-8">
-                <CategorySlideshow />
-              </div>
+        <section
+          className="relative flex min-h-screen flex-col items-center justify-between pt-24"
+          style={{
+            backgroundImage: `url('${settings.heroBackgroundImageUrl}')`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+          }}
+        >
+          <div className="absolute inset-0 bg-black/70" />
+          
+          <div className="relative z-10 w-full">
+            <div className="container mx-auto px-4 text-center">
+              <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl lg:text-7xl text-white">
+                TriPlanner
+              </h1>
+              <p className="mt-4 max-w-2xl mx-auto text-lg text-white/90 md:text-xl">
+                Your ultimate travel planning assistant. Discover and book your next adventure.
+              </p>
             </div>
+            <div className="w-full mt-8">
+              <CategorySlideshow />
+            </div>
+          </div>
 
-            <div className="relative z-10 text-center pb-28 sm:pb-32">
-              <p className="mb-4 font-handwriting text-2xl sm:text-3xl text-white/90">Explore Our Best Services</p>
-              <Link href="#best-services" scroll={true}>
-                <Button
-                  variant="outline"
-                  className="rounded-full h-12 w-12 sm:h-14 sm:w-14 p-0 bg-white/10 border-white/20 hover:bg-white/20 backdrop-blur-sm animate-bounce text-white"
-                >
-                  <span className="sr-only">Scroll to next section</span>
-                  <ArrowDown className="h-6 w-6" />
-                </Button>
-              </Link>
-            </div>
-          </section>
-        )}
+          <div className="relative z-10 text-center pb-28 sm:pb-32">
+            <p className="mb-4 font-handwriting text-2xl sm:text-3xl text-white/90">Explore Our Best Services</p>
+            <Link href="#best-services" scroll={true}>
+              <Button
+                variant="outline"
+                className="rounded-full h-12 w-12 sm:h-14 sm:w-14 p-0 bg-white/10 border-white/20 hover:bg-white/20 backdrop-blur-sm animate-bounce text-white"
+              >
+                <span className="sr-only">Scroll to next section</span>
+                <ArrowDown className="h-6 w-6" />
+              </Button>
+            </Link>
+          </div>
+        </section>
 
         <section
           id="best-services"
