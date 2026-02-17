@@ -12,6 +12,7 @@ import {
     Star,
     type LucideProps
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export const ICONS = {
   Car,
@@ -25,12 +26,23 @@ export const ICONS = {
   Star,
 };
 
-export const ICON_NAMES = Object.keys(ICONS);
+export const ICON_NAMES = Object.keys(ICONS) as (keyof typeof ICONS)[];
 
-export const Icon = ({ name, ...props }: { name: string } & LucideProps) => {
-  if (!name || !ICONS[name as keyof typeof ICONS]) {
-    return <Compass {...props} />; // Fallback icon
+export const Icon = ({ name, className, ...props }: { name: string } & LucideProps) => {
+  if (ICONS[name as keyof typeof ICONS]) {
+    const IconComponent = ICONS[name as keyof typeof ICONS];
+    return <IconComponent className={className} {...props} />;
   }
-  const IconComponent = ICONS[name as keyof typeof ICONS];
-  return <IconComponent {...props} />;
+  
+  // Fallback to Google Material Symbols
+  // Note: size is controlled by font-size for Material Symbols.
+  // The provided className should include text-size utilities (e.g., 'text-2xl').
+  return (
+    <span
+      className={cn('material-symbols-outlined', className)}
+      // We don't spread props here as they are Lucide-specific and may not be valid for a span
+    >
+      {name}
+    </span>
+  );
 };

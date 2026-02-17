@@ -12,8 +12,7 @@ import type { Category } from '@/lib/types';
 import { slugify } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { MediaBrowserDialog } from './media-browser-dialog';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
-import { ICON_NAMES, Icon } from '../icon';
+import { ICON_NAMES } from '../icon';
 import { Switch } from '../ui/switch';
 
 interface CategoryEditorProps {
@@ -118,23 +117,17 @@ export const CategoryEditor = ({ isOpen, onClose, onSave, category }: CategoryEd
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="icon">Icon</Label>
-                                    <Select value={icon} onValueChange={setIcon}>
-                                        <SelectTrigger id="icon">
-                                            <SelectValue placeholder="Select an icon" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {ICON_NAMES.map(iconName => (
-                                                <SelectItem key={iconName} value={iconName}>
-                                                    <div className="flex items-center gap-2">
-                                                    <Icon name={iconName} className="h-4 w-4" />
-                                                    <span>{iconName}</span>
-                                                    </div>
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
+                                    <Label htmlFor="icon">Icon Name</Label>
+                                    <Input id="icon" value={icon} onChange={(e) => setIcon(e.target.value)} required placeholder="e.g., travel_explore" />
+                                    <p className="text-xs text-muted-foreground">
+                                        Use an icon name from{' '}
+                                        <a href="https://fonts.google.com/icons?selected=Material+Symbols+Outlined" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">
+                                            Google Fonts Icons
+                                        </a>{' '}
+                                        (e.g., "flight" or "beach_access") or use one of the built-in icons: {ICON_NAMES.join(', ')}.
+                                    </p>
                                 </div>
+
                                 <div className="space-y-2">
                                     <Label htmlFor="href">URL Path (href)</Label>
                                     <Input id="href" value={href} onChange={e => setHref(e.target.value)} required placeholder="/services/villas" />
