@@ -4,6 +4,10 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { getAdminServices } from '@/firebase/admin';
+import adminTemplateFromFile from '@/lib/email-template.json';
+import clientTemplateFromFile from '@/lib/client-email-template.json';
+import appConfigFromFile from '@/lib/app-config.json';
+
 
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
@@ -37,21 +41,34 @@ type InquiryData = z.infer<typeof inquirySchema>;
 export async function submitInquiryEmail(data: InquiryData): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
   const { customerName, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = data;
 
-  try {
-    const { adminFirestore } = getAdminServices();
-    const db = adminFirestore;
-    const settingsPromise = db.collection('app_settings').doc('general').get();
-    const adminTemplatePromise = db.collection('email_templates').doc('admin_notification').get();
-    const clientTemplatePromise = db.collection('email_templates').doc('client_confirmation').get();
+  let recipientEmail: string | undefined;
+  let fromEmail: string | undefined;
+  let adminTemplate: string;
+  let clientTemplate: string;
 
-    const [settingsDoc, adminTemplateDoc, clientTemplateDoc] = await Promise.all([settingsPromise, adminTemplatePromise, clientTemplatePromise]);
-    
-    const appSettings = settingsDoc.data();
-    const adminTemplate = adminTemplateDoc.data()?.template || `<h3>New Booking Inquiry for {{serviceName}}</h3><p><strong>Name:</strong> {{name}}</p><p><strong>Email:</strong> {{email}}</p>`;
-    const clientTemplate = clientTemplateDoc.data()?.template || `<h3>Confirmation for {{serviceName}}</h3><p>Hi {{name}},</p><p>We have received your inquiry and will get back to you soon.</p>`;
-    
-    const recipientEmail = appSettings?.bookingEmailTo;
-    const fromEmail = appSettings?.resendEmailFrom;
+  try {
+    try {
+        const { adminFirestore } = getAdminServices();
+        const db = adminFirestore;
+        const settingsPromise = db.collection('app_settings').doc('general').get();
+        const adminTemplatePromise = db.collection('email_templates').doc('admin_notification').get();
+        const clientTemplatePromise = db.collection('email_templates').doc('client_confirmation').get();
+
+        const [settingsDoc, adminTemplateDoc, clientTemplateDoc] = await Promise.all([settingsPromise, adminTemplatePromise, clientTemplatePromise]);
+        
+        const appSettings = settingsDoc.data();
+        recipientEmail = appSettings?.bookingEmailTo;
+        fromEmail = appSettings?.resendEmailFrom;
+        adminTemplate = adminTemplateDoc.data()?.template || adminTemplateFromFile.template;
+        clientTemplate = clientTemplateDoc.data()?.template || clientTemplateFromFile.template;
+
+    } catch (dbError: any) {
+        console.warn("Could not fetch settings from Firestore. Falling back to local JSON config. Error:", dbError.message);
+        recipientEmail = appConfigFromFile.bookingEmailTo;
+        fromEmail = appConfigFromFile.resendEmailFrom;
+        adminTemplate = adminTemplateFromFile.template;
+        clientTemplate = clientTemplateFromFile.template;
+    }
     
     if (!process.env.RESEND_API_KEY) {
       console.error('Email sending is not configured: RESEND_API_KEY is missing.');
