@@ -20,6 +20,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Separator } from '@/components/ui/separator';
 import { MOROCCAN_CITIES } from '@/lib/constants';
 import { MediaBrowserDialog } from '@/components/admin/media-browser-dialog';
+import { useSettings } from '../settings-provider';
 
 interface ServiceEditorProps {
     isOpen: boolean;
@@ -38,7 +39,7 @@ const serviceSchema = z.object({
     label: z.string().optional(),
     description: z.string().min(1, 'Description is required'),
     imageUrl: z.string().url('Image URL must be a valid URL'),
-    category: z.enum(['cars', 'hotels', 'transport', 'explore']),
+    category: z.string().min(1, 'Category is required'),
     price: z.coerce.number().min(0, 'Price must be non-negative'),
     priceUnit: z.enum(['day', 'night', 'trip']),
     location: z.string().min(1, 'Location is required'),
@@ -78,18 +79,19 @@ const detailKeySuggestions = {
 export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) => {
     const { toast } = useToast();
     const firestore = useFirestore();
+    const settings = useSettings();
     const [isSubmitting, setIsSubmitting] = React.useState(false);
 
     // Media Browser State
     const [browserOpen, setBrowserOpen] = React.useState(false);
-    const [imageTarget, setImageTarget] = React.useState<string | null>(null); // e.g. 'main', 'additional_0'
+    const [imageTarget, setImageTarget] = React.useState<string | null>(null); // e.g., 'main', 'additional_0'
 
     // Form state
     const [name, setName] = React.useState('');
     const [label, setLabel] = React.useState('');
     const [description, setDescription] = React.useState('');
     const [imageUrl, setImageUrl] = React.useState('');
-    const [category, setCategory] = React.useState<'cars' | 'hotels' | 'transport' | 'explore'>('cars');
+    const [category, setCategory] = React.useState('cars');
     const [location, setLocation] = React.useState('');
     const [price, setPrice] = React.useState<number | string>('');
     const [isBestOffer, setIsBestOffer] = React.useState(false);
@@ -136,20 +138,11 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
         // Only run this logic for new services and when the dialog is open.
         if (!isEditing && isOpen) {
             let defaultDetails: { key: string; value: string }[] = [];
-            switch (category) {
-                case 'cars':
-                    defaultDetails = [ { key: 'Seats', value: '' }, { key: 'Transmission', value: 'Automatic' }, { key: 'Fuel Policy', value: 'Full to full' } ];
-                    break;
-                case 'hotels':
-                    defaultDetails = [ { key: 'Amenities', value: '' }, { key: 'Room Type', value: '' } ];
-                    break;
-                case 'transport':
-                     defaultDetails = [ { key: 'Service', value: 'Personal meet & greet' }, { key: 'Includes', value: '' }, { key: 'Vehicle', value: 'Comfortable Sedan' } ];
-                    break;
-                case 'explore':
-                    defaultDetails = [ { key: 'Duration', value: '' }, { key: 'Destinations', value: '' }, { key: 'Group Size', value: '' }, { key: 'Trip Type', value: 'Group Tour' } ];
-                    break;
-            }
+            const keySugs = detailKeySuggestions[category as keyof typeof detailKeySuggestions] || [];
+            defaultDetails = keySugs.map(key => {
+                const options = (detailOptions[category as keyof typeof detailOptions] as Record<string, string[] | undefined>)?.[key];
+                return { key, value: options ? options[0] : '' };
+            });
             // Replace the details section with the new defaults
             setDetails(defaultDetails.map(d => ({ ...d, id: Date.now() + Math.random() })));
         }
@@ -209,6 +202,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
             case 'hotels': priceUnit = 'night'; break;
             case 'transport': priceUnit = 'trip'; break;
             case 'explore': priceUnit = 'trip'; break;
+            default: priceUnit = 'trip'; // Default for new categories
         }
 
         const dataToValidate = {
@@ -251,9 +245,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
             case 'transport': collectionPath = 'transports'; break;
             case 'explore': collectionPath = 'exploreTrips'; break;
             default:
-                toast({ variant: 'destructive', title: 'Error', description: 'Invalid service category.' });
-                setIsSubmitting(false);
-                return;
+                collectionPath = serviceCategory; // Use the ID for new categories
         }
 
         const docRef = doc(firestore, collectionPath, docId);
@@ -323,15 +315,14 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label>Category</Label>
-                                        <Select value={category} onValueChange={(v: 'cars' | 'hotels' | 'transport' | 'explore') => setCategory(v)} disabled={isEditing}>
+                                        <Select value={category} onValueChange={(v) => setCategory(v)} disabled={isEditing}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select a category" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="cars">Cars</SelectItem>
-                                                <SelectItem value="hotels">Hotels</SelectItem>
-                                                <SelectItem value="transport">Transport</SelectItem>
-                                                <SelectItem value="explore">Explore</SelectItem>
+                                                {settings.categories.map(cat => (
+                                                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                                                ))}
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -362,7 +353,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                                     <Label>Service Details</Label>
                                     <div className="space-y-2">
                                         {details.map((detail, index) => {
-                                            const options = (detailOptions[category] as Record<string, string[] | undefined>)?.[detail.key];
+                                            const options = (detailOptions[category as keyof typeof detailOptions] as Record<string, string[] | undefined>)?.[detail.key];
                                             return (
                                             <div key={detail.id} className="flex items-center gap-2">
                                                 <Input placeholder="Key (e.g., Seats)" value={detail.key} onChange={e => handleDetailChange(index, 'key', e.target.value)} />
@@ -389,7 +380,7 @@ export const ServiceEditor = ({ isOpen, onClose, service }: ServiceEditorProps) 
                                             <Button type="button" variant="outline" size="sm"><PlusCircle className="mr-2 h-4 w-4" />Add Detail</Button>
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent>
-                                            {(detailKeySuggestions[category] || []).map(key => (
+                                            {(detailKeySuggestions[category as keyof typeof detailKeySuggestions] || []).map(key => (
                                                 <DropdownMenuItem key={key} onSelect={() => addDetail(key)}>
                                                     Add '{key}'
                                                 </DropdownMenuItem>

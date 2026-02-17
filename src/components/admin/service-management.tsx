@@ -6,7 +6,7 @@ import type { Service, ServiceCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PlusCircle, MoreHorizontal, Trash2, Car, BedDouble, Briefcase, Compass } from 'lucide-react';
+import { PlusCircle, MoreHorizontal, Trash2 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/hooks/use-toast';
 import { useFirestore } from '@/firebase';
@@ -25,6 +25,8 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Skeleton } from '../ui/skeleton';
+import { useSettings } from '../settings-provider';
+import { Icon } from '../icon';
 
 const getCollectionPath = (category: ServiceCategory) => {
     switch(category) {
@@ -32,7 +34,7 @@ const getCollectionPath = (category: ServiceCategory) => {
         case 'hotels': return 'hotels';
         case 'transport': return 'transports';
         case 'explore': return 'exploreTrips';
-        default: return null;
+        default: return category;
     }
 }
 
@@ -190,10 +192,15 @@ export default function ServiceManagement({
     onAdd: () => void,
     onEdit: (service: Service) => void,
 }) {
-    const carServices = services.filter(s => s.category === 'cars');
-    const hotelServices = services.filter(s => s.category === 'hotels');
-    const transportServices = services.filter(s => s.category === 'transport');
-    const exploreServices = services.filter(s => s.category === 'explore');
+    const { categories } = useSettings();
+    const enabledCategories = categories.filter(c => c.enabled);
+
+    const servicesByCategory = React.useMemo(() => {
+        return services.reduce((acc, service) => {
+            (acc[service.category] = acc[service.category] || []).push(service);
+            return acc;
+        }, {} as Record<string, Service[]>);
+    }, [services]);
 
     const renderTable = (servicesForCategory: Service[]) => (
         <div className="overflow-x-auto">
@@ -268,25 +275,20 @@ export default function ServiceManagement({
             </CardHeader>
             <CardContent>
                 {isLoading ? <ServiceTableSkeleton /> : (
-                    <Tabs defaultValue="cars" className="w-full">
+                    <Tabs defaultValue={enabledCategories[0]?.id || 'cars'} className="w-full">
                         <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
-                            <TabsTrigger value="cars"><Car className="mr-2 h-4 w-4" />Cars</TabsTrigger>
-                            <TabsTrigger value="hotels"><BedDouble className="mr-2 h-4 w-4" />Hotels</TabsTrigger>
-                            <TabsTrigger value="transport"><Briefcase className="mr-2 h-4 w-4" />Transport</TabsTrigger>
-                            <TabsTrigger value="explore"><Compass className="mr-2 h-4 w-4" />Explore</TabsTrigger>
+                             {enabledCategories.map(cat => (
+                                <TabsTrigger key={cat.id} value={cat.id}>
+                                    <Icon name={cat.icon} className="mr-2 h-4 w-4" />
+                                    {cat.name}
+                                </TabsTrigger>
+                            ))}
                         </TabsList>
-                        <TabsContent value="cars" className="mt-4">
-                            {renderTable(carServices)}
-                        </TabsContent>
-                        <TabsContent value="hotels" className="mt-4">
-                            {renderTable(hotelServices)}
-                        </TabsContent>
-                        <TabsContent value="transport" className="mt-4">
-                            {renderTable(transportServices)}
-                        </TabsContent>
-                        <TabsContent value="explore" className="mt-4">
-                            {renderTable(exploreServices)}
-                        </TabsContent>
+                        {enabledCategories.map(cat => (
+                             <TabsContent key={cat.id} value={cat.id} className="mt-4">
+                                {renderTable(servicesByCategory[cat.id] || [])}
+                            </TabsContent>
+                        ))}
                     </Tabs>
                 )}
             </CardContent>

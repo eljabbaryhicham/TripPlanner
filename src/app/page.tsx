@@ -58,8 +58,6 @@ export default function Home() {
     
     return <BestServicesSection 
       allServices={services} 
-      categoryServices={{carRentals, hotels, transports, exploreTrips}} 
-      categorySettings={settings.categories || {}}
     />;
   };
 
