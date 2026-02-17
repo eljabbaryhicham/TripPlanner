@@ -26,10 +26,11 @@ export function getAdminServices(): AdminServices {
         };
     }
     
-    // If no app is initialized, create a new one.
-    // When running in a Google Cloud environment like App Hosting,
-    // initializeApp() with no arguments automatically discovers credentials.
-    const app = initializeApp();
+    // If no app is initialized, create a new one, explicitly setting the projectId.
+    // This forces the Admin SDK to use the same project as the client, resolving the 'aud' claim mismatch.
+    const app = initializeApp({
+        projectId: 'studio-5965912818-b2790',
+    });
         
     return {
         adminApp: app,
