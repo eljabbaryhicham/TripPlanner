@@ -27,6 +27,7 @@ export interface Review {
   id: string;
   userId: string;
   serviceId: string;
+  serviceName: string;
   rating: number;
   comment: string;
   createdAt: any; // Firestore Timestamp
