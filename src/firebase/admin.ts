@@ -10,33 +10,21 @@ interface AdminServices {
   adminFirestore: Firestore;
 }
 
-// Create a global variable to hold the initialized services.
-// This is a common pattern to avoid re-initializing on every function call in a serverless environment.
-let adminServices: AdminServices | null = null;
-
-function initializeAdminServices(): AdminServices {
-    // In a Google Cloud environment like App Hosting, calling initializeApp() with no arguments
-    // automatically discovers and uses the project's service account credentials.
-    // This is the standard and most reliable method for authentication.
-    const app = getApps().length === 0 
-        ? initializeApp() 
-        : getApp();
+/**
+ * Initializes and/or returns the Firebase Admin SDK services.
+ * This function ensures the SDK is initialized only once per instance by checking if an app is already initialized.
+ * @returns An object containing the initialized admin services.
+ */
+export function getAdminServices(): AdminServices {
+    // getApps() returns an array of all initialized apps. If it's not empty, we get the default app.
+    // Otherwise, we initialize a new app. This is idempotent and safe to call multiple times in a serverless environment.
+    const app = getApps().length > 0 
+        ? getApp() 
+        : initializeApp();
         
     return {
         adminApp: app,
         adminAuth: getAuth(app),
         adminFirestore: getFirestore(app),
     };
-}
-
-/**
- * Initializes and/or returns the Firebase Admin SDK services.
- * This function ensures the SDK is initialized only once per instance.
- * @returns An object containing the initialized admin services.
- */
-export function getAdminServices(): AdminServices {
-    if (!adminServices) {
-        adminServices = initializeAdminServices();
-    }
-    return adminServices;
 }

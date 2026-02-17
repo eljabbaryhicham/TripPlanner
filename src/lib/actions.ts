@@ -4,7 +4,14 @@ import { z } from 'zod';
 import { revalidatePath } from 'next/cache';
 import { Resend } from 'resend';
 import { getAdminServices } from '@/firebase/admin';
-import type { BootstrapSuperAdminInput } from '@/ai/flows/manage-admin-flow';
+
+// This was previously in the manage-admin-flow.ts Genkit file.
+const bootstrapSuperAdminSchema = z.object({
+  uid: z.string(),
+  email: z.string().email(),
+});
+type BootstrapSuperAdminInput = z.infer<typeof bootstrapSuperAdminSchema>;
+
 
 // Fills a template string with data.
 function fillTemplate(template: string, data: Record<string, any>): string {
