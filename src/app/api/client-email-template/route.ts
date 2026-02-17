@@ -12,7 +12,7 @@ export async function GET() {
     const { adminFirestore } = getAdminServices();
     const db = adminFirestore;
     const doc = await db.collection('email_templates').doc('client_confirmation').get();
-    if (!doc.exists() || !doc.data()?.template) {
+    if (!doc.exists || !doc.data()?.template) {
       return NextResponse.json({ template: (clientTemplateFromFile as TemplateFile).template });
     }
     return NextResponse.json(doc.data());
