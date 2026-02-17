@@ -82,7 +82,7 @@ export default function BestServicesSection({ allServices }: BestServicesSection
             <TabsTrigger value="all">All</TabsTrigger>
             {activeCategories.map(cat => (
               <TabsTrigger key={cat.id} value={cat.id}>
-                <Icon name={cat.icon} className="h-[17px] w-[17px] text-[17px] mr-2" />
+                <Icon name={cat.icon} className="h-4 w-4 text-[16px] leading-4 mr-2" />
                 {cat.name}
               </TabsTrigger>
             ))}
