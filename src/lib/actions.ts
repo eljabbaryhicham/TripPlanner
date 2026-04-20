@@ -48,7 +48,7 @@ const inquirySchema = z.object({
 
 type InquiryData = z.infer<typeof inquirySchema>;
 
-export async function submitInquiryEmail(data: InquiryData): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
+async function processInquiryEmailInBackground(data: InquiryData) {
   const { customerName, email, phone, message, serviceName, startDate, endDate, origin, destination, totalPrice } = data;
 
   let recipientEmail: string | undefined;
@@ -82,11 +82,11 @@ export async function submitInquiryEmail(data: InquiryData): Promise<{ success: 
     
     if (!process.env.RESEND_API_KEY) {
       console.error('Email sending is not configured: RESEND_API_KEY is missing.');
-      return { success: false, error: 'The server is not configured for sending emails. The administrator must set a RESEND_API_KEY in the environment variables.' };
+      return;
     }
     if (!recipientEmail || !fromEmail) {
         console.error('Email sending is not configured: Recipient or From email is missing from app settings.');
-        return { success: false, error: 'Email sending is not configured. Please set the "Booking Notification Email" and "From Email Address" in the General Settings section of the admin dashboard.' };
+        return;
     }
     
     const resend = new Resend(process.env.RESEND_API_KEY);
@@ -134,22 +134,22 @@ export async function submitInquiryEmail(data: InquiryData): Promise<{ success: 
       }) : Promise.resolve({ status: 'fulfilled' as const, value: { data: null, error: null } })
     ]);
 
-    let warning: string | null = null;
     if (adminResult.status === 'rejected') {
         console.error('Resend error (to admin):', adminResult.reason);
-        return { success: false, error: 'Failed to send notification email to the site administrator.' };
     }
     if (clientResult.status === 'rejected') {
         console.error('Resend error (to client):', (clientResult as PromiseRejectedResult).reason);
-        warning = 'Your inquiry was sent, but the confirmation email could not be delivered to you.';
     }
 
-    return { success: true, warning };
-
   } catch (error: any) {
-    console.error('A critical error occurred during email submission:', error);
-    return { success: false, error: error.message || 'An unexpected server error occurred.' };
+    console.error('A critical error occurred during email submission in background:', error);
   }
+}
+
+export async function submitInquiryEmail(data: InquiryData): Promise<{ success: boolean; error?: string | null; warning?: string | null; }> {
+  // Fire and forget background processing
+  processInquiryEmailInBackground(data);
+  return { success: true };
 }
 
 
@@ -163,13 +163,7 @@ const contactFormSchema = z.object({
 
 type ContactFormValues = z.infer<typeof contactFormSchema>;
 
-export async function submitContactForm(data: ContactFormValues): Promise<{ success: boolean; error?: string | null; }> {
-  const parsed = contactFormSchema.safeParse(data);
-
-  if (!parsed.success) {
-    return { success: false, error: 'Invalid data.' };
-  }
-  
+async function processContactEmailInBackground(parsedData: ContactFormValues) {
   try {
     const { adminFirestore } = getAdminServices();
     const db = adminFirestore;
@@ -181,10 +175,10 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
     
     if (!process.env.RESEND_API_KEY || !recipientEmail) {
       console.error('Resend API Key or recipient email is not configured.');
-      return { success: false, error: 'Server is not configured to send emails.' };
+      return;
     }
     
-    const { name, email, mobile, message } = parsed.data;
+    const { name, email, mobile, message } = parsedData;
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const { error } = await resend.emails.send({
@@ -204,15 +198,21 @@ export async function submitContactForm(data: ContactFormValues): Promise<{ succ
 
     if (error) {
       console.error('Resend error:', error);
-      return { success: false, error: 'Failed to send email.' };
     }
-
-    return { success: true };
   } catch (error: any) {
-    console.error('Failed to send email:', error);
-    const message = error.message || 'An unexpected error occurred.';
-    return { success: false, error: message };
+    console.error('Failed to send contact email in background:', error);
   }
+}
+
+export async function submitContactForm(data: ContactFormValues): Promise<{ success: boolean; error?: string | null; }> {
+  const parsed = contactFormSchema.safeParse(data);
+
+  if (!parsed.success) {
+    return { success: false, error: 'Invalid data.' };
+  }
+  
+  processContactEmailInBackground(parsed.data);
+  return { success: true };
 }
 
 export async function grantInitialAdminAccess(input: { uid: string; email: string; }): Promise<{ success: boolean; error?: string | null; }> {
